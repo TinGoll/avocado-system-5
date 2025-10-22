@@ -6,21 +6,29 @@ import {
 import { Order } from 'src/modules/orders/entities/order.entity';
 import { OrderItem } from 'src/modules/orders/entities/order-item.entity';
 
-// Базовый тип для условия заказа
-interface OrderCondition {
-  source: ConditionSource.ORDER;
-  path: Paths<Order>;
-  operator: ConditionOperator;
-  value: unknown;
-}
+// "Лист" дерева - это отдельное, конкретное условие.
+// Оно может быть связано либо с заказом, либо с элементом заказа.
+type LeafCondition =
+  | {
+      source: ConditionSource.ORDER;
+      path: Paths<Order>;
+      operator: ConditionOperator;
+      value: unknown;
+    }
+  | {
+      source: ConditionSource.ITEM;
+      path: Paths<OrderItem>;
+      operator: ConditionOperator;
+      value: unknown;
+    };
 
-// Базовый тип для условия элемента заказа
-interface ItemCondition {
-  source: ConditionSource.ITEM;
-  path: Paths<OrderItem>;
-  operator: ConditionOperator;
-  value: unknown;
-}
+// "Ветка" дерева - это логическая группа.
+// Она содержит массив, который может состоять из других групп или листьев.
+// Это и есть рекурсия.
+type ConditionGroup = {
+  AND?: PriceModifierCondition[];
+  OR?: PriceModifierCondition[];
+};
 
-// Дискриминированное объединение: наш финальный тип!
-export type PriceModifierCondition = OrderCondition | ItemCondition;
+// Финальный тип - это либо "ветка", либо "лист".
+export type PriceModifierCondition = ConditionGroup | LeafCondition;

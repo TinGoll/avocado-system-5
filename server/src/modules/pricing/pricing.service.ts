@@ -134,15 +134,58 @@ export class PricingService {
     item: OrderItem,
     order: Order,
   ): boolean {
-    const { operator, value } = conditions;
+    return this.evaluateConditionTree(conditions, item, order);
+  }
 
-    let actualValue: unknown;
-
-    if (conditions.source === ConditionSource.ORDER) {
-      actualValue = get(order, conditions.path);
-    } else {
-      actualValue = get(item, conditions.path);
+  /**
+   * Рекурсивно обходит дерево условий и вычисляет итоговый результат.
+   */
+  private evaluateConditionTree(
+    condition: PriceModifierCondition,
+    item: OrderItem,
+    order: Order,
+  ): boolean {
+    // Проверяем, является ли узел группой "AND"
+    if ('AND' in condition && Array.isArray(condition.AND)) {
+      // Для "AND" ВСЕ вложенные условия должны быть истинными.
+      // Используем Array.prototype.every()
+      return condition.AND.every((subCondition) =>
+        this.evaluateConditionTree(subCondition, item, order),
+      );
     }
+
+    // Проверяем, является ли узел группой "OR"
+    if ('OR' in condition && Array.isArray(condition.OR)) {
+      // Для "OR" ХОТЯ БЫ ОДНО вложенное условие должно быть истинным.
+      // Используем Array.prototype.some()
+      return condition.OR.some((subCondition) =>
+        this.evaluateConditionTree(subCondition, item, order),
+      );
+    }
+
+    // Если это не "AND" и не "OR", значит, это "лист" - простое условие.
+    // Вызываем обработчик для "листьев".
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    return this.evaluateLeafCondition(condition as any, item, order);
+  }
+
+  private evaluateLeafCondition(
+    leaf: {
+      source: ConditionSource;
+      path: string;
+      operator: ConditionOperator;
+      value: unknown;
+    },
+    item: OrderItem,
+    order: Order,
+  ): boolean {
+    const { source, path, operator, value } = leaf;
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const actualValue = get(
+      source === ConditionSource.ORDER ? order : item,
+      path as any,
+    );
 
     if (actualValue === undefined || actualValue === null) {
       return false;
@@ -164,7 +207,6 @@ export class PricingService {
     switch (operator) {
       case ConditionOperator.EQ:
         // Используем `==` для нестрогого сравнения, так как данные из JSON
-        // могут прийти как "100", а сравниваться с числом 100.
         // Это осознанный выбор для большей гибкости.
         return actualValue == value;
 
@@ -177,11 +219,9 @@ export class PricingService {
       case ConditionOperator.LTE:
         return actualValue <= (value as number | string);
 
-      default:
-        // Эта строка вызовет ошибку компиляции, если добавить новый оператор в Enum,
-        // eslint-disable-next-line no-case-declarations, @typescript-eslint/no-unused-vars
-        const _exhaustiveCheck: never = operator;
+      default: {
         return false;
+      }
     }
   }
 }
