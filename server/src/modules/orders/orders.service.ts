@@ -11,6 +11,7 @@ import { Repository } from 'typeorm';
 import { ProductTemplate } from '../products/entities/product-template.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { PricingService } from '../pricing/pricing.service';
+import { CreateOrderItemDto } from './dto/create-order-item.dto';
 
 @Injectable()
 export class OrdersService {
@@ -26,53 +27,84 @@ export class OrdersService {
     const { items, ...orderData } = createDto;
 
     const order = this.ordersRepository.create(orderData);
-    const orderItems: OrderItem[] = [];
+    order.items = await Promise.all(
+      items.map((itemDto) => this.createOrderItem(itemDto, order)),
+    );
 
-    order.items = orderItems;
-
-    for (const itemDto of items) {
-      const template = await this.productsRepository.findOne({
-        where: { id: itemDto.templateId },
-        relations: { operations: true },
-      });
-
-      if (!template) {
-        throw new BadRequestException(
-          `Product template with ID "${itemDto.templateId}" not found.`,
-        );
-      }
-
-      const orderItem = new OrderItem();
-      orderItem.template = template;
-      orderItem.quantity = itemDto.quantity;
-      orderItem.characteristics = {
-        ...template.defaultCharacteristics,
-        ...itemDto.characteristics,
-      };
-
-      orderItem.snapshot = {
-        name: template.name,
-        baseCustomerPrice: template.baseCustomerPrice,
-        attributes: template.attributes,
-        customerPricingMethod: template.customerPricingMethod,
-        defaultCharacteristics: template.defaultCharacteristics,
-      };
-
-      const productionCostPerUnit = this.pricingService.calculateProductionCost(
-        orderItem,
-        template,
-      );
-
-      orderItem.calculatedProductionCost =
-        productionCostPerUnit * orderItem.quantity;
-
-      orderItem.calculatedCustomerPrice =
-        await this.pricingService.calculateCustomerPrice(orderItem, order);
-
-      orderItems.push(orderItem);
-    }
+    this.recalculateOrderTotal(order);
 
     return this.ordersRepository.save(order);
+  }
+
+  async addItemToOrder(
+    orderId: string,
+    createItemDto: CreateOrderItemDto,
+  ): Promise<Order> {
+    const order = await this.ordersRepository.findOne({
+      where: { id: orderId },
+      relations: { items: true },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order with ID "${orderId}" not found`);
+    }
+
+    const newOrderItem = await this.createOrderItem(createItemDto, order);
+    order.items.push(newOrderItem);
+    this.recalculateOrderTotal(order);
+
+    return this.ordersRepository.save(order);
+  }
+
+  private async createOrderItem(
+    itemDto: CreateOrderItemDto,
+    order: Order,
+  ): Promise<OrderItem> {
+    const template = await this.productsRepository.findOne({
+      where: { id: itemDto.templateId },
+      relations: { operations: true },
+    });
+
+    if (!template) {
+      throw new BadRequestException(
+        `Product template with ID "${itemDto.templateId}" not found.`,
+      );
+    }
+
+    const orderItem = new OrderItem();
+    orderItem.template = template;
+    orderItem.quantity = itemDto.quantity;
+    orderItem.characteristics = {
+      ...template.defaultCharacteristics,
+      ...itemDto.characteristics,
+    };
+
+    orderItem.snapshot = {
+      name: template.name,
+      baseCustomerPrice: template.baseCustomerPrice,
+      attributes: template.attributes,
+      customerPricingMethod: template.customerPricingMethod,
+      defaultCharacteristics: template.defaultCharacteristics,
+    };
+
+    const productionCostPerUnit = this.pricingService.calculateProductionCost(
+      orderItem,
+      template,
+    );
+    orderItem.calculatedProductionCost =
+      productionCostPerUnit * orderItem.quantity;
+
+    orderItem.calculatedCustomerPrice =
+      await this.pricingService.calculateCustomerPrice(orderItem, order);
+
+    return orderItem;
+  }
+
+  private recalculateOrderTotal(order: Order): void {
+    order.totalPrice = order.items.reduce(
+      (sum, item) => sum + item.calculatedCustomerPrice,
+      0,
+    );
   }
 
   findAll(): Promise<Order[]> {

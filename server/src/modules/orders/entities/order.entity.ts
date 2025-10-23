@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { OrderItem } from './order-item.entity';
+import { ColumnNumericTransformer } from 'src/shared/utils/column.transformer';
 
 export enum OrderStatus {
   DRAFT = 'draft',
@@ -21,7 +22,7 @@ export class Order {
   id: string;
 
   @Column({ type: 'text', unique: true })
-  orderNumber: string; // Может генерироваться автоматически
+  orderNumber: string;
 
   @Column({
     type: 'enum',
@@ -31,7 +32,16 @@ export class Order {
   status: OrderStatus;
 
   @Column({ type: 'jsonb', default: {} })
-  commonProperties: object; // Общие свойства: цвет, материал и т.д.
+  commonProperties: object;
+
+  @Column({
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    default: 0,
+    transformer: new ColumnNumericTransformer(),
+  })
+  totalPrice: number;
 
   // Один заказ может иметь много элементов
   @OneToMany(() => OrderItem, (orderItem) => orderItem.order, {
