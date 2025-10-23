@@ -1,35 +1,27 @@
+import { Type } from 'class-transformer';
 import {
+  ArrayMinSize,
   IsArray,
-  IsInt,
   IsNotEmpty,
   IsObject,
+  IsOptional,
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-
-class CreateOrderItemDto {
-  @IsInt()
-  productId: number;
-
-  @IsInt()
-  quantity: number;
-
-  @IsArray()
-  @IsInt({ each: true })
-  optionIds: number[];
-
-  @IsObject()
-  dimensions: Record<string, any>;
-}
+import { CreateOrderItemDto } from './create-order-item.dto';
 
 export class CreateOrderDto {
   @IsString()
   @IsNotEmpty()
-  customer: string;
+  orderNumber: string;
+
+  @IsObject()
+  @IsOptional()
+  commonProperties?: object;
 
   @IsArray()
   @ValidateNested({ each: true })
+  @ArrayMinSize(1)
   @Type(() => CreateOrderItemDto)
   items: CreateOrderItemDto[];
 }

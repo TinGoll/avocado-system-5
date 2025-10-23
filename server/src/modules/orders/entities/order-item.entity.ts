@@ -1,63 +1,56 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Order } from './order.entity';
+import {
+  CustomerPricingMethod,
+  ProductTemplate,
+} from 'src/modules/products/entities/product-template.entity';
+import { ColumnNumericTransformer } from 'src/shared/utils/column.transformer';
 
-@Entity()
+type Snapshot = {
+  name: string;
+  baseCustomerPrice: number;
+  attributes: object;
+  customerPricingMethod: CustomerPricingMethod;
+  defaultCharacteristics: Record<string, string | number | boolean>;
+};
+
+@Entity('order_items')
 export class OrderItem {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @ManyToOne(() => Order, (order) => order.items, { onDelete: 'CASCADE' })
+  // Много элементов могут принадлежать одному заказу
+  @ManyToOne(() => Order, (order) => order.items)
   order: Order;
 
-  // --- Ссылки и "запеченные" данные ---
-
-  @Column({
-    nullable: true,
-    comment: 'ID оригинального продукта',
-  })
-  originalProductId: number;
-
-  @Column({
-    type: 'jsonb',
-    comment: 'Снимок основных полей продукта (name, etc.)',
-  })
-  productSnapshot: { name: string };
-
-  @Column({
-    type: 'jsonb',
-    comment: 'Снимок выбранных опций (Материал: Дуб, Цвет: Белый)',
-  })
-  optionsSnapshot: { group: string; option: string }[];
-
-  // --- Характеристики конкретной позиции ---
+  // Ссылка на оригинальный шаблон (может быть null, если продукт уникальный)
+  @ManyToOne(() => ProductTemplate, { nullable: true, onDelete: 'SET NULL' })
+  template: ProductTemplate;
 
   @Column({ type: 'int' })
   quantity: number;
 
-  @Column({
-    type: 'jsonb',
-    nullable: true,
-    comment: 'Кастомные размеры (ширина, высота и т.д.)',
-  })
-  dimensions: { width?: number; height?: number; [key: string]: any };
+  @Column({ type: 'jsonb' })
+  snapshot: Snapshot; // "Снимок" данных из шаблона на момент создания
 
-  // --- "Запеченные" данные о цене ---
+  @Column({ type: 'jsonb', default: {} })
+  characteristics: Record<string, string | number | boolean>; // Уникальные характеристики (размеры и т.д.)
 
   @Column({
-    type: 'float',
-    comment: 'Базовая цена за единицу на момент заказа',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    default: 0,
+    transformer: new ColumnNumericTransformer(),
   })
-  basePrice: number;
+  calculatedProductionCost: number; // Рассчитанная себестоимость работ
 
   @Column({
-    type: 'float',
-    comment: 'Цена за единицу после применения всех модификаторов',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    default: 0,
+    transformer: new ColumnNumericTransformer(),
   })
-  unitPrice: number;
-
-  @Column({
-    type: 'float',
-    comment: 'Итоговая цена за позицию (unitPrice * quantity)',
-  })
-  totalPrice: number;
+  calculatedCustomerPrice: number; // Финальная цена для клиента
 }

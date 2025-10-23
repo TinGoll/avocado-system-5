@@ -1,83 +1,138 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { UpdateOrderDto } from './dto/update-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order } from './entities/order.entity';
-import { Product } from 'src/modules/products/entities/product.entity';
-import { OptionValue } from 'src/modules/options/entities/option.entity';
-import { In, Repository } from 'typeorm';
-import { PriceCalculationService } from '../price-calculation/price-calculation.service';
+import { Repository } from 'typeorm';
+import { ProductTemplate } from '../products/entities/product-template.entity';
 import { OrderItem } from './entities/order-item.entity';
+import { PricingService } from '../pricing/pricing.service';
+import { CreateOrderItemDto } from './dto/create-order-item.dto';
 
 @Injectable()
 export class OrdersService {
   constructor(
     @InjectRepository(Order)
-    private readonly orderRepository: Repository<Order>,
-    @InjectRepository(Product)
-    private readonly productRepository: Repository<Product>,
-    @InjectRepository(OptionValue)
-    private readonly optionRepository: Repository<OptionValue>,
-    private readonly priceCalculationService: PriceCalculationService,
+    private readonly ordersRepository: Repository<Order>,
+    @InjectRepository(ProductTemplate)
+    private readonly productsRepository: Repository<ProductTemplate>,
+    private readonly pricingService: PricingService,
   ) {}
 
-  async create(createOrderDto: CreateOrderDto): Promise<Order> {
-    const order = new Order();
-    order.customer = createOrderDto.customer;
-    order.orderNumber = `ORD-${Date.now()}-${Math.round(Math.random() * 1000)}`; // Простая генерация номера
+  async create(createDto: CreateOrderDto): Promise<Order> {
+    const { items, ...orderData } = createDto;
 
-    let totalAmount = 0;
+    const order = this.ordersRepository.create(orderData);
+    order.items = await Promise.all(
+      items.map((itemDto) => this.createOrderItem(itemDto, order)),
+    );
 
-    // Параллельно обрабатываем все позиции заказа
-    const orderItemsPromises = createOrderDto.items.map(async (itemDto) => {
-      // 1. Получаем актуальные данные о продукте и опциях
-      const product = await this.productRepository.findOneBy({
-        id: itemDto.productId,
-      });
-      if (!product)
-        throw new NotFoundException(
-          `Продукт с ID ${itemDto.productId} не найден.`,
-        );
+    this.recalculateOrderTotal(order);
 
-      const options = await this.optionRepository.find({
-        where: { id: In(itemDto.optionIds) },
-        relations: ['group'],
-      });
+    return this.ordersRepository.save(order);
+  }
 
-      // 2. Рассчитываем цену через специализированный сервис
-      const { basePrice, finalPrice } =
-        await this.priceCalculationService.calculatePrice(
-          itemDto.productId,
-          itemDto.optionIds,
-        );
-
-      // 3. Создаем "запеченную" позицию заказа (OrderItem)
-      const orderItem = new OrderItem();
-      orderItem.originalProductId = product.id;
-      orderItem.quantity = itemDto.quantity;
-      orderItem.dimensions = itemDto.dimensions;
-
-      // 4. "Запекаем" цены
-      orderItem.basePrice = basePrice;
-      orderItem.unitPrice = finalPrice;
-      orderItem.totalPrice = finalPrice * itemDto.quantity;
-
-      // 5. "Запекаем" названия в JSONB для исторической точности
-      orderItem.productSnapshot = { name: product.name };
-      orderItem.optionsSnapshot = options.map((opt) => ({
-        group: opt.group.name,
-        option: opt.name,
-      }));
-
-      // 6. Увеличиваем общую сумму заказа
-      totalAmount += orderItem.totalPrice;
-
-      return orderItem;
+  async addItemToOrder(
+    orderId: string,
+    createItemDto: CreateOrderItemDto,
+  ): Promise<Order> {
+    const order = await this.ordersRepository.findOne({
+      where: { id: orderId },
+      relations: { items: true },
     });
 
-    order.items = await Promise.all(orderItemsPromises);
-    order.totalAmount = totalAmount;
+    if (!order) {
+      throw new NotFoundException(`Order with ID "${orderId}" not found`);
+    }
 
-    // 7. Сохраняем заказ вместе со всеми позициями благодаря cascade: true
-    return this.orderRepository.save(order);
+    const newOrderItem = await this.createOrderItem(createItemDto, order);
+    order.items.push(newOrderItem);
+    this.recalculateOrderTotal(order);
+
+    return this.ordersRepository.save(order);
+  }
+
+  private async createOrderItem(
+    itemDto: CreateOrderItemDto,
+    order: Order,
+  ): Promise<OrderItem> {
+    const template = await this.productsRepository.findOne({
+      where: { id: itemDto.templateId },
+      relations: { operations: true },
+    });
+
+    if (!template) {
+      throw new BadRequestException(
+        `Product template with ID "${itemDto.templateId}" not found.`,
+      );
+    }
+
+    const orderItem = new OrderItem();
+    orderItem.template = template;
+    orderItem.quantity = itemDto.quantity;
+    orderItem.characteristics = {
+      ...template.defaultCharacteristics,
+      ...itemDto.characteristics,
+    };
+
+    orderItem.snapshot = {
+      name: template.name,
+      baseCustomerPrice: template.baseCustomerPrice,
+      attributes: template.attributes,
+      customerPricingMethod: template.customerPricingMethod,
+      defaultCharacteristics: template.defaultCharacteristics,
+    };
+
+    const productionCostPerUnit = this.pricingService.calculateProductionCost(
+      orderItem,
+      template,
+    );
+    orderItem.calculatedProductionCost =
+      productionCostPerUnit * orderItem.quantity;
+
+    orderItem.calculatedCustomerPrice =
+      await this.pricingService.calculateCustomerPrice(orderItem, order);
+
+    return orderItem;
+  }
+
+  private recalculateOrderTotal(order: Order): void {
+    order.totalPrice = order.items.reduce(
+      (sum, item) => sum + item.calculatedCustomerPrice,
+      0,
+    );
+  }
+
+  findAll(): Promise<Order[]> {
+    return this.ordersRepository.find();
+  }
+
+  async findOne(id: string): Promise<Order> {
+    const order = await this.ordersRepository.findOneBy({ id });
+    if (!order) {
+      throw new NotFoundException(`Order with ID "${id}" not found`);
+    }
+    return order;
+  }
+
+  async update(id: string, updateDto: UpdateOrderDto): Promise<Order> {
+    const order = await this.ordersRepository.preload({
+      id,
+      ...updateDto,
+    });
+    if (!order) {
+      throw new NotFoundException(`Order with ID "${id}" not found`);
+    }
+    return this.ordersRepository.save(order);
+  }
+
+  async remove(id: string): Promise<Order> {
+    const order = await this.findOne(id);
+    await this.ordersRepository.remove(order);
+    return order;
   }
 }

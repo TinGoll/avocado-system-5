@@ -4,28 +4,55 @@ import {
   Entity,
   OneToMany,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { OrderItem } from './order-item.entity';
+import { ColumnNumericTransformer } from 'src/shared/utils/column.transformer';
 
-@Entity()
+export enum OrderStatus {
+  DRAFT = 'draft',
+  IN_PRODUCTION = 'in_production',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+}
+
+@Entity('orders')
 export class Order {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column({ unique: true, comment: 'Уникальный номер заказа для клиента' })
+  @Column({ type: 'text', unique: true })
   orderNumber: string;
 
-  @Column({ comment: 'Имя или ID заказчика' })
-  customer: string;
+  @Column({
+    type: 'enum',
+    enum: OrderStatus,
+    default: OrderStatus.DRAFT,
+  })
+  status: OrderStatus;
+
+  @Column({ type: 'jsonb', default: {} })
+  commonProperties: object;
+
+  @Column({
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    default: 0,
+    transformer: new ColumnNumericTransformer(),
+  })
+  totalPrice: number;
+
+  // Один заказ может иметь много элементов
+  @OneToMany(() => OrderItem, (orderItem) => orderItem.order, {
+    cascade: true,
+    eager: true,
+  })
+  items: OrderItem[];
 
   @CreateDateColumn()
   createdAt: Date;
 
-  @Column({ type: 'float', default: 0, comment: 'Итоговая сумма всего заказа' })
-  totalAmount: number;
-
-  @OneToMany(() => OrderItem, (item) => item.order, {
-    cascade: true,
-  })
-  items: OrderItem[];
+  @UpdateDateColumn()
+  updatedAt: Date;
 }
