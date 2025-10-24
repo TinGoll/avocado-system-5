@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
+import { WrapItemsInterceptor } from './common/interceptors/wrap-items.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -9,6 +10,7 @@ async function bootstrap() {
   });
 
   app.setGlobalPrefix('api');
+  app.useGlobalInterceptors(new WrapItemsInterceptor());
   app.enableCors({
     origin: (origin, callback) => {
       // Ваша логика origin остается прежней
