@@ -1,5 +1,5 @@
 import { css } from '@emotion/css';
-import { type FC, type ReactNode } from 'react';
+import type { FC } from 'react';
 import { Outlet } from 'react-router';
 
 const styles = css`
@@ -18,19 +18,16 @@ const styles = css`
   }
 `;
 
-type Props = {
-  navbar?: ReactNode;
-  footer?: ReactNode;
-};
-
-export const DashboardLayout: FC<Props> = ({ navbar, footer }) => {
+const BasePage: FC = () => {
   return (
     <div className={styles}>
-      {navbar && <header className="app-header">{navbar}</header>}
+      <header className="app-header">navbar</header>
       <main className="app-main">
         <Outlet />
       </main>
-      {footer && <footer className="app-footer">{footer}</footer>}
+      <footer className="app-footer">footer</footer>
     </div>
   );
 };
+
+export default BasePage;
