@@ -21,7 +21,7 @@ interface ErrorResponse {
 export class AllExceptionsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>(); // 👈 правильный тип
+    const response = ctx.getResponse<Response>();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
@@ -50,6 +50,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
       error: { message, code, details },
     };
 
-    response.status(HttpStatus.OK).json(errorResponse);
+    response.status(status).json(errorResponse);
   }
 }

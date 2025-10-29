@@ -16,6 +16,10 @@ export class CreateProductDto {
   @IsNotEmpty()
   name: string;
 
+  @IsString()
+  @IsOptional()
+  group?: string;
+
   @IsObject()
   @IsOptional()
   defaultCharacteristics?: Record<string, string | number | boolean>;

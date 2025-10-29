@@ -11,7 +11,7 @@ export class Material {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', unique: true })
   name: string;
 
   @Column({ type: 'text' })

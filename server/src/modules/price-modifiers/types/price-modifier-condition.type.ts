@@ -24,11 +24,9 @@ type LeafCondition =
 
 // "Ветка" дерева - это логическая группа.
 // Она содержит массив, который может состоять из других групп или листьев.
-// Это и есть рекурсия.
 type ConditionGroup = {
   AND?: PriceModifierCondition[];
   OR?: PriceModifierCondition[];
 };
 
-// Финальный тип - это либо "ветка", либо "лист".
 export type PriceModifierCondition = ConditionGroup | LeafCondition;

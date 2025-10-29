@@ -11,7 +11,7 @@ export class Varnish {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', unique: true })
   name: string;
 
   @CreateDateColumn()

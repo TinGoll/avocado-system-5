@@ -11,7 +11,7 @@ import { VarnishService } from './varnish.service';
 import { CreateVarnishDto } from './dto/create-varnish.dto';
 import { UpdateVarnishDto } from './dto/update-varnish.dto';
 
-@Controller('varnish')
+@Controller('varnishes')
 export class VarnishController {
   constructor(private readonly varnishService: VarnishService) {}
 

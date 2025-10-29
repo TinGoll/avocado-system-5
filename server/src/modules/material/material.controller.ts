@@ -11,7 +11,7 @@ import { MaterialService } from './material.service';
 import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 
-@Controller('material')
+@Controller('materials')
 export class MaterialController {
   constructor(private readonly materialService: MaterialService) {}
 
