@@ -25,6 +25,7 @@
     "dayjs": "^1.11.13",
     "es-toolkit": "^1.39.10",
     "google-libphonenumber": "^3.2.42",
+    "immer": "^10.2.0",
     "jiti": "^2.5.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

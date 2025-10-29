@@ -1,10 +1,7 @@
 :root {
-  --app-body-background-color: #242424;
-  --app-header-background-color: #202020;
+  --app-surface-background-color: #242424;;
+  --app-body-background-color: #202020;
   --app-devider-color: #303030;
-
-  --app-header-height: 48px;
-  --app-body-height: calc(100vh - var(--app-header-height));
 
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;

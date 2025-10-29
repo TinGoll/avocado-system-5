@@ -4,7 +4,8 @@ import { Outlet } from 'react-router';
 
 const styles = css`
   height: 100vh;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
 `;
 
 export const AppLayout: FC = () => {

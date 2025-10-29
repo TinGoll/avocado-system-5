@@ -3,11 +3,16 @@ import useSWR, { type SWRConfiguration } from 'swr';
 import type { SWRMutationConfiguration } from 'swr/mutation';
 import useSWRMutation from 'swr/mutation';
 
-type Endpoints = 'test';
-
+import type { Endpoints } from './endpoints';
 import { fetcher } from './fetcher.swr';
 
 export type EntityID = string | number;
+
+export type ErrorResponse = {
+  message: string;
+  code?: string;
+  details?: unknown;
+};
 
 export interface BaseEntity {
   id: EntityID;
@@ -19,8 +24,9 @@ export interface MutationCallbacks<T> {
 }
 
 export interface PaginatedResponse<T> {
-  items: T[];
-  meta: Record<string, unknown>;
+  items?: T[];
+  meta?: Record<string, unknown>;
+  error?: ErrorResponse;
 }
 
 export interface UseEntityOptions<
@@ -38,7 +44,7 @@ export interface UseEntityOptions<
 export function useEntity<
   R extends BaseEntity,
   TTransformedData = PaginatedResponse<R>,
-  C = Omit<R, 'id'>,
+  C = Omit<R, 'id' | 'createdAt' | 'updatedAt'>,
   U = Partial<C>,
 >({
   endpoint,
@@ -149,7 +155,7 @@ export function useEntity<
         if (!current) return { items: [], meta: {} };
         return {
           ...current,
-          items: current.items.map((item) =>
+          items: current.items?.map((item) =>
             item.id === id ? { ...item, ...updates } : item,
           ),
         };
@@ -196,7 +202,7 @@ export function useEntity<
         if (!current) return { items: [], meta: {} };
         return {
           ...current,
-          items: current.items.filter((item) => item.id !== id),
+          items: current.items?.filter((item) => item.id !== id),
         };
       },
       { revalidate: false },
