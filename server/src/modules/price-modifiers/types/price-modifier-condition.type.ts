@@ -5,6 +5,7 @@ import {
 } from '../entities/price-modifier.entity';
 import { Order } from 'src/modules/orders/entities/order.entity';
 import { OrderItem } from 'src/modules/orders/entities/order-item.entity';
+import { OrderGroup } from 'src/modules/order-groups/entities/order-group.entity';
 
 // "Лист" дерева - это отдельное, конкретное условие.
 // Оно может быть связано либо с заказом, либо с элементом заказа.
@@ -18,6 +19,12 @@ type LeafCondition =
   | {
       source: ConditionSource.ITEM;
       path: Paths<OrderItem>;
+      operator: ConditionOperator;
+      value: unknown;
+    }
+  | {
+      source: ConditionSource.ORDER_GROUP;
+      path: Paths<OrderGroup>;
       operator: ConditionOperator;
       value: unknown;
     };

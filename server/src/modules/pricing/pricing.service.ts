@@ -181,11 +181,27 @@ export class PricingService {
   ): boolean {
     const { source, path, operator, value } = leaf;
 
+    let dataSource: any;
+
+    switch (source) {
+      case ConditionSource.ORDER:
+        dataSource = order;
+        break;
+      case ConditionSource.ITEM:
+        dataSource = item;
+        break;
+      case ConditionSource.ORDER_GROUP:
+        if (!order.orderGroup) {
+          return false;
+        }
+        dataSource = order.orderGroup;
+        break;
+      default:
+        return false;
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const actualValue = get(
-      source === ConditionSource.ORDER ? order : item,
-      path as any,
-    );
+    const actualValue = get(dataSource, path as any);
 
     if (actualValue === undefined || actualValue === null) {
       return false;
@@ -206,8 +222,9 @@ export class PricingService {
 
     switch (operator) {
       case ConditionOperator.EQ:
-        // Используем `==` для нестрогого сравнения, так как данные из JSON
-        // Это осознанный выбор для большей гибкости.
+        if (typeof actualValue === 'string' && typeof value === 'string') {
+          return actualValue.toLowerCase() === value.toLowerCase();
+        }
         return actualValue == value;
 
       case ConditionOperator.GT:

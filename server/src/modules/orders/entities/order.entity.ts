@@ -2,12 +2,14 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { OrderItem } from './order-item.entity';
 import { ColumnNumericTransformer } from 'src/shared/utils/column.transformer';
+import { OrderGroup } from 'src/modules/order-groups/entities/order-group.entity';
 
 export enum OrderStatus {
   DRAFT = 'draft',
@@ -49,6 +51,12 @@ export class Order {
     eager: true,
   })
   items: OrderItem[];
+
+  @ManyToOne(() => OrderGroup, (group) => group.orders, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  orderGroup: OrderGroup;
 
   @CreateDateColumn()
   createdAt: Date;

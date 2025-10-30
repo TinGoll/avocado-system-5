@@ -12,6 +12,7 @@ import { ProductTemplate } from '../products/entities/product-template.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { PricingService } from '../pricing/pricing.service';
 import { CreateOrderItemDto } from './dto/create-order-item.dto';
+import { OrderGroup } from '../order-groups/entities/order-group.entity';
 
 @Injectable()
 export class OrdersService {
@@ -21,12 +22,25 @@ export class OrdersService {
     @InjectRepository(ProductTemplate)
     private readonly productsRepository: Repository<ProductTemplate>,
     private readonly pricingService: PricingService,
+    @InjectRepository(OrderGroup)
+    private readonly groupsRepository: Repository<OrderGroup>,
   ) {}
 
   async create(createDto: CreateOrderDto): Promise<Order> {
-    const { items, ...orderData } = createDto;
+    const { items, orderGroupId, ...orderData } = createDto;
 
     const order = this.ordersRepository.create(orderData);
+
+    if (orderGroupId) {
+      const group = await this.groupsRepository.findOneBy({ id: orderGroupId });
+      if (!group) {
+        throw new BadRequestException(
+          `Order Group with ID "${orderGroupId}" not found.`,
+        );
+      }
+      order.orderGroup = group;
+    }
+
     order.items = await Promise.all(
       items.map((itemDto) => this.createOrderItem(itemDto, order)),
     );
@@ -42,7 +56,7 @@ export class OrdersService {
   ): Promise<Order> {
     const order = await this.ordersRepository.findOne({
       where: { id: orderId },
-      relations: { items: true },
+      relations: { items: true, orderGroup: true },
     });
 
     if (!order) {
@@ -124,6 +138,7 @@ export class OrdersService {
       id,
       ...updateDto,
     });
+
     if (!order) {
       throw new NotFoundException(`Order with ID "${id}" not found`);
     }

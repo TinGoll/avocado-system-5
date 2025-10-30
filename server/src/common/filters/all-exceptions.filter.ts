@@ -29,7 +29,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
     let details: unknown;
 
     if (exception instanceof HttpException) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       status = exception.getStatus();
       const res = exception.getResponse();
       if (typeof res === 'string') {

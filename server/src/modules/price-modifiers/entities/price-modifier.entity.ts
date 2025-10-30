@@ -14,6 +14,7 @@ import { ProductTemplate } from 'src/modules/products/entities/product-template.
 export enum ConditionSource {
   ORDER = 'order',
   ITEM = 'item',
+  ORDER_GROUP = 'order_group',
 }
 
 export enum ConditionOperator {

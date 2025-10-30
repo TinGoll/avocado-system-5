@@ -12,6 +12,7 @@ import { VarnishModule } from './modules/varnish/varnish.module';
 import { PatinasModule } from './modules/patinas/patinas.module';
 import { PanelsModule } from './modules/panels/panels.module';
 import { FacadeProfilesModule } from './modules/facade-profiles/facade-profiles.module';
+import { OrderGroupsModule } from './modules/order-groups/order-groups.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { FacadeProfilesModule } from './modules/facade-profiles/facade-profiles.
     PatinasModule,
     PanelsModule,
     FacadeProfilesModule,
+    OrderGroupsModule,
   ],
   controllers: [],
   providers: [],
