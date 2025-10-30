@@ -33,13 +33,13 @@ export type LeafCondition =
       source: typeof CONDITION_SOURCE.ORDER;
       path: string;
       operator: ConditionOperator;
-      value: unknown;
+      value: string | number;
     }
   | {
       source: typeof CONDITION_SOURCE.ITEM;
       path: string;
       operator: ConditionOperator;
-      value: unknown;
+      value: string | number;
     };
 
 export type ConditionGroup = {

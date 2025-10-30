@@ -11,18 +11,14 @@ const getIn = (obj: any, path: (string | number)[]) => {
   );
 };
 
-// Определяем состояние и действия
 interface PriceModifierState {
   modifier: PriceModifier;
   actions: {
-    // Обновление полей верхнего уровня (name, type, value)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     updateField: (field: keyof PriceModifier, value: any) => void;
 
-    // Инициализация или сброс всей формы
     setInitialState: (initialState: PriceModifier) => void;
 
-    // Обновление конкретного поля в условии по его пути
     updateConditionField: (
       path: (string | number)[],
       field: string,
@@ -30,20 +26,24 @@ interface PriceModifierState {
       value: any,
     ) => void;
 
-    // Добавление нового условия в группу
     addCondition: (
       pathToGroup: (string | number)[],
       groupType: 'AND' | 'OR',
     ) => void;
 
-    // Удаление условия (листа или группы)
     removeCondition: (path: (string | number)[]) => void;
 
-    // Преобразование листа в группу
     transformToGroup: (
       path: (string | number)[],
       groupType: 'AND' | 'OR',
     ) => void;
+
+    changeGroupType: (
+      path: (string | number)[],
+      newGroupType: 'AND' | 'OR',
+    ) => void;
+
+    flattenGroup: (path: (string | number)[]) => void;
   };
 }
 
@@ -53,11 +53,10 @@ const defaultInitialState: PriceModifier = {
   type: 'percentage',
   value: 10,
   conditions: {
-    // Начнем с простого листа, чтобы показать гибкость
     source: 'order',
-    path: 'totalPrice',
+    path: '',
     operator: 'gte',
-    value: 1000,
+    value: 0,
   },
   productTemplates: [],
   createdAt: new Date(),
@@ -80,7 +79,6 @@ export const usePriceModifierStore = create<PriceModifierState>((set) => ({
     updateConditionField: (path, field, value) => {
       set(
         produce((draft) => {
-          // Находим родительский объект условия
           const parentPath = path.slice(0, -1);
           const conditionKey = path[path.length - 1];
           const parent = getIn(draft.modifier, parentPath);
@@ -110,8 +108,8 @@ export const usePriceModifierStore = create<PriceModifierState>((set) => ({
     removeCondition: (path) => {
       set(
         produce((draft) => {
-          const parentPath = path.slice(0, -2); // Путь к объекту, содержащему массив
-          const arrayKey = path[path.length - 2]; // 'AND' или 'OR'
+          const parentPath = path.slice(0, -2);
+          const arrayKey = path[path.length - 2];
           const indexToRemove = path[path.length - 1] as number;
 
           const parent = getIn(draft.modifier, parentPath);
@@ -122,15 +120,65 @@ export const usePriceModifierStore = create<PriceModifierState>((set) => ({
       );
     },
 
-    transformToGroup: (path, groupType) => {
+    transformToGroup: (path: (string | number)[], groupType: 'AND' | 'OR') => {
       set(
         produce((draft) => {
           const parentPath = path.slice(0, -1);
           const conditionKey = path[path.length - 1];
           const parent = getIn(draft.modifier, parentPath);
-          if (parent) {
-            // Заменяем объект листа на объект группы
-            parent[conditionKey] = { [groupType]: [] };
+
+          if (parent && parent[conditionKey]) {
+            const currentCondition = { ...parent[conditionKey] };
+
+            if ('AND' in currentCondition || 'OR' in currentCondition) {
+              return;
+            }
+            parent[conditionKey] = { [groupType]: [currentCondition] };
+          }
+        }),
+      );
+    },
+    changeGroupType: (path, newGroupType) => {
+      set(
+        produce((draft) => {
+          const parentPath = path.slice(0, -1);
+          const conditionKey = path[path.length - 1];
+          const parent = getIn(draft.modifier, parentPath);
+
+          if (parent && parent[conditionKey]) {
+            const group = parent[conditionKey];
+            const oldGroupType = newGroupType === 'AND' ? 'OR' : 'AND';
+
+            if (oldGroupType in group) {
+              const conditions = group[oldGroupType];
+              parent[conditionKey] = { [newGroupType]: conditions };
+            }
+          }
+        }),
+      );
+    },
+    flattenGroup: (path) => {
+      set(
+        produce((draft) => {
+          const parentPath = path.slice(0, -1);
+          const conditionKey = path[path.length - 1];
+          const parent = getIn(draft.modifier, parentPath);
+
+          if (parent && parent[conditionKey]) {
+            const group = parent[conditionKey];
+            const groupType = 'AND' in group ? 'AND' : 'OR';
+            const conditions = group[groupType];
+
+            if (conditions && conditions.length > 0) {
+              parent[conditionKey] = conditions[0];
+            } else {
+              parent[conditionKey] = {
+                source: 'order',
+                path: '',
+                operator: 'gte',
+                value: 0,
+              };
+            }
           }
         }),
       );

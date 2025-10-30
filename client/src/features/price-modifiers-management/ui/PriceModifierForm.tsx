@@ -5,17 +5,15 @@ import { MODIFER_TYPE } from '@entities/price-modifiers';
 import { usePriceModifierStore } from '../model/priceModifierStore';
 
 import { ConditionBuilder } from './ConditionBuilder';
+
 export const PriceModifierForm: React.FC = () => {
-  // Получаем все состояние и нужные действия
   const modifier = usePriceModifierStore((state) => state.modifier);
   const { updateField } = usePriceModifierStore((state) => state.actions);
 
   const handleSubmit = () => {
-    // Теперь логика отправки может быть и в компоненте, и в сторе
     const finalState = usePriceModifierStore.getState().modifier;
     // eslint-disable-next-line no-console
     console.log('✅ Price Modifier:', finalState);
-    // Тут можно добавить логику валидации перед отправкой
   };
 
   return (
