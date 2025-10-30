@@ -7,8 +7,6 @@ import { Order } from 'src/modules/orders/entities/order.entity';
 import { OrderItem } from 'src/modules/orders/entities/order-item.entity';
 import { OrderGroup } from 'src/modules/order-groups/entities/order-group.entity';
 
-// "Лист" дерева - это отдельное, конкретное условие.
-// Оно может быть связано либо с заказом, либо с элементом заказа.
 type LeafCondition =
   | {
       source: ConditionSource.ORDER;
@@ -29,8 +27,6 @@ type LeafCondition =
       value: unknown;
     };
 
-// "Ветка" дерева - это логическая группа.
-// Она содержит массив, который может состоять из других групп или листьев.
 type ConditionGroup = {
   AND?: PriceModifierCondition[];
   OR?: PriceModifierCondition[];
