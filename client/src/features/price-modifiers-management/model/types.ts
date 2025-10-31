@@ -1,37 +1,8 @@
+import type { Order, OrderItem } from '@entities/order';
 import type {
   CONDITION_SOURCE,
   ConditionOperator,
 } from '@entities/price-modifiers';
-
-export interface Customer {
-  id: string;
-  name: string;
-  level: 'bronze' | 'silver' | 'gold';
-  address: {
-    city: string;
-    street: string;
-  };
-}
-
-export interface Item {
-  id: string;
-  productId: string;
-  quantity: number;
-  price: number;
-  productDetails: {
-    name: string;
-    category: string;
-    weight: number;
-  };
-}
-
-export interface Order {
-  id: string;
-  totalPrice: number;
-  itemCount: number;
-  customer: Customer;
-  items: Item[];
-}
 
 type Primitives = string | number | boolean | Date | null | undefined;
 
@@ -46,7 +17,7 @@ type Paths<T, TPrefix extends string = ''> = {
 }[keyof T];
 
 export type OrderPath = Paths<Order>;
-export type ItemPath = Paths<Item>;
+export type ItemPath = Paths<OrderItem>;
 
 export type LeafCondition =
   | {

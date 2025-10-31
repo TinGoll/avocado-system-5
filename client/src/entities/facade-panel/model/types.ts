@@ -1,11 +1,11 @@
-export type FacadeProfileCharacteristics = {
+export type FacadePanelCharacteristics = {
   style?: string;
 };
 
 export type FacadePanel = {
   id: string;
   name: string;
-  characteristics: FacadeProfileCharacteristics;
+  characteristics: FacadePanelCharacteristics;
 
   createdAt: Date;
   updatedAt: Date;

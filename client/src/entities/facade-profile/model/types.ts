@@ -1,4 +1,4 @@
-type FacadeProfileCharacteristics = {
+export type FacadeProfileCharacteristics = {
   width: number;
   /** Глубина паза под филёнку, мм */
   grooveDepth: number;

@@ -1,14 +1,21 @@
-import { Type } from 'class-transformer';
-import { IsArray, IsObject, IsOptional, ValidateNested } from 'class-validator';
-import { CreateOrderDto } from 'src/modules/orders/dto/create-order.dto';
+import {
+  IsDate,
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreateOrderGroupDto {
+  @IsString()
+  @IsNotEmpty()
+  orderNumber: string;
+
+  @IsDate()
+  @IsOptional()
+  startedAt: Date;
+
   @IsObject()
   @IsOptional()
   customer?: object;
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => CreateOrderDto)
-  orders: CreateOrderDto[];
 }

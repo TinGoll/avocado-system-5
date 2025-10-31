@@ -18,6 +18,7 @@ import {
   type PriceModifierCondition,
 } from '@entities/price-modifiers';
 
+import { getEnumName } from '../model/enumMapper';
 import {
   getFieldTypeFromPath,
   isSchemaLeaf,
@@ -84,10 +85,11 @@ export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({
       { value: CONDITION_OPERATOR.LTE, label: 'Меньше или равно' },
     ];
 
-    if (!fieldType) return allOperators;
-
+    if (!fieldType) {
+      return allOperators;
+    }
     const fieldTypeName =
-      typeof fieldType === 'string' ? fieldType : fieldType.type;
+      typeof fieldType === 'string' ? fieldType : fieldType._type;
 
     switch (fieldTypeName) {
       case 'number':
@@ -110,7 +112,7 @@ export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({
     }
 
     const fieldTypeName =
-      typeof fieldType === 'string' ? fieldType : fieldType.type;
+      typeof fieldType === 'string' ? fieldType : fieldType._type;
 
     switch (fieldTypeName) {
       case 'number':
@@ -129,7 +131,7 @@ export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({
             value={(condition as LeafCondition).value as string}
             onChange={(value) => updateConditionField(name, 'value', value)}
             options={(fieldType as { options: readonly string[] }).options.map(
-              (opt) => ({ label: opt, value: opt }),
+              (opt) => ({ label: getEnumName(opt), value: opt }),
             )}
           />
         );

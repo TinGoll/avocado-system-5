@@ -3,23 +3,17 @@ import {
   ArrayMinSize,
   IsArray,
   IsInt,
-  IsNotEmpty,
   IsObject,
   IsOptional,
   IsPositive,
-  IsString,
   ValidateNested,
 } from 'class-validator';
 import { CreateOrderItemDto } from './create-order-item.dto';
 
 export class CreateOrderDto {
-  @IsString()
-  @IsNotEmpty()
-  orderNumber: string;
-
   @IsObject()
   @IsOptional()
-  commonProperties?: object;
+  characteristics?: object;
 
   @IsArray()
   @ValidateNested({ each: true })

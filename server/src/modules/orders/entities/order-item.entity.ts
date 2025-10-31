@@ -19,11 +19,9 @@ export class OrderItem {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  // Много элементов могут принадлежать одному заказу
   @ManyToOne(() => Order, (order) => order.items)
   order: Order;
 
-  // Ссылка на оригинальный шаблон (может быть null, если продукт уникальный)
   @ManyToOne(() => ProductTemplate, { nullable: true, onDelete: 'SET NULL' })
   template: ProductTemplate;
 
@@ -31,10 +29,10 @@ export class OrderItem {
   quantity: number;
 
   @Column({ type: 'jsonb' })
-  snapshot: Snapshot; // "Снимок" данных из шаблона на момент создания
+  snapshot: Snapshot;
 
   @Column({ type: 'jsonb', default: {} })
-  characteristics: Record<string, string | number | boolean>; // Уникальные характеристики (размеры и т.д.)
+  characteristics: Record<string, string | number | boolean>;
 
   @Column({
     type: 'decimal',
@@ -43,7 +41,7 @@ export class OrderItem {
     default: 0,
     transformer: new ColumnNumericTransformer(),
   })
-  calculatedProductionCost: number; // Рассчитанная себестоимость работ
+  calculatedProductionCost: number;
 
   @Column({
     type: 'decimal',
@@ -52,5 +50,5 @@ export class OrderItem {
     default: 0,
     transformer: new ColumnNumericTransformer(),
   })
-  calculatedCustomerPrice: number; // Финальная цена для клиента
+  calculatedCustomerPrice: number;
 }

@@ -23,18 +23,8 @@ export class Order {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'text', unique: true })
-  orderNumber: string;
-
-  @Column({
-    type: 'enum',
-    enum: OrderStatus,
-    default: OrderStatus.DRAFT,
-  })
-  status: OrderStatus;
-
   @Column({ type: 'jsonb', default: {} })
-  commonProperties: object;
+  characteristics: object;
 
   @Column({
     type: 'decimal',
@@ -45,7 +35,6 @@ export class Order {
   })
   totalPrice: number;
 
-  // Один заказ может иметь много элементов
   @OneToMany(() => OrderItem, (orderItem) => orderItem.order, {
     cascade: true,
     eager: true,

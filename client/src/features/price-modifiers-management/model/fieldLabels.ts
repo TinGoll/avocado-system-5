@@ -1,39 +1,208 @@
-import type { Item, LabelsMap, Order } from './types';
+import type { Order, OrderItem } from '@entities/order';
 
-// Omit<Order, 'items'> используется, чтобы TypeScript не требовал описывать поле items
+import type { LabelsMap } from './types';
+
 const orderFieldLabels: LabelsMap<Omit<Order, 'items'>> = {
-  id: { _title: 'ID Заказа' },
-  totalPrice: { _title: 'Общая сумма' },
-  itemCount: { _title: 'Количество позиций' },
-  customer: {
-    _title: 'Заказчик', // <-- Название для самого объекта customer
+  id: {
+    _title: 'ID Документа',
+  },
+  characteristics: {
+    _title: 'Шапка документа',
     children: {
-      id: { _title: 'ID Заказчика' },
-      name: { _title: 'Имя Заказчика' },
-      level: { _title: 'Уровень лояльности' },
-      address: {
-        _title: 'Адрес', // <-- Название для объекта address
+      material: {
+        _title: 'Материал',
         children: {
-          city: { _title: 'Город' },
-          street: { _title: 'Улица' },
+          name: {
+            _title: 'Название',
+          },
+          type: {
+            _title: 'Тип',
+          },
+        },
+      },
+      color: {
+        _title: 'Краситель',
+        children: {
+          name: {
+            _title: 'Название',
+          },
+          type: {
+            _title: 'Тип',
+          },
+        },
+      },
+      patina: {
+        _title: 'Патина',
+        children: {
+          name: {
+            _title: 'Название',
+          },
+        },
+      },
+      panel: {
+        _title: 'Филёнка',
+        children: {
+          name: {
+            _title: 'Название',
+          },
+          characteristics: {
+            _title: 'Характеристики',
+            children: {
+              style: {
+                _title: 'Стиль',
+              },
+            },
+          },
+        },
+      },
+      profile: {
+        _title: 'Фасадный Профиль',
+        children: {
+          name: {
+            _title: 'Название',
+          },
+          characteristics: {
+            _title: 'Характеристики',
+            children: {
+              width: {
+                _title: 'Ширина профиля',
+              },
+              grooveDepth: {
+                _title: 'Глубина паза',
+              },
+              grooveWidth: {
+                _title: 'Ширина паза',
+              },
+              style: {
+                _title: 'Стиль',
+              },
+            },
+          },
+        },
+      },
+      varnish: {
+        _title: 'Лак',
+        children: {
+          name: {
+            _title: 'Название',
+          },
         },
       },
     },
   },
+  totalPrice: {
+    _title: 'Полная стоимость',
+  },
+  createdAt: {
+    _title: 'Дата создания',
+  },
+  updatedAt: {
+    _title: 'Дата обновления',
+  },
 };
 
-const itemFieldLabels: LabelsMap<Item> = {
-  id: { _title: 'ID Элемента' },
-  productId: { _title: 'ID Продукта' },
-  quantity: { _title: 'Количество' },
-  price: { _title: 'Цена' },
-  productDetails: {
-    _title: 'Детали продукта', // <-- Название для объекта productDetails
+const itemFieldLabels: LabelsMap<OrderItem> = {
+  id: {
+    _title: 'ID элемента заказа',
+  },
+  template: {
+    _title: 'Шаблон продукта',
     children: {
-      name: { _title: 'Название продукта' },
-      category: { _title: 'Категория продукта' },
-      weight: { _title: 'Вес' },
+      id: {
+        _title: 'ID шаблона',
+      },
+      name: {
+        _title: 'Название',
+      },
+      defaultCharacteristics: {
+        _title: 'Характеристики по умолчанию',
+        children: {
+          width: {
+            _title: 'Ширина',
+          },
+          height: {
+            _title: 'Высота',
+          },
+          thickness: {
+            _title: 'Толщина',
+          },
+        },
+      },
+      customerPricingMethod: {
+        _title: 'Метод расчета для заказчика',
+      },
+      baseCustomerPrice: {
+        _title: 'Базовая стоимость',
+      },
+      attributes: {
+        _title: 'Аттрибуты',
+        children: {},
+      },
+      group: {
+        _title: 'Группа',
+      },
+      createdAt: {
+        _title: 'Дата создания',
+      },
+      updatedAt: {
+        _title: 'Дата обновления',
+      },
     },
+  },
+  quantity: {
+    _title: 'Количество',
+  },
+  snapshot: {
+    _title: 'Снимок',
+    children: {
+      name: {
+        _title: 'Название',
+      },
+      baseCustomerPrice: {
+        _title: 'Базовая цена для заказчика',
+      },
+      attributes: {
+        _title: 'Аттрибуты',
+        children: {},
+      },
+      customerPricingMethod: {
+        _title: 'Метод расчета для заказчика',
+      },
+      defaultCharacteristics: {
+        _title: 'Характеристики по умолчанию',
+        children: {
+          width: {
+            _title: 'Ширина',
+          },
+          height: {
+            _title: 'Высота',
+          },
+          thickness: {
+            _title: 'Толщина',
+          },
+        },
+      },
+    },
+  },
+  characteristics: {
+    _title: 'Характеристики',
+    children: {
+      width: {
+        _title: 'Ширина',
+      },
+      height: {
+        _title: 'Высота',
+      },
+      thickness: {
+        _title: 'Толщина',
+      },
+    },
+  },
+  calculatedProductionCost: {
+    _title: 'Себестоимость',
+  },
+  calculatedCustomerPrice: {
+    _title: 'Цена для заказчика',
   },
 };
 
@@ -42,34 +211,23 @@ export const fieldLabels = {
   item: itemFieldLabels,
 };
 
-// Хелпер теперь будет проще и надежнее
 export const getLabelForKeyInContext = (
   source: 'order' | 'item',
-  currentPathParts: string[], // Путь к родительскому объекту, например ['customer']
-  key: string, // Ключ, для которого ищем название, например 'address'
+  currentPathParts: string[],
+  key: string,
 ): string => {
-  // Начинаем с верхнего уровня карты названий для 'order' или 'item'
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let parentMap: any = fieldLabels[source];
 
-  // 1. Спускаемся по дереву, чтобы найти карту названий для родительского объекта
   for (const part of currentPathParts) {
-    // Находим узел для текущей части пути
     const currentNode = parentMap?.[part];
-    // Следующий уровень для поиска находится внутри 'children' этого узла
     parentMap = currentNode?.children;
 
-    // Если на каком-то этапе мы не нашли узел, значит путь невалиден в карте названий,
-    // возвращаем ключ как запасной вариант
     if (!parentMap) {
       return key;
     }
   }
-
-  // 2. Теперь `parentMap` - это объект, содержащий узел для нашего `key`
-  // (например, `children` узла 'customer')
   const targetNode = parentMap?.[key];
 
-  // 3. Возвращаем `_title` из найденного узла или сам ключ, если узел не найден
   return targetNode?._title ?? key;
 };

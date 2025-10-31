@@ -35,7 +35,7 @@ export class OrderGroupsService {
       ...updateDto,
     });
     if (!item) {
-      throw new NotFoundException(`Material with ID "${id}" not found`);
+      throw new NotFoundException(`Order Group with ID "${id}" not found`);
     }
     return this.repository.save(item);
   }
