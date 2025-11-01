@@ -24,6 +24,7 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "baseUrl": "./src",
+    "ignoreDeprecations": "6.0",
     "types": ["node", "vitest/globals"],
     "paths": {
       "@app/*": ["./app/*"],
