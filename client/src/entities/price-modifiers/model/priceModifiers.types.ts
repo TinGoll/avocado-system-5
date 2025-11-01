@@ -1,6 +1,7 @@
 import type { ProductTemplate } from '@entities/product';
 
 export const CONDITION_SOURCE = {
+  ORDER_GROUP: 'order_group',
   ORDER: 'order',
   ITEM: 'item',
 } as const;
@@ -29,6 +30,12 @@ export type ModifierType = (typeof MODIFER_TYPE)[keyof typeof MODIFER_TYPE];
 export type Path = (string | number)[];
 
 export type LeafCondition =
+  | {
+      source: typeof CONDITION_SOURCE.ORDER_GROUP;
+      path: string;
+      operator: ConditionOperator;
+      value: string | number;
+    }
   | {
       source: typeof CONDITION_SOURCE.ORDER;
       path: string;
