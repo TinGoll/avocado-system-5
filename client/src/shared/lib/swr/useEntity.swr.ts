@@ -1,45 +1,15 @@
 import { useMemo } from 'react';
-import useSWR, { type SWRConfiguration } from 'swr';
-import type { SWRMutationConfiguration } from 'swr/mutation';
+import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';
 
-import type { Endpoints } from './endpoints';
 import { fetcher } from './fetcher.swr';
-
-export type EntityID = string | number;
-
-export type ErrorResponse = {
-  message: string;
-  code?: string;
-  details?: unknown;
-};
-
-export interface BaseEntity {
-  id: EntityID;
-}
-
-export interface MutationCallbacks<T> {
-  onSuccess?: (result: T) => void;
-  onError?: (error: Error) => void;
-}
-
-export interface PaginatedResponse<T> {
-  items?: T[];
-  meta?: Record<string, unknown>;
-  error?: ErrorResponse;
-}
-
-export interface UseEntityOptions<
-  R extends BaseEntity,
-  TTransformedData = PaginatedResponse<R>,
-> {
-  endpoint: Endpoints;
-  swrConfig?: SWRConfiguration<PaginatedResponse<R>>;
-  transform: (data: PaginatedResponse<R>) => TTransformedData;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mutationConfig?: SWRMutationConfiguration<any, Error, string, any>;
-  extraKeysToRevalidate?: string[];
-}
+import type {
+  BaseEntity,
+  EntityID,
+  MutationCallbacks,
+  PaginatedResponse,
+  UseEntityOptions,
+} from './types';
 
 export function useEntity<
   R extends BaseEntity,
@@ -68,6 +38,24 @@ export function useEntity<
     extraKeysToRevalidate.forEach((key) => mutate(key as any));
   };
 
+  const optimisticMutate = async (
+    updater: (prev?: PaginatedResponse<R>) => PaginatedResponse<R>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    promise: Promise<any>,
+    rollback?: PaginatedResponse<R>,
+  ) => {
+    await mutate(updater, { revalidate: false });
+
+    try {
+      const result = await promise;
+      revalidateExtraKeys();
+      return result;
+    } catch (err) {
+      if (rollback) await mutate(rollback, { revalidate: false });
+      throw err;
+    }
+  };
+
   // --- CREATE ---
   const { trigger: createTrigger, ...createMutation } = useSWRMutation<
     R,
@@ -89,40 +77,36 @@ export function useEntity<
    * @param options - Опциональные колбэки onSuccess и onError.
    */
   const create = async (newItem: C, options?: MutationCallbacks<R>) => {
-    const tempItem = { ...newItem, id: 'temp-id' } as unknown as R;
+    const tempId = `temp-${Math.random()}`;
+    const tempItem = { ...(newItem as object), id: tempId } as R;
+    const rollback = data;
 
-    await mutate(
+    const promise = (createTrigger as (arg: C) => Promise<R>)(newItem).then(
+      (savedItem) => {
+        mutate(
+          (current) => ({
+            ...current,
+            items: current?.items?.map((i) =>
+              i.id === tempId ? savedItem : i,
+            ),
+          }),
+          { revalidate: false },
+        );
+        options?.onSuccess?.(savedItem);
+        return savedItem;
+      },
+    );
+
+    await optimisticMutate(
       (current) => ({
         items: [tempItem, ...(current?.items ?? [])],
         meta: current?.meta ?? {},
       }),
-      { revalidate: false },
+      promise,
+      rollback,
     );
-
-    try {
-      const savedItem = await (createTrigger as (arg: C) => Promise<R>)(
-        newItem,
-      );
-
-      await mutate(
-        (current) => ({
-          items: (current?.items ?? []).map((item) =>
-            item.id === 'temp-id' ? savedItem : item,
-          ),
-          meta: current?.meta ?? {},
-        }),
-        { revalidate: false },
-      );
-
-      options?.onSuccess?.(savedItem);
-      return savedItem;
-    } catch (e) {
-      const error = e as Error;
-      options?.onError?.(error);
-      await mutate();
-      throw error;
-    }
   };
+
   // --- UPDATE ---
   const { trigger: updateTrigger, ...updateMutation } = useSWRMutation<
     R,
@@ -150,29 +134,23 @@ export function useEntity<
     updates: U,
     options?: MutationCallbacks<R>,
   ) => {
-    await mutate(
-      (current) => {
-        if (!current) return { items: [], meta: {} };
-        return {
-          ...current,
-          items: current.items?.map((item) =>
-            item.id === id ? { ...item, ...updates } : item,
-          ),
-        };
-      },
-      { revalidate: false },
-    );
+    const rollback = data;
 
-    try {
-      const updatedItem = await updateTrigger({ id, data: updates });
+    const promise = updateTrigger({ id, data: updates }).then((updatedItem) => {
       options?.onSuccess?.(updatedItem);
       return updatedItem;
-    } catch (e) {
-      const error = e as Error;
-      options?.onError?.(error);
-      await mutate();
-      throw error;
-    }
+    });
+
+    await optimisticMutate(
+      (current) => ({
+        ...current,
+        items: current?.items?.map((i) =>
+          i.id === id ? { ...i, ...updates } : i,
+        ),
+      }),
+      promise,
+      rollback,
+    );
   };
 
   // --- DELETE ---
@@ -197,26 +175,20 @@ export function useEntity<
    * @param options - Опциональные колбэки onSuccess и onError.
    */
   const remove = async (id: EntityID, options?: MutationCallbacks<void>) => {
-    await mutate(
-      (current) => {
-        if (!current) return { items: [], meta: {} };
-        return {
-          ...current,
-          items: current.items?.filter((item) => item.id !== id),
-        };
-      },
-      { revalidate: false },
-    );
+    const rollback = data;
 
-    try {
-      await deleteTrigger(id);
+    const promise = deleteTrigger(id).then(() => {
       options?.onSuccess?.();
-    } catch (e) {
-      const error = e as Error;
-      options?.onError?.(error);
-      await mutate();
-      throw error;
-    }
+    });
+
+    await optimisticMutate(
+      (current) => ({
+        ...current,
+        items: current?.items?.filter((i) => i.id !== id),
+      }),
+      promise,
+      rollback,
+    );
   };
 
   return {
