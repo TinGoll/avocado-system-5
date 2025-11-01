@@ -1,5 +1,6 @@
 import { COLOR_TYPE } from '@entities/color';
 import { MATERIAL_TYPE } from '@entities/material';
+import { ORDER_STATUS } from '@entities/order';
 import { CUSTOMER_PRICING_METHOD } from '@entities/product';
 
 export const enumMapper: Record<string, string> = {
@@ -11,6 +12,10 @@ export const enumMapper: Record<string, string> = {
   [CUSTOMER_PRICING_METHOD.PER_ITEM]: 'За штуку',
   [CUSTOMER_PRICING_METHOD.AREA]: 'Квадратура',
   [CUSTOMER_PRICING_METHOD.VOLUME]: 'Кубатура',
+  [ORDER_STATUS.DRAFT]: 'На оформлении',
+  [ORDER_STATUS.IN_PRODUCTION]: 'В производстве',
+  [ORDER_STATUS.COMPLETED]: 'Завершенный',
+  [ORDER_STATUS.CANCELLED]: 'Отменён',
 };
 
 export const getEnumName = (value: string): string => {

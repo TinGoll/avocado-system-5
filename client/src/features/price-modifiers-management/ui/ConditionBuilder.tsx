@@ -230,8 +230,9 @@ export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({
             }}
             style={{ width: '100%' }}
             options={[
-              { value: CONDITION_SOURCE.ORDER, label: 'Заказ' },
-              { value: CONDITION_SOURCE.ITEM, label: 'Элемент' },
+              { value: CONDITION_SOURCE.ORDER_GROUP, label: 'Заказ' },
+              { value: CONDITION_SOURCE.ORDER, label: 'Документ заказа' },
+              { value: CONDITION_SOURCE.ITEM, label: 'Элемент заказа' },
             ]}
           />
 

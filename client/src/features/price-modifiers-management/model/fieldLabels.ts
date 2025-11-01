@@ -1,13 +1,29 @@
-import type { Order, OrderItem } from '@entities/order';
+import type { Order, OrderGroup, OrderItem } from '@entities/order';
+import type { CONDITION_SOURCE } from '@entities/price-modifiers';
 
 import type { LabelsMap } from './types';
+
+const orderGroupFieldLabels: LabelsMap<
+  Omit<OrderGroup, 'orders' | 'id' | 'startedAt' | 'createdAt' | 'updatedAt'>
+> = {
+  orderNumber: { _title: 'Номер заказа' },
+  customer: {
+    _title: 'Заказчик',
+    children: {
+      name: { _title: 'Имя заказчика' },
+      level: { _title: 'Уровень лояльности' },
+    },
+  },
+  status: { _title: 'Статус заказа' },
+  orderCount: { _title: 'Количество документов' },
+};
 
 const orderFieldLabels: LabelsMap<Omit<Order, 'items'>> = {
   id: {
     _title: 'ID Документа',
   },
   characteristics: {
-    _title: 'Шапка документа',
+    _title: 'Параметры документа',
     children: {
       material: {
         _title: 'Материал',
@@ -207,12 +223,16 @@ const itemFieldLabels: LabelsMap<OrderItem> = {
 };
 
 export const fieldLabels = {
+  order_group: orderGroupFieldLabels,
   order: orderFieldLabels,
   item: itemFieldLabels,
 };
 
 export const getLabelForKeyInContext = (
-  source: 'order' | 'item',
+  source:
+    | typeof CONDITION_SOURCE.ORDER
+    | typeof CONDITION_SOURCE.ITEM
+    | typeof CONDITION_SOURCE.ORDER_GROUP,
   currentPathParts: string[],
   key: string,
 ): string => {

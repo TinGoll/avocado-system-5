@@ -1,5 +1,6 @@
 import { COLOR_TYPE } from '@entities/color';
 import { MATERIAL_TYPE } from '@entities/material';
+import { ORDER_STATUS } from '@entities/order';
 import { CUSTOMER_PRICING_METHOD } from '@entities/product';
 
 export type SchemaField =
@@ -40,24 +41,34 @@ export const isSchemaLeaf = (field: any): field is SchemaField => {
   return false;
 };
 
+export const orderGroupSchema = createSchema({
+  id: 'number',
+  orderNumber: 'string',
+  customer: {
+    name: 'string',
+    level: { _type: 'enum', options: ['bronze', 'silver', 'gold'] as const },
+  },
+  status: {
+    _type: 'enum',
+    options: Object.values(ORDER_STATUS),
+  },
+  orderCount: 'number',
+});
+
 export const orderSchema = createSchema({
   characteristics: {
     color: {
       name: 'string',
       type: {
         _type: 'enum',
-        options: [COLOR_TYPE.ENAMEL, COLOR_TYPE.STAIN] as const,
+        options: Object.values(COLOR_TYPE),
       },
     },
     material: {
       name: 'string',
       type: {
         _type: 'enum',
-        options: [
-          MATERIAL_TYPE.HARDWOOD,
-          MATERIAL_TYPE.SOFTWOOD,
-          MATERIAL_TYPE.MDF,
-        ] as const,
+        options: Object.values(MATERIAL_TYPE),
       },
     },
     patina: {
@@ -95,11 +106,7 @@ export const itemSchema = createSchema({
     },
     customerPricingMethod: {
       _type: 'enum',
-      options: [
-        CUSTOMER_PRICING_METHOD.PER_ITEM,
-        CUSTOMER_PRICING_METHOD.AREA,
-        CUSTOMER_PRICING_METHOD.VOLUME,
-      ] as const,
+      options: Object.values(CUSTOMER_PRICING_METHOD),
     },
     baseCustomerPrice: 'number',
     group: 'string',
@@ -110,11 +117,7 @@ export const itemSchema = createSchema({
     baseCustomerPrice: 'number',
     customerPricingMethod: {
       _type: 'enum',
-      options: [
-        CUSTOMER_PRICING_METHOD.PER_ITEM,
-        CUSTOMER_PRICING_METHOD.AREA,
-        CUSTOMER_PRICING_METHOD.VOLUME,
-      ] as const,
+      options: Object.values(CUSTOMER_PRICING_METHOD),
     },
     defaultCharacteristics: {
       width: 'number',
@@ -132,6 +135,7 @@ export const itemSchema = createSchema({
 });
 
 export const schemas = {
+  order_group: orderGroupSchema,
   order: orderSchema,
   item: itemSchema,
 };

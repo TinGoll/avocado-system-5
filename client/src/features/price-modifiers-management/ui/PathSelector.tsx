@@ -7,7 +7,10 @@ import { getLabelForKeyInContext } from '../model/fieldLabels';
 import { isSchemaLeaf, schemas } from '../model/pathSchema';
 
 interface PathSelectorProps {
-  source: typeof CONDITION_SOURCE.ORDER | typeof CONDITION_SOURCE.ITEM;
+  source:
+    | typeof CONDITION_SOURCE.ORDER
+    | typeof CONDITION_SOURCE.ITEM
+    | typeof CONDITION_SOURCE.ORDER_GROUP;
   value: string;
   onChange: (path: string) => void;
 }
