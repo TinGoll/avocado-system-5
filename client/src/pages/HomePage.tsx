@@ -2,14 +2,15 @@ import { DingtalkOutlined, TwitterOutlined } from '@ant-design/icons';
 import { css } from '@emotion/css';
 import type { FC } from 'react';
 
-import { CreateColorButton } from '@features/color-management';
-import { CreateFacadePanelButton } from '@features/facade-panel-management';
-import { CreateFacadeProfileButton } from '@features/facade-profile-management';
-import { CreateMaterialButton } from '@features/material-management';
-import { CreatePatinaButton } from '@features/patina-management';
-import { PriceModifierForm } from '@features/price-modifiers-management';
-import { CreateProductionOperationButton } from '@features/production-operation-management';
-import { CreateVarnishButton } from '@features/varnish-management';
+import { CreateColorButton } from '@features/create-color';
+import { CreateFacadePanelButton } from '@features/create-facade-panel';
+import { CreateFacadeProfileButton } from '@features/create-facade-profile';
+import { CreateMaterialButton } from '@features/create-material';
+import { CreateOrderForm } from '@features/create-orders';
+import { CreatePatinaButton } from '@features/create-patina';
+import { PriceModifierForm } from '@features/create-price-modifiers';
+import { CreateProductionOperationButton } from '@features/create-production-operation';
+import { CreateVarnishButton } from '@features/create-varnish';
 
 const styles = css`
   display: flex;
@@ -55,6 +56,10 @@ export const HomePage: FC = () => {
           color="green"
           icon={<DingtalkOutlined />}
         />
+      </div>
+
+      <div>
+        <CreateOrderForm />
       </div>
 
       <div>
