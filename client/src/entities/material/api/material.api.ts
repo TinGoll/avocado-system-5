@@ -11,7 +11,7 @@ export const useMaterials = () =>
   useEntity<Material, Responce>({
     endpoint: Endpoints.MATERIALS,
     transform: ({ items, ...data }) => ({
-      materials: items || [],
+      materials: items ?? [],
       ...data,
     }),
   });

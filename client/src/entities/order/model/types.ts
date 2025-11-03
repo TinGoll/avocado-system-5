@@ -67,6 +67,7 @@ export interface OrderItemCharacteristics {
 
 // Временно, позже заменю на сущность
 export interface Customer {
+  id: string;
   name: string;
   level: 'bronze' | 'silver' | 'gold';
 }
@@ -77,6 +78,7 @@ export interface OrderGroup {
   customer: Customer;
   status: OrderStatus;
   startedAt?: Date;
+  orderCount: number;
   orders: Order[];
 
   createdAt: Date;
