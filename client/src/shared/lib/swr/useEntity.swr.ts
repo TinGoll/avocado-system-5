@@ -38,10 +38,10 @@ export function useEntity<
     extraKeysToRevalidate.forEach((key) => mutate(key as any));
   };
 
-  const optimisticMutate = async (
+  const optimisticMutate = async <T = R>(
     updater: (prev?: PaginatedResponse<R>) => PaginatedResponse<R>,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    promise: Promise<any>,
+
+    promise: Promise<T>,
     rollback?: PaginatedResponse<R>,
   ) => {
     await mutate(updater, { revalidate: false });
@@ -97,7 +97,7 @@ export function useEntity<
       },
     );
 
-    await optimisticMutate(
+    return await optimisticMutate(
       (current) => ({
         items: [tempItem, ...(current?.items ?? [])],
         meta: current?.meta ?? {},
@@ -141,7 +141,7 @@ export function useEntity<
       return updatedItem;
     });
 
-    await optimisticMutate(
+    return await optimisticMutate(
       (current) => ({
         ...current,
         items: current?.items?.map((i) =>
@@ -177,11 +177,12 @@ export function useEntity<
   const remove = async (id: EntityID, options?: MutationCallbacks<void>) => {
     const rollback = data;
 
-    const promise = deleteTrigger(id).then(() => {
+    const promise = deleteTrigger(id).then((data) => {
       options?.onSuccess?.();
+      return data;
     });
 
-    await optimisticMutate(
+    return await optimisticMutate(
       (current) => ({
         ...current,
         items: current?.items?.filter((i) => i.id !== id),

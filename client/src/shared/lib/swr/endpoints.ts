@@ -8,6 +8,8 @@ export const Endpoints = {
   PRODUCTION_OPERAIONS: 'production-operations',
   PRODUCTS: 'products',
   VARNISHES: 'varnishes',
+  ORDER_GROUPS: 'order-groups',
+  ORDERS: 'orders',
 } as const;
 
 export type Endpoints = (typeof Endpoints)[keyof typeof Endpoints];
