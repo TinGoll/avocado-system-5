@@ -1,6 +1,19 @@
 import type { OrderTemplate } from './types';
 
 export const orderTemplatesMap = {
+  all: {
+    id: 'all',
+    name: 'Все поля',
+    description: 'Шаблон включает все поля заказа',
+    getDefaultCharacteristics: () => ({
+      color: {},
+      material: {},
+      panel: {},
+      patina: {},
+      profile: {},
+      varnish: {},
+    }),
+  },
   basic: {
     id: 'basic',
     name: 'Пустой',

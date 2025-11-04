@@ -1,5 +1,6 @@
 // Вроде бы принцип FSD не запрещает импорт type-leve зависимостей :)
 import type { Color } from '@entities/color';
+import type { Customer } from '@entities/customer';
 import type { FacadePanel } from '@entities/facade-panel';
 import type { FacadeProfile } from '@entities/facade-profile';
 import type { Material } from '@entities/material';
@@ -63,13 +64,6 @@ export interface OrderItemCharacteristics {
   width?: number;
   height?: number;
   thickness?: number;
-}
-
-// Временно, позже заменю на сущность
-export interface Customer {
-  id: string;
-  name: string;
-  level: 'bronze' | 'silver' | 'gold';
 }
 
 export interface OrderGroup {
