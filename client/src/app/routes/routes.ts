@@ -1,5 +1,6 @@
 export const ROUTES = {
   root: '/',
-  assemblyWork: '/assembly-work',
-  employees: '/employees',
+  orderEdit: '/order/:groupID/editing',
+  orderPrint: '/order/:groupID/print',
+  order: '/order/:groupID',
 };
