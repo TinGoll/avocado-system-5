@@ -71,6 +71,7 @@ export const CreateOrderForm: FC<Props> = ({ onCancel, onCreated }) => {
       ...values,
     });
 
+    form.resetFields();
     onCreated?.(group);
   };
 

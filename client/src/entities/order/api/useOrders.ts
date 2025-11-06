@@ -23,3 +23,10 @@ export const useOrders = () => {
     }),
   });
 };
+
+export const useOrdersMutations = () => {
+  return useEntity<Order, Responce, CreateOrderDTO>({
+    endpoint: Endpoints.ORDERS,
+    disabled: true,
+  });
+};

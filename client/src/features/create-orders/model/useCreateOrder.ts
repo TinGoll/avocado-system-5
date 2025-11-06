@@ -1,7 +1,7 @@
 import {
   ORDER_STATUS,
-  useOrderGroups,
-  useOrders,
+  useOrderGroupMutations,
+  useOrdersMutations,
   useOrderStore,
   type Order,
   type OrderGroup,
@@ -15,9 +15,9 @@ type OrderGroupCreateDTO = {
 };
 
 export const useCreateOrder = () => {
-  const { create: createGroup } = useOrderGroups();
-  const { create: createOrder } = useOrders();
-  const { setCurrentGroup, setCurrentOrder, setCreating } = useOrderStore();
+  const { create: createGroup } = useOrderGroupMutations();
+  const { create: createOrder } = useOrdersMutations();
+  const { setCreating } = useOrderStore();
 
   const handleCreate = async (formValues: OrderGroupCreateDTO) => {
     try {
@@ -30,7 +30,7 @@ export const useCreateOrder = () => {
         orderNumber: formValues.orderNumber,
       });
 
-      setCurrentGroup(group);
+      // setCurrentGroup(group);
 
       const order = await createOrder.trigger({
         orderGroupId: group.id,
@@ -38,7 +38,7 @@ export const useCreateOrder = () => {
         characteristics: formValues.characteristics,
       });
 
-      setCurrentOrder(order);
+      // setCurrentOrder(order);
 
       return { group, order };
     } finally {

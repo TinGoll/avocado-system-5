@@ -73,7 +73,6 @@ export interface OrderGroup {
   status: OrderStatus;
   startedAt?: Date;
   orderCount: number;
-  orders: Order[];
 
   createdAt: Date;
   updatedAt: Date;

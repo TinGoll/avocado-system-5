@@ -23,6 +23,4 @@ export type ProductTemplate = {
   group?: string;
   //   operations: ProductionOperation[];
   //   priceModifiers: PriceModifier[];
-  createdAt: Date;
-  updatedAt: Date;
 };
