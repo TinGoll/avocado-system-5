@@ -30,10 +30,11 @@ export interface UseEntityOptions<
   R extends BaseEntity,
   TTransformedData = PaginatedResponse<R>,
 > {
-  endpoint: Endpoints;
+  endpoint: Endpoints | string;
   swrConfig?: SWRConfiguration<PaginatedResponse<R>>;
-  transform: (data: PaginatedResponse<R>) => TTransformedData;
+  transform?: (data: PaginatedResponse<R>) => TTransformedData;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mutationConfig?: SWRMutationConfiguration<any, Error, string, any>;
   extraKeysToRevalidate?: string[];
+  disabled?: boolean;
 }

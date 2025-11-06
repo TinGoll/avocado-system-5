@@ -22,16 +22,25 @@ export function useEntity<
   transform,
   mutationConfig,
   extraKeysToRevalidate = [],
+  disabled = false,
 }: UseEntityOptions<R, TTransformedData>) {
+  const shouldFetch = !disabled && Boolean(endpoint);
+
   const { data, error, isLoading, mutate } = useSWR<
     PaginatedResponse<R>,
     Error
-  >(endpoint, (url: string) => fetcher({ url }), swrConfig);
-
-  const transformedData = useMemo(
-    () => (data ? transform(data) : undefined),
-    [data, transform],
+  >(
+    shouldFetch ? endpoint : null,
+    (url: string) => fetcher({ url }),
+    swrConfig,
   );
+
+  const transformedData = useMemo(() => {
+    if (!(typeof transform === 'function')) {
+      return data;
+    }
+    return data ? transform(data) : undefined;
+  }, [data, transform]);
 
   const revalidateExtraKeys = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,10 +49,12 @@ export function useEntity<
 
   const optimisticMutate = async <T = R>(
     updater: (prev?: PaginatedResponse<R>) => PaginatedResponse<R>,
-
     promise: Promise<T>,
     rollback?: PaginatedResponse<R>,
   ) => {
+    if (!mutate) {
+      return promise;
+    }
     await mutate(updater, { revalidate: false });
 
     try {
@@ -61,41 +72,41 @@ export function useEntity<
     R,
     Error,
     string,
-    C
+    { data: C; path?: string }
   >(
     endpoint,
-    (url, { arg }) => fetcher<R, C>({ url, method: 'POST', data: arg }),
+    (url, { arg }) =>
+      fetcher<R, C>({
+        url: arg.path ? `${url}/${arg.path}` : url,
+        method: 'POST',
+        data: arg.data,
+      }),
     {
       ...mutationConfig,
       onSuccess: () => revalidateExtraKeys(),
     },
   );
 
-  /**
-   * Создает новую сущность.
-   * @param newItem - Данные для создания.
-   * @param options - Опциональные колбэки onSuccess и onError.
-   */
-  const create = async (newItem: C, options?: MutationCallbacks<R>) => {
+  const create = async (
+    newItem: C,
+    options?: MutationCallbacks<R>,
+    path?: string,
+  ) => {
     const tempId = `temp-${Math.random()}`;
     const tempItem = { ...(newItem as object), id: tempId } as R;
     const rollback = data;
 
-    const promise = (createTrigger as (arg: C) => Promise<R>)(newItem).then(
-      (savedItem) => {
-        mutate(
-          (current) => ({
-            ...current,
-            items: current?.items?.map((i) =>
-              i.id === tempId ? savedItem : i,
-            ),
-          }),
-          { revalidate: false },
-        );
-        options?.onSuccess?.(savedItem);
-        return savedItem;
-      },
-    );
+    const promise = createTrigger({ data: newItem, path }).then((savedItem) => {
+      mutate(
+        (current) => ({
+          ...current,
+          items: current?.items?.map((i) => (i.id === tempId ? savedItem : i)),
+        }),
+        { revalidate: false },
+      );
+      options?.onSuccess?.(savedItem);
+      return savedItem;
+    });
 
     return await optimisticMutate(
       (current) => ({
@@ -112,34 +123,35 @@ export function useEntity<
     R,
     Error,
     string,
-    { id: EntityID; data: U }
+    { id: EntityID; data: U; path?: string }
   >(
     endpoint,
-    (_, { arg: { id, data } }) =>
-      fetcher<R, U>({ url: `${endpoint}/${id}`, method: 'PATCH', data }),
+    (_, { arg: { id, data, path } }) =>
+      fetcher<R, U>({
+        url: path ? `${endpoint}/${id}/${path}` : `${endpoint}/${id}`,
+        method: 'PATCH',
+        data,
+      }),
     {
       ...mutationConfig,
       onSuccess: () => revalidateExtraKeys(),
     },
   );
 
-  /**
-   * Обновляет существующую сущность.
-   * @param id - ID сущности для обновления.
-   * @param updates - Данные для обновления.
-   * @param options - Опциональные колбэки onSuccess и onError.
-   */
   const update = async (
     id: EntityID,
     updates: U,
     options?: MutationCallbacks<R>,
+    path?: string,
   ) => {
     const rollback = data;
 
-    const promise = updateTrigger({ id, data: updates }).then((updatedItem) => {
-      options?.onSuccess?.(updatedItem);
-      return updatedItem;
-    });
+    const promise = updateTrigger({ id, data: updates, path }).then(
+      (updatedItem) => {
+        options?.onSuccess?.(updatedItem);
+        return updatedItem;
+      },
+    );
 
     return await optimisticMutate(
       (current) => ({
@@ -158,26 +170,28 @@ export function useEntity<
     void,
     Error,
     string,
-    EntityID
+    { id: EntityID; path?: string }
   >(
     endpoint,
-    (_, { arg: id }) =>
-      fetcher<void>({ url: `${endpoint}/${id}`, method: 'DELETE' }),
+    (_, { arg: { id, path } }) =>
+      fetcher<void>({
+        url: path ? `${endpoint}/${id}/${path}` : `${endpoint}/${id}`,
+        method: 'DELETE',
+      }),
     {
       ...mutationConfig,
       onSuccess: () => revalidateExtraKeys(),
     },
   );
 
-  /**
-   * Удаляет сущность.
-   * @param id - ID сущности для удаления.
-   * @param options - Опциональные колбэки onSuccess и onError.
-   */
-  const remove = async (id: EntityID, options?: MutationCallbacks<void>) => {
+  const remove = async (
+    id: EntityID,
+    options?: MutationCallbacks<void>,
+    path?: string,
+  ) => {
     const rollback = data;
 
-    const promise = deleteTrigger(id).then((data) => {
+    const promise = deleteTrigger({ id, path }).then((data) => {
       options?.onSuccess?.();
       return data;
     });
