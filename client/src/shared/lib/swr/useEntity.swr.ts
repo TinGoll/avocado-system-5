@@ -3,6 +3,7 @@ import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';
 
 import { fetcher } from './fetcher.swr';
+import { revalidateExtraKeysFn } from './revalidateExtraKeysFn';
 import type {
   BaseEntity,
   EntityID,
@@ -42,10 +43,8 @@ export function useEntity<
     return data ? transform(data) : undefined;
   }, [data, transform]);
 
-  const revalidateExtraKeys = () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    extraKeysToRevalidate.forEach((key) => mutate(key as any));
-  };
+  const revalidateExtraKeys = () =>
+    revalidateExtraKeysFn(extraKeysToRevalidate);
 
   const optimisticMutate = async <T = R>(
     updater: (prev?: PaginatedResponse<R>) => PaginatedResponse<R>,

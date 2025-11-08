@@ -4,18 +4,23 @@ import useSWR from 'swr';
 
 import { fetcher } from './fetcher.swr';
 import type { BaseEntity, EntityID } from './types';
+
 export const useEntityById = <R extends BaseEntity>({
   endpoint,
   id,
   path = '',
-  swrConfig,
   transform,
+  swrConfig,
+  onSuccess,
+  onError,
 }: {
   endpoint: string;
   id?: EntityID | null;
   path?: string;
-  swrConfig?: SWRConfiguration;
   transform?: (data: R) => R;
+  swrConfig?: SWRConfiguration<R, Error>;
+  onSuccess?: (data: R) => void;
+  onError?: (error: Error) => void;
 }) => {
   const shouldFetch = Boolean(id);
 
@@ -28,7 +33,17 @@ export const useEntityById = <R extends BaseEntity>({
   const { data, error, isLoading, mutate } = useSWR<R, Error>(
     url,
     (url) => fetcher({ url }),
-    swrConfig,
+    {
+      ...swrConfig,
+      onSuccess: (data, key, config) => {
+        onSuccess?.(data);
+        swrConfig?.onSuccess?.(data, key, config);
+      },
+      onError: (error, key, config) => {
+        onError?.(error);
+        swrConfig?.onError?.(error, key, config);
+      },
+    },
   );
 
   const transformedData = useMemo(

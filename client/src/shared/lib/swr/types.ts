@@ -3,6 +3,8 @@ import type { SWRMutationConfiguration } from 'swr/mutation';
 
 import type { Endpoints } from './endpoints';
 
+export type RevalidateKey = string | RegExp | ((key: string) => boolean);
+
 export type EntityID = string | number;
 
 export type ErrorResponse = {
@@ -35,6 +37,7 @@ export interface UseEntityOptions<
   transform?: (data: PaginatedResponse<R>) => TTransformedData;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mutationConfig?: SWRMutationConfiguration<any, Error, string, any>;
-  extraKeysToRevalidate?: string[];
+
+  extraKeysToRevalidate?: RevalidateKey[];
   disabled?: boolean;
 }

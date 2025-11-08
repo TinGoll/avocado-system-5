@@ -37,8 +37,18 @@ export const Editable = <T,>(props: Props<T>): ReactNode => {
       control={props.control}
       renderButton={() => (
         <StyledButtons>
-          <Button type="default" icon={<CheckOutlined />} onClick={onConfirm} />
-          <Button type="default" icon={<CloseOutlined />} onClick={onCancel} />
+          <Button
+            size="small"
+            type="text"
+            icon={<CheckOutlined />}
+            onClick={onConfirm}
+          />
+          <Button
+            size="small"
+            type="text"
+            icon={<CloseOutlined />}
+            onClick={onCancel}
+          />
         </StyledButtons>
       )}
       renderChildren={() => props.children}
