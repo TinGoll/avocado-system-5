@@ -13,6 +13,7 @@ import { OrderItem } from './entities/order-item.entity';
 import { PricingService } from '../pricing/pricing.service';
 import { CreateOrderItemDto } from './dto/create-order-item.dto';
 import { OrderGroup } from '../order-groups/entities/order-group.entity';
+import { UpdateOrderItemDto } from './dto/update-order-item.dto';
 
 @Injectable()
 export class OrdersService {
@@ -24,6 +25,8 @@ export class OrdersService {
     private readonly pricingService: PricingService,
     @InjectRepository(OrderGroup)
     private readonly groupsRepository: Repository<OrderGroup>,
+    @InjectRepository(OrderItem)
+    private readonly orderItemsRepository: Repository<OrderItem>,
   ) {}
 
   async create(createDto: CreateOrderDto): Promise<Order> {
@@ -68,6 +71,78 @@ export class OrdersService {
     this.recalculateOrderTotal(order);
 
     return this.ordersRepository.save(order);
+  }
+
+  async updateItemInOrder(
+    orderId: string,
+    itemId: string,
+    updateItemDto: UpdateOrderItemDto,
+  ): Promise<Order> {
+    const order = await this.ordersRepository.findOne({
+      where: { id: orderId },
+      relations: { items: { template: true }, orderGroup: true },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order with ID "${orderId}" not found`);
+    }
+
+    const itemToUpdate = order.items.find((item) => item.id === itemId);
+    if (!itemToUpdate) {
+      throw new NotFoundException(
+        `Order item with ID "${itemId}" not found in order "${orderId}"`,
+      );
+    }
+
+    Object.assign(itemToUpdate, updateItemDto);
+    await this.recalculatePricesForOrder(order);
+
+    return this.ordersRepository.save(order);
+  }
+
+  async removeItemFromOrder(orderId: string, itemId: string): Promise<Order> {
+    const order = await this.ordersRepository.findOne({
+      where: { id: orderId },
+      relations: { items: { template: true }, orderGroup: true },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order with ID "${orderId}" not found`);
+    }
+
+    const itemIndex = order.items.findIndex((item) => item.id === itemId);
+    if (itemIndex === -1) {
+      throw new NotFoundException(
+        `Order item with ID "${itemId}" not found in order "${orderId}"`,
+      );
+    }
+
+    await this.orderItemsRepository.delete(itemId);
+
+    order.items.splice(itemIndex, 1);
+    this.recalculateOrderTotal(order);
+
+    return this.ordersRepository.save(order);
+  }
+
+  private async recalculatePricesForOrder(order: Order): Promise<void> {
+    if (!order.items || order.items.length === 0) {
+      order.totalPrice = 0;
+      return;
+    }
+
+    await Promise.all(
+      order.items.map(async (item) => {
+        const productionCostPerUnit =
+          this.pricingService.calculateProductionCost(item, item.template);
+        item.calculatedProductionCost = productionCostPerUnit * item.quantity;
+
+        item.calculatedCustomerPrice =
+          await this.pricingService.calculateCustomerPrice(item, order);
+      }),
+    );
+
+    this.recalculateOrderTotal(order);
   }
 
   private async createOrderItem(
@@ -133,15 +208,36 @@ export class OrdersService {
     return order;
   }
 
-  async update(id: string, updateDto: UpdateOrderDto): Promise<Order> {
-    const order = await this.ordersRepository.preload({
-      id,
-      ...updateDto,
+  async findOneWithItems(id: string): Promise<Order> {
+    const order = await this.ordersRepository.findOne({
+      where: { id },
+      relations: ['order_items'],
     });
 
     if (!order) {
       throw new NotFoundException(`Order with ID "${id}" not found`);
     }
+    return order;
+  }
+
+  async update(id: string, updateDto: UpdateOrderDto): Promise<Order> {
+    const order = await this.ordersRepository.findOne({
+      where: { id },
+      relations: {
+        items: {
+          template: true,
+        },
+        orderGroup: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order with ID "${id}" not found`);
+    }
+
+    Object.assign(order, updateDto);
+
+    await this.recalculatePricesForOrder(order);
     return this.ordersRepository.save(order);
   }
 

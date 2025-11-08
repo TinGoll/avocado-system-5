@@ -42,4 +42,14 @@ export class OrderGroupsController {
   remove(@Param('id') id: string) {
     return this.orderGroupsService.remove(+id);
   }
+
+  @Get(':id/order-ids')
+  findOrderIds(@Param('id') id: string) {
+    return this.orderGroupsService.findOrderIds(+id);
+  }
+
+  @Get(':id/with-order-ids')
+  findOneWithOrderIds(@Param('id') id: string) {
+    return this.orderGroupsService.findOneWithOrderIds(+id);
+  }
 }

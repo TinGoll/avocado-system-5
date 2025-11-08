@@ -13,6 +13,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { CreateOrderItemDto } from './dto/create-order-item.dto';
 import { Order } from './entities/order.entity';
+import { UpdateOrderItemDto } from './dto/update-order-item.dto';
 
 @Controller('orders')
 export class OrdersController {
@@ -52,5 +53,27 @@ export class OrdersController {
     @Body() createOrderItemDto: CreateOrderItemDto,
   ): Promise<Order> {
     return this.ordersService.addItemToOrder(id, createOrderItemDto);
+  }
+
+  @Get(':id')
+  findOneWithItems(@Param('id', ParseUUIDPipe) id: string) {
+    return this.ordersService.findOneWithItems(id);
+  }
+
+  @Patch(':orderId/items/:itemId')
+  updateOrderItem(
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @Param('itemId', ParseUUIDPipe) itemId: string,
+    @Body() updateItemDto: UpdateOrderItemDto,
+  ) {
+    return this.ordersService.updateItemInOrder(orderId, itemId, updateItemDto);
+  }
+
+  @Delete(':orderId/items/:itemId')
+  removeOrderItem(
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @Param('itemId', ParseUUIDPipe) itemId: string,
+  ) {
+    return this.ordersService.removeItemFromOrder(orderId, itemId);
   }
 }
