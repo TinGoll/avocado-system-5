@@ -13,8 +13,16 @@ export const useColors = () =>
     transform: ({ items, ...data }) => ({
       colors: items ?? [],
       map: Object.fromEntries(
-        (items ?? []).map((color) => [color.id, color]),
+        (items ?? []).map((item) => [item.id, item]),
       ) as Record<Color['id'], Color>,
       ...data,
     }),
   });
+
+export const useColorMap = () => {
+  const { isLoading, data } = useColors();
+  return {
+    map: data?.map,
+    isLoading,
+  };
+};
