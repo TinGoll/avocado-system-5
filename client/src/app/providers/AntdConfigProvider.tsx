@@ -12,7 +12,17 @@ type Props = {
 };
 export const AntdConfigProvider: FC<Props> = ({ children }) => {
   return (
-    <ConfigProvider locale={ruRU} theme={{ algorithm: theme.darkAlgorithm }}>
+    <ConfigProvider
+      locale={ruRU}
+      theme={{
+        algorithm: theme.darkAlgorithm,
+        components: {
+          Tabs: {
+            horizontalMargin: '0 0 0 0',
+          },
+        },
+      }}
+    >
       <AntApp>
         <AntErrorMessageProvider>{children}</AntErrorMessageProvider>
       </AntApp>

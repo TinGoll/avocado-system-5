@@ -1,6 +1,9 @@
 :root {
-  --app-surface-background-color: #242424;;
-  --app-body-background-color: #202020;
+  --app-surface-1-background-color: #242424;
+  --app-surface-2-background-color: #202020;
+  --app-surface-3-background-color: #1b1b1b;
+  --app-body-background-color: #181818;
+  --app-body-2-background-color: #141414;
   --app-devider-color: #303030;
 
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
