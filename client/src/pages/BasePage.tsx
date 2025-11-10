@@ -2,6 +2,8 @@ import { css } from '@emotion/css';
 import type { FC } from 'react';
 import { Outlet } from 'react-router';
 
+import { Navbar } from '@widgets/nawbar';
+
 const styles = css`
   flex: 1;
   display: flex;
@@ -14,7 +16,7 @@ const styles = css`
     top: 0;
     z-index: 10;
     border-bottom: 1px solid var(--app-devider-color);
-    background-color: var(--app-surface-background-color);
+    background-color: var(--app-surface-1-background-color);
   }
 
   & .app-footer {
@@ -48,7 +50,9 @@ const styles = css`
 const BasePage: FC = () => {
   return (
     <div className={styles}>
-      <header className="app-header">navbar</header>
+      <header className="app-header">
+        <Navbar />
+      </header>
       <main className="app-main">
         <div className="app-sidebar">
           sidebar
