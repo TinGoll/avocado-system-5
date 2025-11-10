@@ -12,7 +12,7 @@ export const styles = {
     flex: 0;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
   `,
   input: css`
     color: inherit;
