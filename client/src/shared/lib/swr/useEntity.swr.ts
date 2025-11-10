@@ -36,11 +36,11 @@ export function useEntity<
     swrConfig,
   );
 
-  const transformedData = useMemo(() => {
-    if (!(typeof transform === 'function')) {
-      return data;
+  const transformedData = useMemo<TTransformedData | undefined>(() => {
+    if (typeof transform === 'function') {
+      return data ? transform(data) : undefined;
     }
-    return data ? transform(data) : undefined;
+    return data as TTransformedData;
   }, [data, transform]);
 
   const revalidateExtraKeys = () =>

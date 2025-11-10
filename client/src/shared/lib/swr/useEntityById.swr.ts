@@ -3,9 +3,10 @@ import type { SWRConfiguration } from 'swr';
 import useSWR from 'swr';
 
 import { fetcher } from './fetcher.swr';
-import type { BaseEntity, EntityID } from './types';
+import type { EntityID } from './types';
 
-export const useEntityById = <R extends BaseEntity>({
+// @typescript-eslint/no-explicit-any
+export const useEntityById = <R>({
   endpoint,
   id,
   path = '',
