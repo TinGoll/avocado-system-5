@@ -23,6 +23,9 @@ export class Order {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ type: 'text', nullable: true })
+  name?: string;
+
   @Column({ type: 'jsonb', default: {} })
   characteristics: object;
 

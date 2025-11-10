@@ -55,7 +55,7 @@ export class OrdersController {
     return this.ordersService.addItemToOrder(id, createOrderItemDto);
   }
 
-  @Get(':id')
+  @Get(':id/with-items')
   findOneWithItems(@Param('id', ParseUUIDPipe) id: string) {
     return this.ordersService.findOneWithItems(id);
   }

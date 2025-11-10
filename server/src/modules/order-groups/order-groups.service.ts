@@ -55,7 +55,7 @@ export class OrderGroupsService {
     };
   }
 
-  async findOrderIds(groupId: number): Promise<string[]> {
+  async findOrderIds(groupId: number): Promise<{ id: string }[]> {
     const groupExists = await this.repository.existsBy({ id: groupId });
     if (!groupExists) {
       throw new NotFoundException(`Order Group with ID "${groupId}" not found`);
@@ -67,7 +67,10 @@ export class OrderGroupsService {
       .where('order.orderGroupId = :groupId', { groupId })
       .getRawMany<Order>();
 
-    return orders.map((order) => order.id);
+    return orders.map((order) => ({
+      id: order.id,
+      name: order.name,
+    }));
   }
 
   async update(id: number, updateDto: UpdateOrderGroupDto) {
