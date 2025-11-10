@@ -16,8 +16,8 @@ import { useOrderStore, type OrderGroup } from '@entities/order';
 import { orderTemplates } from '@entities/order-template';
 import { DATE_DEFAULT_FORMAT } from '@shared/utils/dateHelpers';
 
+import { useCreateOrder } from '../hooks/useCreateOrder';
 import type { FieldType } from '../model/types';
-import { useCreateOrder } from '../model/useCreateOrder';
 const styles = {
   templates: css`
     & .ant-form-item {

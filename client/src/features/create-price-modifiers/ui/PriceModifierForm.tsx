@@ -13,7 +13,7 @@ export const PriceModifierForm: React.FC = () => {
   const handleSubmit = () => {
     const finalState = usePriceModifierStore.getState().modifier;
     // eslint-disable-next-line no-console
-    console.log('✅ Price Modifier:', finalState);
+    console.log('Price Modifier:', finalState);
   };
 
   return (

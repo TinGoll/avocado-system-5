@@ -30,15 +30,11 @@ export const useCreateOrder = () => {
         orderNumber: formValues.orderNumber,
       });
 
-      // setCurrentGroup(group);
-
       const order = await createOrder.trigger({
         orderGroupId: group.id,
         items: [],
         characteristics: formValues.characteristics,
       });
-
-      // setCurrentOrder(order);
 
       return { group, order };
     } finally {
