@@ -1,8 +1,10 @@
+import { useCurrentOrderGroupID } from '@shared/hooks/useCurrentOrderGroupID';
+
 import { useOrderGroupByID } from '../api/useOrderGroupByID';
 
-import { useCurrentOrderGroupID } from './useCurrentOrderGroupID';
-
 export const useCurrentOrderGroup = () => {
-  const { orderID } = useCurrentOrderGroupID();
-  return useOrderGroupByID(orderID);
+  const { groupID } = useCurrentOrderGroupID();
+  return useOrderGroupByID({
+    groupID,
+  });
 };

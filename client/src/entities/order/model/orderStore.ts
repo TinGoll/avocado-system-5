@@ -6,12 +6,10 @@ interface OrderState {
   currentGroup?: OrderGroup;
   currentOrder?: Order;
   isCreating: boolean;
-
   setCurrentGroup: (group: OrderGroup) => void;
   setCurrentOrder: (order: Order) => void;
-  reset: () => void;
-
   setCreating: (value: boolean) => void;
+  reset: () => void;
 }
 
 export const useOrderStore = create<OrderState>((set) => ({

@@ -29,5 +29,6 @@ export const useOrderGroupMutations = () => {
   return useEntity<OrderGroup, Responce, OrderGroupCreateDTO>({
     endpoint: Endpoints.ORDER_GROUPS,
     disabled: true,
+    extraKeysToRevalidate: ['with-order-ids'],
   });
 };
