@@ -2,20 +2,19 @@ import { css } from '@emotion/css';
 import { Alert, Skeleton } from 'antd';
 import { type FC } from 'react';
 
-import { orderTabsStore } from '@entities/order-tabs';
-import { useLoadOrder } from '@features/edit-order-group';
+import { useLoadOrder } from '@entities/order';
 
 import {
-  ColorField,
-  FacadePanelField,
-  FacadeProfileField,
   MaterialField,
-  PatinaField,
+  ColorField,
+  FacadeProfileField,
+  FacadePanelField,
   VarnishField,
+  PatinaField,
 } from './ui';
 
 const styles = {
-  container: css`
+  fields: css`
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
     gap: 0 16px;
@@ -33,11 +32,16 @@ const styles = {
   `,
 };
 
-export const EditOrderWidget: FC = () => {
-  const { currentTabKey: orderID } = orderTabsStore();
+type Props = {
+  orderID?: string;
+};
+
+export const EditOrderFields: FC<Props> = ({ orderID }) => {
   const { order, isLoading } = useLoadOrder(orderID);
 
-  if (!isLoading && !order) {
+  const isEmpty = !isLoading && !order;
+
+  if (isEmpty) {
     return (
       <Alert
         className={styles.alert}
@@ -54,7 +58,7 @@ export const EditOrderWidget: FC = () => {
   }
 
   return (
-    <div className={styles.container}>
+    <div className={styles.fields}>
       <MaterialField />
       <ColorField />
       <FacadeProfileField />

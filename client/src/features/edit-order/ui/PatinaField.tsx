@@ -2,26 +2,26 @@ import { PlusOutlined, CloseOutlined } from '@ant-design/icons';
 import { Button, Popconfirm, Skeleton, Typography } from 'antd';
 import type { FC } from 'react';
 
-import { FacadePanelSelect, type FacadePanel } from '@entities/facade-panel';
-import { useFacadePanelMap } from '@entities/facade-panel/api/facadePanel.api';
 import { useOrderStore } from '@entities/order';
-import { CreateFacadePanelButton } from '@features/create-facade-panel';
-import { useOptimisticOrderUpdate } from '@features/edit-order-group';
+import { PatinaSelect, usePatinaMap, type Patina } from '@entities/patina';
+import { CreatePatinaButton } from '@features/create-patina';
 import { Editable } from '@shared/ui/editable';
 import { Field } from '@shared/ui/Field';
+
+import { useOptimisticOrderUpdate } from '../hooks/useOptimisticOrderUpdate';
 
 import { styles } from './styles';
 
 const { Text } = Typography;
 
-export const FacadePanelField: FC = () => {
+export const PatinaField: FC = () => {
   const { currentOrder } = useOrderStore();
-  const { map: panels, isLoading } = useFacadePanelMap();
+  const { map: patinas, isLoading } = usePatinaMap();
   const { updateCharacteristic, isMutating } = useOptimisticOrderUpdate();
 
-  const handleUpdate = (item?: FacadePanel) => {
-    const updateItem = item ?? ({} as FacadePanel);
-    updateCharacteristic('panel', updateItem);
+  const handleUpdate = (item?: Patina) => {
+    const updateItem = item ?? ({} as Patina);
+    updateCharacteristic('patina', updateItem);
   };
 
   if (isLoading) {
@@ -40,7 +40,7 @@ export const FacadePanelField: FC = () => {
   if (
     !isLoading &&
     currentOrder?.characteristics &&
-    currentOrder?.characteristics?.panel === undefined
+    currentOrder?.characteristics?.patina === undefined
   ) {
     return null;
   }
@@ -48,9 +48,9 @@ export const FacadePanelField: FC = () => {
   return (
     <Field>
       <Field.Label>
-        <Text type="secondary">Филёнка</Text>
+        <Text type="secondary">Патина</Text>
         <div className={styles.actions}>
-          <CreateFacadePanelButton
+          <CreatePatinaButton
             onCreated={(item) => {
               handleUpdate(item);
             }}
@@ -75,17 +75,17 @@ export const FacadePanelField: FC = () => {
       </Field.Label>
       <Field.Value>
         <Editable
-          name="panel"
+          name="patina"
           className={styles.editable}
           loading={isMutating}
           onSave={(_, value) => {
-            return handleUpdate(value ? panels?.[value] : undefined);
+            return handleUpdate(value ? patinas?.[value] : undefined);
           }}
-          defaultValue={currentOrder?.characteristics?.panel?.name}
+          defaultValue={currentOrder?.characteristics?.patina?.name}
           block
           confirmOnBlur
           control={(props) => (
-            <FacadePanelSelect
+            <PatinaSelect
               {...props}
               className={styles.input}
               size="small"
@@ -95,12 +95,12 @@ export const FacadePanelField: FC = () => {
             />
           )}
         >
-          {currentOrder?.characteristics?.panel?.name ? (
+          {currentOrder?.characteristics?.patina?.name ? (
             <Text className={styles.title} type="success">
-              {currentOrder?.characteristics?.panel?.name}
+              {currentOrder?.characteristics?.patina?.name}
             </Text>
           ) : (
-            <Text type="secondary">Выбери филёнку</Text>
+            <Text type="secondary">Выбери патину</Text>
           )}
         </Editable>
       </Field.Value>

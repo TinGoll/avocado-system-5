@@ -1,4 +1,5 @@
-import { useOrderGroupByID, useOrderStore } from '@entities/order';
+import { useOrderGroupByID } from '../api/useOrderGroupByID';
+import { useOrderStore } from '../model/orderStore';
 
 export const useLoadOrderGroup = (groupID: number | null) => {
   const { setCurrentGroup, reset } = useOrderStore();

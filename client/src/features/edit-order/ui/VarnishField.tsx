@@ -5,9 +5,10 @@ import type { FC } from 'react';
 import { useOrderStore } from '@entities/order';
 import { useVarnishMap, VarnishSelect, type Varnish } from '@entities/varnish';
 import { CreateVarnishButton } from '@features/create-varnish';
-import { useOptimisticOrderUpdate } from '@features/edit-order-group';
 import { Editable } from '@shared/ui/editable';
 import { Field } from '@shared/ui/Field';
+
+import { useOptimisticOrderUpdate } from '../hooks/useOptimisticOrderUpdate';
 
 import { styles } from './styles';
 

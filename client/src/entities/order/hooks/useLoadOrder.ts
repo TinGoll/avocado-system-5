@@ -1,4 +1,5 @@
-import { useOrderByIDWithItems, useOrderStore } from '@entities/order';
+import { useOrderByIDWithItems } from '../api/useOrderByIDWithItems';
+import { useOrderStore } from '../model/orderStore';
 
 export const useLoadOrder = (orderID?: string) => {
   const { setCurrentOrder, reset } = useOrderStore();

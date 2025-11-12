@@ -1,7 +1,12 @@
-import { CopyOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
+import {
+  CopyOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  PlusOutlined,
+} from '@ant-design/icons';
 import { css } from '@emotion/css';
 import { Button, Divider } from 'antd';
-import type { FC } from 'react';
+import { type FC } from 'react';
 
 const styles = {
   toolbar: css`
@@ -24,16 +29,49 @@ const styles = {
   `,
 };
 
-export const Toolbar: FC = () => {
+type Props = {
+  onChangeName?: () => void;
+  onAddFields?: () => void;
+  onDeleteOrder?: () => void;
+  onCopyOrder?: () => void;
+};
+
+export const Toolbar: FC<Props> = ({
+  onChangeName,
+  onAddFields,
+  onDeleteOrder,
+  onCopyOrder,
+}) => {
   return (
     <div className={styles.toolbar}>
       <div className={styles.inner}>
-        <Button size="small" type="text" icon={<EditOutlined />}>
+        <Button
+          size="small"
+          type="text"
+          icon={<EditOutlined />}
+          onClick={onChangeName}
+        >
           Переименовать вкладку...
         </Button>
         <div className={styles.actions}>
-          <Button type="text" size="small" icon={<DeleteOutlined />} />
-          <Button type="text" size="small" icon={<CopyOutlined />} />
+          <Button
+            type="text"
+            size="small"
+            icon={<PlusOutlined />}
+            onClick={onAddFields}
+          />
+          <Button
+            type="text"
+            size="small"
+            icon={<DeleteOutlined />}
+            onClick={onDeleteOrder}
+          />
+          <Button
+            type="text"
+            size="small"
+            icon={<CopyOutlined />}
+            onClick={onCopyOrder}
+          />
         </div>
       </div>
       <Divider className={styles.divider} />

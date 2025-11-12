@@ -11,7 +11,7 @@ const Row = styled.div`
   min-width: 0;
 `;
 const Label = styled.div`
-  flex: 0 0 140px;
+  flex: 0 0 160px;
   padding: 4px 8px;
   background-color: var(--app-surface-1-background-color);
   border-radius: 4px;

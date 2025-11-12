@@ -1,30 +1,31 @@
-import { CloseOutlined, PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined, CloseOutlined } from '@ant-design/icons';
 import { Button, Popconfirm, Skeleton, Typography } from 'antd';
 import type { FC } from 'react';
 
 import {
-  MaterialSelect,
-  useMaterialMap,
-  type Material,
-} from '@entities/material';
+  FacadeProfileSelect,
+  useFacadeProfileMap,
+  type FacadeProfile,
+} from '@entities/facade-profile';
 import { useOrderStore } from '@entities/order';
-import { CreateMaterialButton } from '@features/create-material';
-import { useOptimisticOrderUpdate } from '@features/edit-order-group';
+import { CreateFacadeProfileButton } from '@features/create-facade-profile';
 import { Editable } from '@shared/ui/editable';
 import { Field } from '@shared/ui/Field';
+
+import { useOptimisticOrderUpdate } from '../hooks/useOptimisticOrderUpdate';
 
 import { styles } from './styles';
 
 const { Text } = Typography;
 
-export const MaterialField: FC = () => {
+export const FacadeProfileField: FC = () => {
   const { currentOrder } = useOrderStore();
-  const { materials, isLoading } = useMaterialMap();
+  const { map: profiles, isLoading } = useFacadeProfileMap();
   const { updateCharacteristic, isMutating } = useOptimisticOrderUpdate();
 
-  const handleUpdate = (material?: Material) => {
-    const updateMaterial = material ?? ({} as Material);
-    updateCharacteristic('material', updateMaterial);
+  const handleUpdate = (item?: FacadeProfile) => {
+    const updateItem = item ?? ({} as FacadeProfile);
+    updateCharacteristic('profile', updateItem);
   };
 
   if (isLoading) {
@@ -43,7 +44,7 @@ export const MaterialField: FC = () => {
   if (
     !isLoading &&
     currentOrder?.characteristics &&
-    currentOrder?.characteristics?.material === undefined
+    currentOrder?.characteristics?.profile === undefined
   ) {
     return null;
   }
@@ -51,11 +52,11 @@ export const MaterialField: FC = () => {
   return (
     <Field>
       <Field.Label>
-        <Text type="secondary">Материал</Text>
+        <Text type="secondary">Профиль</Text>
         <div className={styles.actions}>
-          <CreateMaterialButton
-            onCreated={(material) => {
-              handleUpdate(material);
+          <CreateFacadeProfileButton
+            onCreated={(item) => {
+              handleUpdate(item);
             }}
             type="text"
             size="small"
@@ -78,17 +79,17 @@ export const MaterialField: FC = () => {
       </Field.Label>
       <Field.Value>
         <Editable
-          name="material"
+          name="profile"
           className={styles.editable}
           loading={isMutating}
           onSave={(_, value) => {
-            return handleUpdate(value ? materials?.[value] : undefined);
+            return handleUpdate(value ? profiles?.[value] : undefined);
           }}
-          defaultValue={currentOrder?.characteristics?.material?.name}
+          defaultValue={currentOrder?.characteristics?.profile?.name}
           block
           confirmOnBlur
           control={(props) => (
-            <MaterialSelect
+            <FacadeProfileSelect
               {...props}
               className={styles.input}
               size="small"
@@ -98,12 +99,12 @@ export const MaterialField: FC = () => {
             />
           )}
         >
-          {currentOrder?.characteristics?.material?.name ? (
+          {currentOrder?.characteristics?.profile?.name ? (
             <Text className={styles.title} type="success">
-              {currentOrder?.characteristics?.material?.name}
+              {currentOrder?.characteristics?.profile?.name}
             </Text>
           ) : (
-            <Text type="secondary">Выбери материал</Text>
+            <Text type="secondary">Выбери профиль</Text>
           )}
         </Editable>
       </Field.Value>

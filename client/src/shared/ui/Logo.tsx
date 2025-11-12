@@ -2,7 +2,7 @@ import { css } from '@emotion/css';
 import { type FC } from 'react';
 import { Link } from 'react-router';
 
-import svgLogo from '@shared/assets/svg/logo.svg';
+import svgLogo from '@shared/assets/icon/logo.png';
 
 const styles = css`
   display: flex;

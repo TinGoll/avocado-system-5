@@ -1,26 +1,28 @@
-import { CloseOutlined, PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined, CloseOutlined } from '@ant-design/icons';
 import { Button, Popconfirm, Skeleton, Typography } from 'antd';
 import type { FC } from 'react';
 
-import { ColorSelect, useColorMap, type Color } from '@entities/color';
+import { FacadePanelSelect, type FacadePanel } from '@entities/facade-panel';
+import { useFacadePanelMap } from '@entities/facade-panel/api/facadePanel.api';
 import { useOrderStore } from '@entities/order';
-import { CreateColorButton } from '@features/create-color';
-import { useOptimisticOrderUpdate } from '@features/edit-order-group';
+import { CreateFacadePanelButton } from '@features/create-facade-panel';
 import { Editable } from '@shared/ui/editable';
 import { Field } from '@shared/ui/Field';
+
+import { useOptimisticOrderUpdate } from '../hooks/useOptimisticOrderUpdate';
 
 import { styles } from './styles';
 
 const { Text } = Typography;
 
-export const ColorField: FC = () => {
+export const FacadePanelField: FC = () => {
   const { currentOrder } = useOrderStore();
-  const { map: colors, isLoading } = useColorMap();
+  const { map: panels, isLoading } = useFacadePanelMap();
   const { updateCharacteristic, isMutating } = useOptimisticOrderUpdate();
 
-  const handleUpdate = (item?: Color) => {
-    const updateItem = item ?? ({} as Color);
-    updateCharacteristic('color', updateItem);
+  const handleUpdate = (item?: FacadePanel) => {
+    const updateItem = item ?? ({} as FacadePanel);
+    updateCharacteristic('panel', updateItem);
   };
 
   if (isLoading) {
@@ -39,7 +41,7 @@ export const ColorField: FC = () => {
   if (
     !isLoading &&
     currentOrder?.characteristics &&
-    currentOrder?.characteristics?.color === undefined
+    currentOrder?.characteristics?.panel === undefined
   ) {
     return null;
   }
@@ -47,9 +49,9 @@ export const ColorField: FC = () => {
   return (
     <Field>
       <Field.Label>
-        <Text type="secondary">Цвет</Text>
+        <Text type="secondary">Филёнка</Text>
         <div className={styles.actions}>
-          <CreateColorButton
+          <CreateFacadePanelButton
             onCreated={(item) => {
               handleUpdate(item);
             }}
@@ -74,17 +76,17 @@ export const ColorField: FC = () => {
       </Field.Label>
       <Field.Value>
         <Editable
-          name="color"
+          name="panel"
           className={styles.editable}
           loading={isMutating}
           onSave={(_, value) => {
-            return handleUpdate(value ? colors?.[value] : undefined);
+            return handleUpdate(value ? panels?.[value] : undefined);
           }}
-          defaultValue={currentOrder?.characteristics?.color?.name}
+          defaultValue={currentOrder?.characteristics?.panel?.name}
           block
           confirmOnBlur
           control={(props) => (
-            <ColorSelect
+            <FacadePanelSelect
               {...props}
               className={styles.input}
               size="small"
@@ -94,12 +96,12 @@ export const ColorField: FC = () => {
             />
           )}
         >
-          {currentOrder?.characteristics?.color?.name ? (
+          {currentOrder?.characteristics?.panel?.name ? (
             <Text className={styles.title} type="success">
-              {currentOrder?.characteristics?.color?.name}
+              {currentOrder?.characteristics?.panel?.name}
             </Text>
           ) : (
-            <Text type="secondary">Выбери цвет</Text>
+            <Text type="secondary">Выбери филёнку</Text>
           )}
         </Editable>
       </Field.Value>

@@ -6,3 +6,5 @@ export * from './hooks/useCurrentOrderGroup';
 export * from './api/useOrderGroupByIDWithOrderIDs';
 export * from './api/useOrderGroupByID';
 export * from './api/useOrderByIDWithItems';
+export * from './hooks/useLoadOrder';
+export * from './hooks/useLoadOrderGroup';

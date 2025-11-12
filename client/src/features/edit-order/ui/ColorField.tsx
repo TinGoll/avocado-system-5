@@ -1,26 +1,27 @@
-import { PlusOutlined, CloseOutlined } from '@ant-design/icons';
+import { CloseOutlined, PlusOutlined } from '@ant-design/icons';
 import { Button, Popconfirm, Skeleton, Typography } from 'antd';
 import type { FC } from 'react';
 
+import { ColorSelect, useColorMap, type Color } from '@entities/color';
 import { useOrderStore } from '@entities/order';
-import { PatinaSelect, usePatinaMap, type Patina } from '@entities/patina';
-import { CreatePatinaButton } from '@features/create-patina';
-import { useOptimisticOrderUpdate } from '@features/edit-order-group';
+import { CreateColorButton } from '@features/create-color';
+import { Field } from '@shared/ui';
 import { Editable } from '@shared/ui/editable';
-import { Field } from '@shared/ui/Field';
+
+import { useOptimisticOrderUpdate } from '../hooks/useOptimisticOrderUpdate';
 
 import { styles } from './styles';
 
 const { Text } = Typography;
 
-export const PatinaField: FC = () => {
+export const ColorField: FC = () => {
   const { currentOrder } = useOrderStore();
-  const { map: patinas, isLoading } = usePatinaMap();
+  const { map: colors, isLoading } = useColorMap();
   const { updateCharacteristic, isMutating } = useOptimisticOrderUpdate();
 
-  const handleUpdate = (item?: Patina) => {
-    const updateItem = item ?? ({} as Patina);
-    updateCharacteristic('patina', updateItem);
+  const handleUpdate = (item?: Color) => {
+    const updateItem = item ?? ({} as Color);
+    updateCharacteristic('color', updateItem);
   };
 
   if (isLoading) {
@@ -39,7 +40,7 @@ export const PatinaField: FC = () => {
   if (
     !isLoading &&
     currentOrder?.characteristics &&
-    currentOrder?.characteristics?.patina === undefined
+    currentOrder?.characteristics?.color === undefined
   ) {
     return null;
   }
@@ -47,9 +48,9 @@ export const PatinaField: FC = () => {
   return (
     <Field>
       <Field.Label>
-        <Text type="secondary">Патина</Text>
+        <Text type="secondary">Цвет</Text>
         <div className={styles.actions}>
-          <CreatePatinaButton
+          <CreateColorButton
             onCreated={(item) => {
               handleUpdate(item);
             }}
@@ -74,17 +75,17 @@ export const PatinaField: FC = () => {
       </Field.Label>
       <Field.Value>
         <Editable
-          name="patina"
+          name="color"
           className={styles.editable}
           loading={isMutating}
           onSave={(_, value) => {
-            return handleUpdate(value ? patinas?.[value] : undefined);
+            return handleUpdate(value ? colors?.[value] : undefined);
           }}
-          defaultValue={currentOrder?.characteristics?.patina?.name}
+          defaultValue={currentOrder?.characteristics?.color?.name}
           block
           confirmOnBlur
           control={(props) => (
-            <PatinaSelect
+            <ColorSelect
               {...props}
               className={styles.input}
               size="small"
@@ -94,12 +95,12 @@ export const PatinaField: FC = () => {
             />
           )}
         >
-          {currentOrder?.characteristics?.patina?.name ? (
+          {currentOrder?.characteristics?.color?.name ? (
             <Text className={styles.title} type="success">
-              {currentOrder?.characteristics?.patina?.name}
+              {currentOrder?.characteristics?.color?.name}
             </Text>
           ) : (
-            <Text type="secondary">Выбери патину</Text>
+            <Text type="secondary">Выбери цвет</Text>
           )}
         </Editable>
       </Field.Value>
