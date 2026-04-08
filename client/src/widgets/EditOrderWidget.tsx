@@ -1,6 +1,7 @@
 import type { FC } from 'react';
 
 import { OrderTabs, orderTabsStore, Toolbar } from '@entities/order-tabs';
+import { AddOrderItemForm } from '@features/add-order-items';
 import { EditOrderFields } from '@features/edit-order';
 
 export const EditOrderWidget: FC = () => {
@@ -11,6 +12,7 @@ export const EditOrderWidget: FC = () => {
       <OrderTabs />
       <Toolbar />
       <EditOrderFields orderID={orderID} />
+      <AddOrderItemForm />
     </div>
   );
 };
