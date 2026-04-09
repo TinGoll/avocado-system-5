@@ -13,7 +13,7 @@ import { type FC } from 'react';
 import type { Patina } from '@entities/patina';
 
 import { useCreatePatina } from '../hooks/useCreatePatina';
-import type { FieldType } from '../model/types';
+import type { FieldType } from '../model/create-patina';
 
 const styles = {
   form: css`

@@ -1,5 +1,5 @@
+import type { Customer } from './customer';
 import { mockCustomers } from './customer.mock';
-import type { Customer } from './types';
 
 export const useCustomerMap = () => {
   return {

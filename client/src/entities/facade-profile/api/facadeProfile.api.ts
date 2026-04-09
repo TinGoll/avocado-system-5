@@ -1,6 +1,6 @@
 import { Endpoints, useEntity, type ErrorResponse } from '@shared/lib/swr';
 
-import type { FacadeProfile } from '../model/types';
+import type { FacadeProfile } from '../model/facade-profile';
 
 type Responce = {
   profiles?: FacadeProfile[];

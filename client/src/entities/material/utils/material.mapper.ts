@@ -1,4 +1,4 @@
-import type { MaterialType } from '../model/types';
+import type { MaterialType } from '../model/material';
 
 export const materialTypeMap: Record<MaterialType, string> = {
   softwood: 'Мягкая древесина',

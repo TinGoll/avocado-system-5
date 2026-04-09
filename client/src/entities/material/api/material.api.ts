@@ -1,6 +1,6 @@
 import { Endpoints, useEntity, type ErrorResponse } from '@shared/lib/swr';
 
-import type { Material } from '../model/types';
+import type { Material } from '../model/material';
 
 type Responce = {
   materials: Material[];

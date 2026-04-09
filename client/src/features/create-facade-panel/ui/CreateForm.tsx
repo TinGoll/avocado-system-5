@@ -14,7 +14,7 @@ import { useMemo, type FC } from 'react';
 import type { FacadePanel } from '@entities/facade-panel';
 
 import { useCreateFacadePanel } from '../hooks/useCreateFacadePanel';
-import type { FieldType } from '../model/types';
+import type { FieldType } from '../model/create-facade-panel';
 
 const styles = {
   form: css`

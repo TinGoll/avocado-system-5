@@ -5,7 +5,7 @@ import type { FC } from 'react';
 import { COLOR_TYPE, colorTypeNames, type Color } from '@entities/color';
 
 import { useCreateColor } from '../hooks/useCreateColor';
-import type { ColorFieldType } from '../model/types';
+import type { ColorFieldType } from '../model/create-color';
 
 const styles = {
   form: css`

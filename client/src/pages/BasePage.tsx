@@ -2,7 +2,7 @@ import { css } from '@emotion/css';
 import type { FC } from 'react';
 import { Outlet } from 'react-router';
 
-import { Navbar } from '@widgets/nawbar';
+import { Navbar } from '@widgets/navbar';
 
 const styles = css`
   flex: 1;

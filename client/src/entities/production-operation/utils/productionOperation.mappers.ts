@@ -1,4 +1,4 @@
-import type { CalculationMethod } from '../model/types';
+import type { CalculationMethod } from '../model/production-operation';
 
 export const calculationMethodNameMap: Record<CalculationMethod, string> = {
   per_item: 'Штука',

@@ -19,7 +19,7 @@ import {
 } from '@entities/production-operation';
 
 import { useCreateProductionOperations } from '../hooks/useCreateProductionOperations';
-import type { FieldType } from '../model/types';
+import type { FieldType } from '../model/create-production-operation';
 
 const styles = {
   form: css`

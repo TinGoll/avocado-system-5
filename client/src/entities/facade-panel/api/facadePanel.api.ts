@@ -1,6 +1,6 @@
 import { Endpoints, useEntity, type ErrorResponse } from '@shared/lib/swr';
 
-import type { FacadePanel } from '../model/types';
+import type { FacadePanel } from '../model/facade-panel';
 
 type Responce = {
   panels?: FacadePanel[];

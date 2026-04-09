@@ -18,7 +18,7 @@ import { useMemo, type FC } from 'react';
 import type { FacadeProfile } from '@entities/facade-profile';
 
 import { useCreateFacadeProfile } from '../hooks/useCreateFacadeProfile';
-import type { FieldType } from '../model/types';
+import type { FieldType } from '../model/create-facade-profile';
 
 const styles = {
   form: css`

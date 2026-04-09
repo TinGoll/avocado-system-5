@@ -1,3 +1,3 @@
+export * from './model/facade-profile';
 export * from './api/facadeProfile.api';
-export * from './model/types';
 export * from './ui/FacadeProfileSelect';

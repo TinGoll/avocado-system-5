@@ -1,6 +1,6 @@
 import { Endpoints, useEntityById } from '@shared/lib/swr';
 
-import type { OrderGroup } from '../model/types';
+import type { OrderGroup } from '../model/order';
 
 type OrderGroupWithOrderIDs = OrderGroup & { orderIds: string[] };
 

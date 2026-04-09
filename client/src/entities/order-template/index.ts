@@ -1,2 +1,1 @@
-export * from './orderTemplates';
-export * from './types';
+export * from './order-template';

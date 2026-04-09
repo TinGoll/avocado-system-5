@@ -18,7 +18,7 @@ import { useMemo, type FC } from 'react';
 import type { ProductTemplate } from '@entities/product';
 
 import { useCreateProductTemplates } from '../hooks/useCreateProductTemplates';
-import type { FieldType } from '../model/types';
+import type { FieldType } from '../model/create-production-templates';
 
 const styles = {
   form: css`

@@ -1,6 +1,6 @@
 import { Endpoints, useEntity, type ErrorResponse } from '@shared/lib/swr';
 
-import type { OrderGroup } from '../model/types';
+import type { OrderGroup } from '../model/order';
 
 type OrderGroupCreateDTO = {
   orderNumber: string;

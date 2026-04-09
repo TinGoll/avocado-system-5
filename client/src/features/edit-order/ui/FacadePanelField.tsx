@@ -2,8 +2,11 @@ import { PlusOutlined, CloseOutlined } from '@ant-design/icons';
 import { Button, Popconfirm, Skeleton, Typography } from 'antd';
 import type { FC } from 'react';
 
-import { FacadePanelSelect, type FacadePanel } from '@entities/facade-panel';
-import { useFacadePanelMap } from '@entities/facade-panel/api/facadePanel.api';
+import {
+  FacadePanelSelect,
+  type FacadePanel,
+  useFacadePanelMap,
+} from '@entities/facade-panel';
 import { useOrderStore } from '@entities/order';
 import { CreateFacadePanelButton } from '@features/create-facade-panel';
 import { Editable } from '@shared/ui/editable';

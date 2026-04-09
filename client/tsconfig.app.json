@@ -32,7 +32,8 @@
       "@widgets/*": ["./widgets/*"],
       "@features/*": ["./features/*"],
       "@entities/*": ["./entities/*"],
-      "@shared/*": ["./shared/*"]
+      "@shared/*": ["./shared/*"],
+      "@shared/ui/logo": ["./shared/ui/logo"]
     }
   },
   "include": [

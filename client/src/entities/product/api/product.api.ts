@@ -1,6 +1,6 @@
 import { Endpoints, useEntity, type ErrorResponse } from '@shared/lib/swr';
 
-import type { ProductTemplate } from '../model/types';
+import type { ProductTemplate } from '../model/product';
 
 type Responce = {
   products: ProductTemplate[];

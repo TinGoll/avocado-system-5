@@ -18,7 +18,7 @@ import {
 } from '@entities/material';
 
 import { useCreateMaterial } from '../hooks/useCreateMaterial';
-import type { FieldType } from '../model/types';
+import type { FieldType } from '../model/create-material';
 
 const styles = {
   form: css`

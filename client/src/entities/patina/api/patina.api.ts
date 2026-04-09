@@ -1,6 +1,6 @@
 import { Endpoints, useEntity, type ErrorResponse } from '@shared/lib/swr';
 
-import type { Patina } from '../model/types';
+import type { Patina } from '../model/patina';
 
 type Responce = {
   patinas?: Patina[];
