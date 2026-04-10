@@ -77,4 +77,7 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .gemini/**
 GEMINI.md
+AGENTS.md
+
+.qwen
 

@@ -1,6 +1,6 @@
-import { PlusOutlined, CloseOutlined } from '@ant-design/icons';
+import { CloseOutlined } from '@ant-design/icons';
 import { Button, Popconfirm, Skeleton, Typography } from 'antd';
-import type { FC } from 'react';
+import { type FC, type ReactNode } from 'react';
 
 import {
   FacadeProfileSelect,
@@ -8,7 +8,6 @@ import {
   type FacadeProfile,
 } from '@entities/facade-profile';
 import { useOrderStore } from '@entities/order';
-import { CreateFacadeProfileButton } from '@features/create-facade-profile';
 import { Editable } from '@shared/ui/editable';
 import { Field } from '@shared/ui/Field';
 
@@ -18,7 +17,13 @@ import { styles } from './styles';
 
 const { Text } = Typography;
 
-export const FacadeProfileField: FC = () => {
+type Props = {
+  renderCreateAction?: (
+    onCreated: (profile: FacadeProfile) => void,
+  ) => ReactNode;
+};
+
+export const FacadeProfileField: FC<Props> = ({ renderCreateAction }) => {
   const { currentOrder } = useOrderStore();
   const { map: profiles, isLoading } = useFacadeProfileMap();
   const { updateCharacteristic, isMutating } = useOptimisticOrderUpdate();
@@ -54,14 +59,7 @@ export const FacadeProfileField: FC = () => {
       <Field.Label>
         <Text type="secondary">Профиль</Text>
         <div className={styles.actions}>
-          <CreateFacadeProfileButton
-            onCreated={(item) => {
-              handleUpdate(item);
-            }}
-            type="text"
-            size="small"
-            icon={<PlusOutlined />}
-          />
+          {renderCreateAction?.(handleUpdate)}
           <Popconfirm
             title="Удалить это поле?"
             description={

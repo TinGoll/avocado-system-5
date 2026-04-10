@@ -1,6 +1,6 @@
-import { CloseOutlined, PlusOutlined } from '@ant-design/icons';
+import { CloseOutlined } from '@ant-design/icons';
 import { Button, Popconfirm, Skeleton, Typography } from 'antd';
-import type { FC } from 'react';
+import { type FC, type ReactNode } from 'react';
 
 import {
   MaterialSelect,
@@ -8,7 +8,6 @@ import {
   type Material,
 } from '@entities/material';
 import { useOrderStore } from '@entities/order';
-import { CreateMaterialButton } from '@features/create-material';
 import { Editable } from '@shared/ui/editable';
 import { Field } from '@shared/ui/Field';
 
@@ -18,7 +17,11 @@ import { styles } from './styles';
 
 const { Text } = Typography;
 
-export const MaterialField: FC = () => {
+type Props = {
+  renderCreateAction?: (onCreated: (material: Material) => void) => ReactNode;
+};
+
+export const MaterialField: FC<Props> = ({ renderCreateAction }) => {
   const { currentOrder } = useOrderStore();
   const { materials, isLoading } = useMaterialMap();
   const { updateCharacteristic, isMutating } = useOptimisticOrderUpdate();
@@ -54,14 +57,7 @@ export const MaterialField: FC = () => {
       <Field.Label>
         <Text type="secondary">Материал</Text>
         <div className={styles.actions}>
-          <CreateMaterialButton
-            onCreated={(material) => {
-              handleUpdate(material);
-            }}
-            type="text"
-            size="small"
-            icon={<PlusOutlined />}
-          />
+          {renderCreateAction?.(handleUpdate)}
           <Popconfirm
             title="Удалить это поле?"
             description={

@@ -82,10 +82,10 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
     trigger({
       name: values.name,
       characteristics: {
-        width: values.width,
-        grooveDepth: values.grooveDepth,
-        grooveWidth: values.grooveWidth,
-        style: values.style,
+        width: values.characteristics.width,
+        grooveDepth: values.characteristics.grooveDepth,
+        grooveWidth: values.characteristics.grooveWidth,
+        style: values.characteristics.style,
       },
     }).then((data) => {
       onCreated?.(data);
@@ -107,7 +107,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
         form={form}
         className={styles.form}
         layout="vertical"
-        initialValues={{}}
+        initialValues={{ characteristics: {} }}
         onFinish={handleFinish}
         autoComplete="off"
       >
@@ -124,7 +124,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
           <Col span={12}>
             <Form.Item<FieldType>
               label="Ширина профиля в мм."
-              name="width"
+              name={['characteristics', 'width'] as const}
               rules={[{ required: true, message: 'Обязательный параметр' }]}
             >
               <InputNumber />
@@ -133,7 +133,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
           <Col span={12}>
             <Form.Item<FieldType>
               label="Глубина паза в мм."
-              name="grooveDepth"
+              name={['characteristics', 'grooveDepth'] as const}
               tooltip="Глубина паза учавствует в расчете филёнки."
               rules={[
                 {
@@ -148,7 +148,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
           <Col span={12}>
             <Form.Item<FieldType>
               label="Стиль профиля"
-              name="style"
+              name={['characteristics', 'style'] as const}
               tooltip="Стиль - необязательный параметр, но можно задействовать для увеличения гибкости ценообразования"
             >
               <AutoComplete
@@ -164,7 +164,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
             <Form.Item<FieldType>
               tooltip="Можно оставить пустым."
               label="Ширина паза в мм."
-              name="grooveWidth"
+              name={['characteristics', 'grooveWidth'] as const}
             >
               <InputNumber />
             </Form.Item>

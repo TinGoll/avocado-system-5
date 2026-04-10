@@ -1,6 +1,6 @@
-import { PlusOutlined, CloseOutlined } from '@ant-design/icons';
+import { CloseOutlined } from '@ant-design/icons';
 import { Button, Popconfirm, Skeleton, Typography } from 'antd';
-import type { FC } from 'react';
+import { type FC, type ReactNode } from 'react';
 
 import {
   FacadePanelSelect,
@@ -8,7 +8,6 @@ import {
   useFacadePanelMap,
 } from '@entities/facade-panel';
 import { useOrderStore } from '@entities/order';
-import { CreateFacadePanelButton } from '@features/create-facade-panel';
 import { Editable } from '@shared/ui/editable';
 import { Field } from '@shared/ui/Field';
 
@@ -18,7 +17,11 @@ import { styles } from './styles';
 
 const { Text } = Typography;
 
-export const FacadePanelField: FC = () => {
+type Props = {
+  renderCreateAction?: (onCreated: (panel: FacadePanel) => void) => ReactNode;
+};
+
+export const FacadePanelField: FC<Props> = ({ renderCreateAction }) => {
   const { currentOrder } = useOrderStore();
   const { map: panels, isLoading } = useFacadePanelMap();
   const { updateCharacteristic, isMutating } = useOptimisticOrderUpdate();
@@ -54,14 +57,7 @@ export const FacadePanelField: FC = () => {
       <Field.Label>
         <Text type="secondary">Филёнка</Text>
         <div className={styles.actions}>
-          <CreateFacadePanelButton
-            onCreated={(item) => {
-              handleUpdate(item);
-            }}
-            type="text"
-            size="small"
-            icon={<PlusOutlined />}
-          />
+          {renderCreateAction?.(handleUpdate)}
           <Popconfirm
             title="Удалить это поле?"
             description={

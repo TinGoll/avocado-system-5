@@ -1,3 +1,13 @@
-export type FieldType = {
-  test?: string;
-};
+export interface ProductionTemplateCharacteristics {
+  width: number;
+  grooveDepth: number;
+  grooveWidth?: number;
+  style?: string;
+}
+
+export interface CreateProductionTemplateData {
+  name: string;
+  characteristics: ProductionTemplateCharacteristics;
+}
+
+export type FieldType = CreateProductionTemplateData;

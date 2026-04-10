@@ -1,7 +1,7 @@
 import { css } from '@emotion/css';
 import type { FC } from 'react';
 
-import { EditOrderGroupWidget } from '@widgets/EditOrderGroupWidget';
+import { EditGroupFields } from '@features/edit-order-group';
 import { EditOrderWidget } from '@widgets/EditOrderWidget';
 
 const styles = {
@@ -13,7 +13,7 @@ const styles = {
 const OrderEditPage: FC = () => {
   return (
     <div className={styles.container}>
-      <EditOrderGroupWidget />
+      <EditGroupFields />
       <EditOrderWidget />
     </div>
   );

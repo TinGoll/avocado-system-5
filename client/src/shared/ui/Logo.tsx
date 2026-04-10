@@ -1,30 +1,34 @@
 import { css } from '@emotion/css';
-import { type FC } from 'react';
+import { Avatar } from 'antd';
+import type { FC } from 'react';
 import { Link } from 'react-router';
 
-import svgLogo from '@shared/assets/icon/logo.png';
+import image from '@shared/assets/icon/logo.png';
 
-const styles = css`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-left: 16px;
-  a {
-    display: flex;
+const styles = {
+  logo: css`
+    display: inline-flex;
+    margin-left: 8px;
     align-items: center;
+    justify-content: center;
+  `,
+  link: css`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     height: 100%;
-    img {
-      width: 26px;
-      height: auto;
-    }
-  }
-`;
+  `,
+};
 
 export const Logo: FC = () => {
   return (
-    <div className={styles}>
-      <Link to="/">
-        <img src={svgLogo} alt="MYug Logo" />
+    <div className={styles.logo}>
+      <Link to="/" className={styles.link}>
+        <Avatar
+          size="small"
+          src={<img draggable={false} src={image} alt="avatar" />}
+        />
+        <span>AVOCADO</span>
       </Link>
     </div>
   );

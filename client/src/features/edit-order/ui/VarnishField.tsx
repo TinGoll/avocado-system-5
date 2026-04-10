@@ -1,10 +1,9 @@
-import { PlusOutlined, CloseOutlined } from '@ant-design/icons';
+import { CloseOutlined } from '@ant-design/icons';
 import { Button, Popconfirm, Skeleton, Typography } from 'antd';
-import type { FC } from 'react';
+import { type FC, type ReactNode } from 'react';
 
 import { useOrderStore } from '@entities/order';
 import { useVarnishMap, VarnishSelect, type Varnish } from '@entities/varnish';
-import { CreateVarnishButton } from '@features/create-varnish';
 import { Editable } from '@shared/ui/editable';
 import { Field } from '@shared/ui/Field';
 
@@ -14,7 +13,11 @@ import { styles } from './styles';
 
 const { Text } = Typography;
 
-export const VarnishField: FC = () => {
+type Props = {
+  renderCreateAction?: (onCreated: (varnish: Varnish) => void) => ReactNode;
+};
+
+export const VarnishField: FC<Props> = ({ renderCreateAction }) => {
   const { currentOrder } = useOrderStore();
   const { map: varnishes, isLoading } = useVarnishMap();
   const { updateCharacteristic, isMutating } = useOptimisticOrderUpdate();
@@ -50,14 +53,7 @@ export const VarnishField: FC = () => {
       <Field.Label>
         <Text type="secondary">Лак</Text>
         <div className={styles.actions}>
-          <CreateVarnishButton
-            onCreated={(item) => {
-              handleUpdate(item);
-            }}
-            type="text"
-            size="small"
-            icon={<PlusOutlined />}
-          />
+          {renderCreateAction?.(handleUpdate)}
           <Popconfirm
             title="Удалить это поле?"
             description={
