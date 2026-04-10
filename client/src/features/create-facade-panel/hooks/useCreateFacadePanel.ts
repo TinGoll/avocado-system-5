@@ -1,4 +1,4 @@
-import { useFacadePanels } from '@entities/facade-panel/api/facadePanel.api';
+import { useFacadePanels } from '@entities/facade-panel';
 
 export const useCreateFacadePanel = () => {
   const { data, create, isLoading } = useFacadePanels();

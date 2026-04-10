@@ -13,7 +13,7 @@ import { type FC } from 'react';
 import type { Varnish } from '@entities/varnish';
 
 import { useCreateVarnish } from '../hooks/useCreateVarnish';
-import type { FieldType } from '../model/types';
+import type { FieldType } from '../model/create-varnish';
 
 const styles = {
   form: css`

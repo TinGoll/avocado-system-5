@@ -2,8 +2,8 @@ import { PlusOutlined } from '@ant-design/icons';
 import { css } from '@emotion/css';
 import type { FC } from 'react';
 
-import { Logo } from '@entities/logo';
-import { CreateOrderButton } from '@features/create-orders';
+import { CreateOrderButton } from '@features/create-order';
+import { Logo } from '@shared/ui';
 
 const styles = {
   navbar: css`

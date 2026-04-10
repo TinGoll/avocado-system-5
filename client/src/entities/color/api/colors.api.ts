@@ -1,6 +1,6 @@
 import { Endpoints, useEntity, type ErrorResponse } from '@shared/lib/swr';
 
-import type { Color } from '../model/types';
+import type { Color } from '../model/color';
 type Responce = {
   colors: Color[];
   map: Record<Color['id'], Color>;

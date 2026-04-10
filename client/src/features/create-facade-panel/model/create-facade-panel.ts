@@ -1,4 +1,4 @@
-import type { FacadeProfileCharacteristics } from '@entities/facade-panel/model/types';
+import type { FacadeProfileCharacteristics } from '@entities/facade-panel';
 
 export type FieldType = {
   name: string;

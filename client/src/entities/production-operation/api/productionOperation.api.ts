@@ -1,6 +1,6 @@
 import { Endpoints, useEntity, type ErrorResponse } from '@shared/lib/swr';
 
-import type { ProductionOperation } from '../model/types';
+import type { ProductionOperation } from '../model/production-operation';
 
 type Responce = {
   operations: ProductionOperation[];

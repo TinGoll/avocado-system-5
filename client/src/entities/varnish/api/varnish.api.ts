@@ -1,7 +1,7 @@
 import { useEntity, type ErrorResponse } from '@shared/lib/swr';
 import { Endpoints } from '@shared/lib/swr/endpoints';
 
-import type { Varnish } from '../model/types';
+import type { Varnish } from '../model/varnish';
 
 type Responce = {
   varnishes?: Varnish[];

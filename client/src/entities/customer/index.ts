@@ -1,3 +1,4 @@
-export * from './model/types';
-export * from './ui/CustomerSelect';
+export * from './model/customer';
 export * from './model/useCustomerMap';
+export * from './api/customer.api';
+export * from './ui/CustomerSelect';

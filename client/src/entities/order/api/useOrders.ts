@@ -1,6 +1,6 @@
 import { Endpoints, useEntity, type ErrorResponse } from '@shared/lib/swr';
 
-import type { Order } from '../model/types';
+import type { Order } from '../model/order';
 
 type CreateOrderDTO = {
   characteristics: Order['characteristics'];

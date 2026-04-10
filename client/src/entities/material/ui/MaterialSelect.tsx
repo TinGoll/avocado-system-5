@@ -2,7 +2,7 @@ import { Select, type SelectProps } from 'antd';
 import { useMemo, type FC } from 'react';
 
 import { useMaterials } from '../api/material.api';
-import type { Material } from '../model/types';
+import type { Material } from '../model/material';
 
 type Props = Omit<SelectProps, 'options'>;
 

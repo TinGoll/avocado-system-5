@@ -1,5 +1,5 @@
+import type { Customer } from '../model/customer';
 import { mockCustomers } from '../model/customer.mock';
-import type { Customer } from '../model/types';
 
 export const useCustomers = () => ({
   customers: mockCustomers ?? [],

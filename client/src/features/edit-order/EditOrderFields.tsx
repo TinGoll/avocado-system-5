@@ -1,8 +1,14 @@
 import { css } from '@emotion/css';
 import { Alert, Skeleton } from 'antd';
-import { type FC } from 'react';
+import { type FC, type ReactNode } from 'react';
 
+import { type Color } from '@entities/color';
+import { type FacadePanel } from '@entities/facade-panel';
+import { type FacadeProfile } from '@entities/facade-profile';
+import { type Material } from '@entities/material';
 import { useLoadOrder } from '@entities/order';
+import { type Patina } from '@entities/patina';
+import { type Varnish } from '@entities/varnish';
 
 import {
   MaterialField,
@@ -34,9 +40,27 @@ const styles = {
 
 type Props = {
   orderID?: string;
+  renderCreateMaterial?: (onCreated: (material: Material) => void) => ReactNode;
+  renderCreateColor?: (onCreated: (color: Color) => void) => ReactNode;
+  renderCreateFacadeProfile?: (
+    onCreated: (profile: FacadeProfile) => void,
+  ) => ReactNode;
+  renderCreateFacadePanel?: (
+    onCreated: (panel: FacadePanel) => void,
+  ) => ReactNode;
+  renderCreateVarnish?: (onCreated: (varnish: Varnish) => void) => ReactNode;
+  renderCreatePatina?: (onCreated: (patina: Patina) => void) => ReactNode;
 };
 
-export const EditOrderFields: FC<Props> = ({ orderID }) => {
+export const EditOrderFields: FC<Props> = ({
+  orderID,
+  renderCreateMaterial,
+  renderCreateColor,
+  renderCreateFacadeProfile,
+  renderCreateFacadePanel,
+  renderCreateVarnish,
+  renderCreatePatina,
+}) => {
   const { order, isLoading } = useLoadOrder(orderID);
 
   const isEmpty = !isLoading && !order;
@@ -59,12 +83,12 @@ export const EditOrderFields: FC<Props> = ({ orderID }) => {
 
   return (
     <div className={styles.fields}>
-      <MaterialField />
-      <ColorField />
-      <FacadeProfileField />
-      <FacadePanelField />
-      <VarnishField />
-      <PatinaField />
+      <MaterialField renderCreateAction={renderCreateMaterial} />
+      <ColorField renderCreateAction={renderCreateColor} />
+      <FacadeProfileField renderCreateAction={renderCreateFacadeProfile} />
+      <FacadePanelField renderCreateAction={renderCreateFacadePanel} />
+      <VarnishField renderCreateAction={renderCreateVarnish} />
+      <PatinaField renderCreateAction={renderCreatePatina} />
     </div>
   );
 };

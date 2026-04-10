@@ -1,6 +1,6 @@
 import { Endpoints, useEntityById } from '@shared/lib/swr';
 
-import type { Order } from '../model/types';
+import type { Order } from '../model/order';
 
 type Params = {
   id?: string;

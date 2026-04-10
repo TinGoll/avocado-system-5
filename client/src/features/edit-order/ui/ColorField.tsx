@@ -1,10 +1,9 @@
-import { CloseOutlined, PlusOutlined } from '@ant-design/icons';
+import { CloseOutlined } from '@ant-design/icons';
 import { Button, Popconfirm, Skeleton, Typography } from 'antd';
-import type { FC } from 'react';
+import { type FC, type ReactNode } from 'react';
 
 import { ColorSelect, useColorMap, type Color } from '@entities/color';
 import { useOrderStore } from '@entities/order';
-import { CreateColorButton } from '@features/create-color';
 import { Field } from '@shared/ui';
 import { Editable } from '@shared/ui/editable';
 
@@ -14,7 +13,11 @@ import { styles } from './styles';
 
 const { Text } = Typography;
 
-export const ColorField: FC = () => {
+type Props = {
+  renderCreateAction?: (onCreated: (color: Color) => void) => ReactNode;
+};
+
+export const ColorField: FC<Props> = ({ renderCreateAction }) => {
   const { currentOrder } = useOrderStore();
   const { map: colors, isLoading } = useColorMap();
   const { updateCharacteristic, isMutating } = useOptimisticOrderUpdate();
@@ -50,14 +53,7 @@ export const ColorField: FC = () => {
       <Field.Label>
         <Text type="secondary">Цвет</Text>
         <div className={styles.actions}>
-          <CreateColorButton
-            onCreated={(item) => {
-              handleUpdate(item);
-            }}
-            type="text"
-            size="small"
-            icon={<PlusOutlined />}
-          />
+          {renderCreateAction?.(handleUpdate)}
           <Popconfirm
             title="Удалить это поле?"
             description={
