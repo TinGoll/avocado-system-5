@@ -1,27 +1,30 @@
-import { Endpoints, useEntity, type ErrorResponse } from '@shared/lib/swr';
+import { useMemo } from 'react';
 
-import type { FacadeProfile } from '../model/facade-profile';
+import {
+  Endpoints,
+  useEntity,
+  type FacadeProfile,
+  type PaginatedResponse,
+} from '@shared/lib/swr';
+import { transformEntityResponse } from '@shared/lib/swr/utils';
 
-type Responce = {
-  profiles?: FacadeProfile[];
-  map?: Record<FacadeProfile['id'], FacadeProfile>;
-  meta?: Record<string, unknown>;
-  error?: ErrorResponse;
-};
+const transformFacadeProfiles = (data: PaginatedResponse<FacadeProfile>) =>
+  transformEntityResponse(data, 'profiles');
+
 export const useFacadeProfiles = () =>
-  useEntity<FacadeProfile, Responce>({
+  useEntity<FacadeProfile, ReturnType<typeof transformFacadeProfiles>>({
     endpoint: Endpoints.FACADE_PROFILES,
-    transform: ({ items, ...data }) => ({
-      profiles: items || [],
-      map: Object.fromEntries((items ?? []).map((item) => [item.id, item])),
-      ...data,
-    }),
+    transform: transformFacadeProfiles,
   });
 
 export const useFacadeProfileMap = () => {
   const { data, isLoading } = useFacadeProfiles();
-  return {
-    map: data?.map,
-    isLoading,
-  };
+
+  return useMemo(
+    () => ({
+      map: data?.map,
+      isLoading,
+    }),
+    [data?.map, isLoading],
+  );
 };

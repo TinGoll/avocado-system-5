@@ -1,29 +1,28 @@
-import { Endpoints, useEntity, type ErrorResponse } from '@shared/lib/swr';
+import { useMemo } from 'react';
+
+import { Endpoints, useEntity, type PaginatedResponse } from '@shared/lib/swr';
+import { transformEntityResponse } from '@shared/lib/swr/utils';
 
 import type { Material } from '../model/material';
 
-type Responce = {
-  materials: Material[];
-  map: Record<Material['id'], Material>;
-  meta?: Record<string, unknown>;
-  error?: ErrorResponse;
-};
+const transformMaterials = (data: PaginatedResponse<Material>) =>
+  transformEntityResponse(data, 'materials');
+
 export const useMaterials = () =>
-  useEntity<Material, Responce>({
+  useEntity<Material, ReturnType<typeof transformMaterials>>({
     endpoint: Endpoints.MATERIALS,
-    transform: ({ items, ...data }) => ({
-      materials: items ?? [],
-      map: Object.fromEntries(
-        (items ?? []).map((item) => [item.id, item]),
-      ) as Record<Material['id'], Material>,
-      ...data,
-    }),
+    transform: transformMaterials,
   });
 
 export const useMaterialMap = () => {
   const { data, isLoading } = useMaterials();
-  return {
-    materials: data?.map,
-    isLoading,
-  };
+
+  return useMemo(
+    () => ({
+      materials: data?.map, // Compatibility: some features expect 'materials' to be a map
+      map: data?.map,
+      isLoading,
+    }),
+    [data?.map, isLoading],
+  );
 };

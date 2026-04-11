@@ -1,28 +1,27 @@
-import { Endpoints, useEntity, type ErrorResponse } from '@shared/lib/swr';
+import { useMemo } from 'react';
+
+import { Endpoints, useEntity, type PaginatedResponse } from '@shared/lib/swr';
+import { transformEntityResponse } from '@shared/lib/swr/utils';
 
 import type { Color } from '../model/color';
-type Responce = {
-  colors: Color[];
-  map: Record<Color['id'], Color>;
-  meta?: Record<string, unknown>;
-  error?: ErrorResponse;
-};
+
+const transformColors = (data: PaginatedResponse<Color>) =>
+  transformEntityResponse(data, 'colors');
+
 export const useColors = () =>
-  useEntity<Color, Responce>({
+  useEntity<Color, ReturnType<typeof transformColors>>({
     endpoint: Endpoints.COLORS,
-    transform: ({ items, ...data }) => ({
-      colors: items ?? [],
-      map: Object.fromEntries(
-        (items ?? []).map((item) => [item.id, item]),
-      ) as Record<Color['id'], Color>,
-      ...data,
-    }),
+    transform: transformColors,
   });
 
 export const useColorMap = () => {
   const { isLoading, data } = useColors();
-  return {
-    map: data?.map,
-    isLoading,
-  };
+
+  return useMemo(
+    () => ({
+      map: data?.map,
+      isLoading,
+    }),
+    [data?.map, isLoading],
+  );
 };

@@ -1,19 +1,13 @@
-import { Endpoints, useEntity, type ErrorResponse } from '@shared/lib/swr';
+import { Endpoints, useEntity, type PaginatedResponse } from '@shared/lib/swr';
+import { transformEntityResponse } from '@shared/lib/swr/utils';
 
 import type { ProductTemplate } from '../model/product';
 
-type Responce = {
-  products: ProductTemplate[];
-  map?: Record<ProductTemplate['id'], ProductTemplate>;
-  meta?: Record<string, unknown>;
-  error?: ErrorResponse;
-};
+const transformProductTemplates = (data: PaginatedResponse<ProductTemplate>) =>
+  transformEntityResponse(data, 'products');
+
 export const useProductTemplates = () =>
-  useEntity<ProductTemplate, Responce>({
+  useEntity<ProductTemplate, ReturnType<typeof transformProductTemplates>>({
     endpoint: Endpoints.PRODUCTS,
-    transform: ({ items, ...data }) => ({
-      products: items || [],
-      map: Object.fromEntries((items ?? []).map((item) => [item.id, item])),
-      ...data,
-    }),
+    transform: transformProductTemplates,
   });

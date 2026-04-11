@@ -1,28 +1,26 @@
-import { useEntity, type ErrorResponse } from '@shared/lib/swr';
-import { Endpoints } from '@shared/lib/swr/endpoints';
+import { useMemo } from 'react';
+
+import { Endpoints, useEntity, type PaginatedResponse } from '@shared/lib/swr';
+import { transformEntityResponse } from '@shared/lib/swr/utils';
 
 import type { Varnish } from '../model/varnish';
 
-type Responce = {
-  varnishes?: Varnish[];
-  map?: Record<Varnish['id'], Varnish>;
-  meta?: Record<string, unknown>;
-  error?: ErrorResponse;
-};
+const transformVarnishes = (data: PaginatedResponse<Varnish>) =>
+  transformEntityResponse(data, 'varnishes');
+
 export const useVarnishes = () =>
-  useEntity<Varnish, Responce>({
+  useEntity<Varnish, ReturnType<typeof transformVarnishes>>({
     endpoint: Endpoints.VARNISHES,
-    transform: ({ items, ...data }) => ({
-      varnishes: items || [],
-      map: Object.fromEntries((items ?? []).map((item) => [item.id, item])),
-      ...data,
-    }),
+    transform: transformVarnishes,
   });
 
 export const useVarnishMap = () => {
   const { data, isLoading } = useVarnishes();
-  return {
-    map: data?.map,
-    isLoading,
-  };
+  return useMemo(
+    () => ({
+      map: data?.map,
+      isLoading,
+    }),
+    [data?.map, isLoading],
+  );
 };

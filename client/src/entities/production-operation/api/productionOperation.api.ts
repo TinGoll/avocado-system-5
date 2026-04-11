@@ -1,17 +1,17 @@
-import { Endpoints, useEntity, type ErrorResponse } from '@shared/lib/swr';
+import { Endpoints, useEntity, type PaginatedResponse } from '@shared/lib/swr';
+import { transformEntityResponse } from '@shared/lib/swr/utils';
 
 import type { ProductionOperation } from '../model/production-operation';
 
-type Responce = {
-  operations: ProductionOperation[];
-  meta?: Record<string, unknown>;
-  error?: ErrorResponse;
-};
+const transformProductionOperations = (
+  data: PaginatedResponse<ProductionOperation>,
+) => transformEntityResponse(data, 'operations');
+
 export const useProductionOperations = () =>
-  useEntity<ProductionOperation, Responce>({
+  useEntity<
+    ProductionOperation,
+    ReturnType<typeof transformProductionOperations>
+  >({
     endpoint: Endpoints.PRODUCTION_OPERAIONS,
-    transform: ({ items, ...data }) => ({
-      operations: items || [],
-      ...data,
-    }),
+    transform: transformProductionOperations,
   });

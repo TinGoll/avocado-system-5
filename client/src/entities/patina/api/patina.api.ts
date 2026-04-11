@@ -1,27 +1,27 @@
-import { Endpoints, useEntity, type ErrorResponse } from '@shared/lib/swr';
+import { useMemo } from 'react';
+
+import { Endpoints, useEntity, type PaginatedResponse } from '@shared/lib/swr';
+import { transformEntityResponse } from '@shared/lib/swr/utils';
 
 import type { Patina } from '../model/patina';
 
-type Responce = {
-  patinas?: Patina[];
-  map?: Record<Patina['id'], Patina>;
-  meta?: Record<string, unknown>;
-  error?: ErrorResponse;
-};
+const transformPatinas = (data: PaginatedResponse<Patina>) =>
+  transformEntityResponse(data, 'patinas');
+
 export const usePatinas = () =>
-  useEntity<Patina, Responce>({
+  useEntity<Patina, ReturnType<typeof transformPatinas>>({
     endpoint: Endpoints.PATINAS,
-    transform: ({ items, ...data }) => ({
-      map: Object.fromEntries((items ?? []).map((item) => [item.id, item])),
-      patinas: items || [],
-      ...data,
-    }),
+    transform: transformPatinas,
   });
 
 export const usePatinaMap = () => {
   const { data, isLoading } = usePatinas();
-  return {
-    map: data?.map,
-    isLoading,
-  };
+
+  return useMemo(
+    () => ({
+      map: data?.map,
+      isLoading,
+    }),
+    [data?.map, isLoading],
+  );
 };
