@@ -1,4 +1,4 @@
-import type { OrderTemplate } from './types';
+import type { OrderTemplate } from './order-template';
 
 export const orderTemplatesMap = {
   all: {

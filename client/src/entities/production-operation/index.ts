@@ -1,3 +1,3 @@
 export * from './model/production-operation';
-export * from './api/production-operation.api';
-export * from './ui/ProductionOperationSelect';
+export * from './api/productionOperation.api';
+export * from './utils/productionOperation.mappers';

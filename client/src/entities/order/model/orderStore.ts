@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import type { Order, OrderGroup } from './types';
+import type { Order, OrderGroup } from './order';
 
 interface OrderState {
   currentGroup?: OrderGroup;
