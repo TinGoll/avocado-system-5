@@ -1,7 +1,7 @@
 import { Row, type RowProps } from 'antd';
 import { type FC } from 'react';
 
-import { GridCol } from './ui/GridCol';
+import { GridCol } from './GridCol';
 
 interface Composition {
   Col: typeof GridCol;

@@ -1,1 +1,1 @@
-export * from './order-template';
+export * from './model/order-template';

@@ -9,11 +9,11 @@ export const setMessageApi = (
 };
 
 export const showErrorMessage = (text: string) => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-  messageApi
-    ? messageApi.error({
-        content: text,
-      })
-    : // eslint-disable-next-line no-console
-      console.error(text);
+  if (messageApi) {
+    messageApi.error({ content: text });
+    return;
+  }
+
+  // eslint-disable-next-line no-console
+  console.error(text);
 };

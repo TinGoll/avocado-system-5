@@ -1,5 +1,5 @@
 import { useEntity, type ErrorResponse } from '@shared/lib/swr';
-import { Endpoints } from '@shared/lib/swr/endpoints';
+import { Endpoints } from '@shared/lib/swr';
 
 import type { Varnish } from '../model/varnish';
 

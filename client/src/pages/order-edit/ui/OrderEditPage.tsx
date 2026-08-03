@@ -2,7 +2,7 @@ import { css } from '@emotion/css';
 import type { FC } from 'react';
 
 import { EditGroupFields } from '@features/edit-order-group';
-import { EditOrderWidget } from '@widgets/EditOrderWidget';
+import { EditOrderWidget } from '@widgets/edit-order';
 
 const styles = {
   container: css`

@@ -2,10 +2,9 @@ import { EditOutlined, LoadingOutlined } from '@ant-design/icons';
 import { isValidElement, type ReactElement, type ReactNode } from 'react';
 import React from 'react';
 
-import type { ControlProps, EditableProps } from '../editable.types';
-import type { EditableHookReturn } from '../hooks/useEditable';
-
+import type { ControlProps, EditableProps } from './editable.types';
 import { EditableFactoryWrapper } from './EditableFactoryWrapper';
+import type { EditableHookReturn } from './hooks/useEditable';
 
 interface Props<T> extends EditableProps<T> {
   editable: EditableHookReturn<T>;

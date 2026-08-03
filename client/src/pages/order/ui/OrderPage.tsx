@@ -1,7 +1,7 @@
 import type { FC } from 'react';
 
 import { useOrderGroupByIDWithOrderIDs } from '@entities/order';
-import { useCurrentOrderGroupID } from '@shared/hooks/useCurrentOrderGroupID';
+import { useCurrentOrderGroupID } from '@shared/lib';
 
 const OrderPage: FC = () => {
   const { groupID } = useCurrentOrderGroupID();

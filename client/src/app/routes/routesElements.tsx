@@ -1,17 +1,17 @@
 import { lazy, Suspense, type JSX, type ReactNode } from 'react';
 import { Route, Routes } from 'react-router';
 
-import BasePage from '@pages/BasePage';
+import BasePage from '@pages/base';
 import { AppLayout } from '@shared/layouts';
 
 import { ROUTES } from './routes';
 
 const HomePage = lazy(() =>
-  import('@pages/HomePage').then(({ HomePage }) => ({ default: HomePage })),
+  import('@pages/home').then(({ HomePage }) => ({ default: HomePage })),
 );
-const OrderEditPage = lazy(() => import('@pages/OrderEditPage'));
-const OrderPage = lazy(() => import('@pages/OrderPage'));
-const OrderPrintPage = lazy(() => import('@pages/OrderPrintPage'));
+const OrderEditPage = lazy(() => import('@pages/order-edit'));
+const OrderPage = lazy(() => import('@pages/order'));
+const OrderPrintPage = lazy(() => import('@pages/order-print'));
 
 const withPageLoadingFallback = (page: ReactNode): JSX.Element => (
   <Suspense
