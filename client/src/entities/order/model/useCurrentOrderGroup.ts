@@ -1,4 +1,4 @@
-import { useCurrentOrderGroupID } from '@shared/hooks/useCurrentOrderGroupID';
+import { useCurrentOrderGroupID } from '@shared/lib';
 
 import { useOrderGroupByID } from '../api/useOrderGroupByID';
 

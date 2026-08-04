@@ -1,5 +1,6 @@
 import { useOrderByIDWithItems } from '../api/useOrderByIDWithItems';
-import { useOrderStore } from '../model/orderStore';
+
+import { useOrderStore } from './orderStore';
 
 export const useLoadOrder = (orderID?: string) => {
   const { setCurrentOrder, reset } = useOrderStore();

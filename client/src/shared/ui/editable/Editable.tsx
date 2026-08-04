@@ -4,8 +4,8 @@ import { Button } from 'antd';
 import type { ReactNode } from 'react';
 
 import type { EditableProps } from './editable.types';
+import { EditableFactory } from './EditableFactory';
 import { useEditable } from './hooks/useEditable';
-import { EditableFactory } from './ui/EditableFactory';
 
 const StyledButtons = styled.div`
   display: flex;

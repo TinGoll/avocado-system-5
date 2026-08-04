@@ -3,8 +3,7 @@ import { Skeleton, Tooltip, Typography } from 'antd';
 import type { FC } from 'react';
 
 import { useLoadOrderGroup, useOrderStore } from '@entities/order';
-import { useCopyToClipboard } from '@shared/hooks/useCopyToClipboard';
-import { useCurrentOrderGroupID } from '@shared/hooks/useCurrentOrderGroupID';
+import { useCopyToClipboard, useCurrentOrderGroupID } from '@shared/lib';
 import { Field, NotFound, ServerError } from '@shared/ui';
 
 import { CustomerField, GroupNameField, StartDateField } from './ui';

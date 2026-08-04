@@ -14,7 +14,7 @@ import type { FC } from 'react';
 import { CustomerSelect, useCustomerMap } from '@entities/customer';
 import { useOrderStore, type OrderGroup } from '@entities/order';
 import { orderTemplates } from '@entities/order-template';
-import { DATE_DEFAULT_FORMAT } from '@shared/utils/dateHelpers';
+import { DATE_DEFAULT_FORMAT } from '@shared/lib';
 
 import { useCreateOrder } from '../hooks/useCreateOrder';
 import type { FieldType } from '../model/create-orders';

@@ -2,7 +2,7 @@ import { Typography } from 'antd';
 import type { TextProps } from 'antd/lib/typography/Text';
 import { type FC } from 'react';
 
-import { useFormatPhoneNumber } from '@shared/hooks/usePhoneFormater';
+import { useFormatPhoneNumber } from '@shared/lib';
 
 const { Text } = Typography;
 

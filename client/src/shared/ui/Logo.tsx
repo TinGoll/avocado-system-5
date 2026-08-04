@@ -3,7 +3,7 @@ import { Avatar } from 'antd';
 import type { FC } from 'react';
 import { Link } from 'react-router';
 
-import image from '@shared/assets/icon/logo.png';
+import { logo as image } from '@shared/assets';
 
 const styles = {
   logo: css`

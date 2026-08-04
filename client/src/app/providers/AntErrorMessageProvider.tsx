@@ -1,7 +1,7 @@
 import { App } from 'antd';
 import type { FC, ReactNode } from 'react';
 
-import { setMessageApi } from './messageProxy';
+import { setMessageApi } from '@shared/lib';
 
 type Props = {
   children: ReactNode;

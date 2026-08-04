@@ -87,7 +87,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
         grooveWidth: values.characteristics.grooveWidth,
         style: values.characteristics.style,
       },
-    }).then((data) => {
+    } as unknown as Omit<ProductTemplate, 'id'>).then((data) => {
       onCreated?.(data);
       notification.success({
         message: 'Фасадный профиль успешно добавлен',

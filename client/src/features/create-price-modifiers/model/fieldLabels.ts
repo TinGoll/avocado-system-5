@@ -1,7 +1,7 @@
 import type { Order, OrderGroup, OrderItem } from '@entities/order';
 import type { CONDITION_SOURCE } from '@entities/price-modifiers';
 
-import type { LabelsMap } from './types';
+import type { LabelsMap } from './create-price-modifiers';
 
 const orderGroupFieldLabels: LabelsMap<
   Omit<OrderGroup, 'orders' | 'id' | 'startedAt' | 'createdAt' | 'updatedAt'>
@@ -10,6 +10,7 @@ const orderGroupFieldLabels: LabelsMap<
   customer: {
     _title: 'Заказчик',
     children: {
+      id: { _title: 'ID заказчика' },
       name: { _title: 'Имя заказчика' },
       level: { _title: 'Уровень лояльности' },
     },
@@ -156,12 +157,6 @@ const itemFieldLabels: LabelsMap<OrderItem> = {
       },
       group: {
         _title: 'Группа',
-      },
-      createdAt: {
-        _title: 'Дата создания',
-      },
-      updatedAt: {
-        _title: 'Дата обновления',
       },
     },
   },

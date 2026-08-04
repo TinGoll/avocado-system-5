@@ -1,6 +1,6 @@
 import axios, { AxiosError, type AxiosRequestConfig, type Method } from 'axios';
 
-import { showErrorMessage } from '@app/providers/messageProxy';
+import { showErrorMessage } from '@shared/lib';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,

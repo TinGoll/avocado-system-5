@@ -3,7 +3,7 @@ import { css } from '@emotion/css';
 import { Skeleton, Tabs } from 'antd';
 import type { FC } from 'react';
 
-import { useCurrentOrderGroupID } from '@shared/hooks/useCurrentOrderGroupID';
+import { useCurrentOrderGroupID } from '@shared/lib';
 
 import { useLoadTabs } from '../hooks/useLoadTabs';
 import { orderTabsStore } from '../model/orderTabs.store';

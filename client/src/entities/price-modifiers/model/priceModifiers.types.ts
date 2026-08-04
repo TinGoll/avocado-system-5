@@ -1,4 +1,4 @@
-import type { ProductTemplate } from '@entities/product';
+import type { ProductTemplate } from '@shared/lib/swr';
 
 export const CONDITION_SOURCE = {
   ORDER_GROUP: 'order_group',
