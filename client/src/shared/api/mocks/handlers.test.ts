@@ -16,6 +16,24 @@ describe('MSW API mocks', () => {
     expect(body.items).toHaveLength(2);
   });
 
+  it('returns customers from GET /api/customers', async () => {
+    const response = await fetch('http://localhost/api/customers');
+    const body = (await response.json()) as {
+      items: { id: string; name: string; level: string }[];
+    };
+
+    expect(response.ok).toBe(true);
+    expect(body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'customer-1',
+          name: 'Иван Петров',
+          level: 'gold',
+        }),
+      ]),
+    );
+  });
+
   it('persists created entities in memory', async () => {
     const createResponse = await fetch('http://localhost/patinas', {
       method: 'POST',

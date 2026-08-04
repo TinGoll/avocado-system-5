@@ -10,6 +10,23 @@ const withDates = <T extends MockEntity>(entity: T) => ({
 });
 
 export const mockData: Record<string, MockEntity[]> = {
+  customers: [
+    {
+      id: 'customer-1',
+      name: 'Иван Петров',
+      level: 'gold',
+    },
+    {
+      id: 'customer-2',
+      name: 'Анна Соколова',
+      level: 'silver',
+    },
+    {
+      id: 'customer-3',
+      name: 'Михаил Орлов',
+      level: 'bronze',
+    },
+  ],
   colors: [
     withDates({
       id: '11000000-0000-4000-8000-000000000001',

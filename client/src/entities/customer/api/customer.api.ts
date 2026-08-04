@@ -1,10 +1,35 @@
-import type { Customer } from '../model/customer';
-import { mockCustomers } from '../model/customer.mock';
+import { Endpoints, useEntity, type PaginatedResponse } from '@shared/lib/swr';
 
-export const useCustomers = () => ({
-  customers: mockCustomers ?? [],
-  map: Object.fromEntries(
-    (mockCustomers ?? []).map((customer) => [customer.id, customer]),
-  ) as Record<Customer['id'], Customer>,
-  isLoading: false,
-});
+import type { Customer } from '../model/customer';
+
+type CustomersData = {
+  customers: Customer[];
+  map: Record<Customer['id'], Customer>;
+  meta: PaginatedResponse<Customer>['meta'];
+};
+
+const transformCustomers = ({ items, meta }: PaginatedResponse<Customer>) => {
+  const customers = items ?? [];
+
+  return {
+    customers,
+    map: Object.fromEntries(
+      customers.map((customer) => [customer.id, customer]),
+    ) as Record<Customer['id'], Customer>,
+    meta,
+  };
+};
+
+export const useCustomers = () => {
+  const { data, isLoading, error } = useEntity<Customer, CustomersData>({
+    endpoint: Endpoints.CUSTOMERS,
+    transform: transformCustomers,
+  });
+
+  return {
+    customers: data?.customers ?? [],
+    map: data?.map ?? {},
+    isLoading,
+    error,
+  };
+};

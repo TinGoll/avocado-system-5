@@ -6,7 +6,7 @@ import { useCustomers } from '../api/customer.api';
 type Props = Omit<SelectProps, 'options'>;
 
 export const CustomerSelect: FC<Props> = (props) => {
-  const { customers } = useCustomers();
+  const { customers, isLoading, error } = useCustomers();
 
   const options: SelectProps['options'] = useMemo(() => {
     return customers.map((customer) => ({
@@ -19,6 +19,9 @@ export const CustomerSelect: FC<Props> = (props) => {
   return (
     <Select
       {...props}
+      loading={isLoading}
+      status={error ? 'error' : props.status}
+      notFoundContent={error ? 'Не удалось загрузить заказчиков' : undefined}
       options={options}
       showSearch
       placeholder="Выберите заказчика"
