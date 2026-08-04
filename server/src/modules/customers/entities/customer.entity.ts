@@ -9,11 +9,11 @@ export enum CustomerLevel {
 @Entity('customers')
 export class Customer {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'text', unique: true })
-  name: string;
+  name!: string;
 
   @Column({ type: 'enum', enum: CustomerLevel })
-  level: CustomerLevel;
+  level!: CustomerLevel;
 }
