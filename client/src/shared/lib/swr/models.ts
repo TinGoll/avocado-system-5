@@ -188,12 +188,14 @@ export interface OrderGroup {
   status: OrderStatus;
   startedAt?: Date;
   orderCount: number;
+  orders: Order[];
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface Order {
   id: string;
+  name?: string;
   characteristics: OrderCharacteristics;
   totalPrice: number;
   items: OrderItem[];

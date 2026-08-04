@@ -20,8 +20,25 @@ export class OrderGroupsService {
     return this.repository.save(item);
   }
 
-  findAll() {
-    return this.repository.find();
+  async findAll() {
+    const groups = await this.repository.find({
+      relations: {
+        orders: {
+          items: true,
+        },
+      },
+      order: {
+        createdAt: 'DESC',
+        orders: {
+          createdAt: 'ASC',
+        },
+      },
+    });
+
+    return groups.map((group) => ({
+      ...group,
+      orderCount: group.orders.length,
+    }));
   }
 
   async findOne(id: number) {

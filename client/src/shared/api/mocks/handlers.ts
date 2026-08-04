@@ -6,6 +6,19 @@ const resources = Object.keys(mockData);
 
 const getCollection = (resource: string) => mockData[resource] ?? [];
 
+const getCollectionResponse = (resource: string) => {
+  const items = getCollection(resource);
+
+  if (resource !== 'order-groups') return items;
+
+  return items.map((group) => ({
+    ...group,
+    orders: getCollection('orders').filter(
+      (order) => String(order.orderGroupId) === String(group.id),
+    ),
+  }));
+};
+
 const findById = (resource: string, id: string) =>
   getCollection(resource).find((item) => String(item.id) === id);
 
@@ -33,7 +46,7 @@ const createId = (resource: string) => {
 const entityHandlers = resources.flatMap((resource) => [
   http.get(`*/${resource}`, () =>
     HttpResponse.json({
-      items: getCollection(resource),
+      items: getCollectionResponse(resource),
       meta: { total: getCollection(resource).length },
     }),
   ),

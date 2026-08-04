@@ -57,4 +57,15 @@ describe('MSW API mocks', () => {
       { id: 'aa000000-0000-4000-8000-000000000001', name: 'Документ 1' },
     ]);
   });
+
+  it('returns an order group with multiple documents', async () => {
+    const response = await fetch('http://localhost/order-groups');
+    const body = (await response.json()) as {
+      items: { id: number; orders: { id: string }[] }[];
+    };
+
+    const group = body.items.find(({ id }) => id === 2);
+
+    expect(group?.orders).toHaveLength(3);
+  });
 });
