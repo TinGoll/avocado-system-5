@@ -1,9 +1,4 @@
-import {
-  CopyOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  PlusOutlined,
-} from '@ant-design/icons';
+import { CopyOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { css } from '@emotion/css';
 import { Button, Divider } from 'antd';
 import { type FC } from 'react';
@@ -17,7 +12,7 @@ const styles = {
   inner: css`
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     padding: 6px;
   `,
   actions: css`
@@ -30,14 +25,12 @@ const styles = {
 };
 
 type Props = {
-  onChangeName?: () => void;
   onAddFields?: () => void;
   onDeleteOrder?: () => void;
   onCopyOrder?: () => void;
 };
 
 export const Toolbar: FC<Props> = ({
-  onChangeName,
   onAddFields,
   onDeleteOrder,
   onCopyOrder,
@@ -45,14 +38,6 @@ export const Toolbar: FC<Props> = ({
   return (
     <div className={styles.toolbar}>
       <div className={styles.inner}>
-        <Button
-          size="small"
-          type="text"
-          icon={<EditOutlined />}
-          onClick={onChangeName}
-        >
-          Переименовать вкладку...
-        </Button>
         <div className={styles.actions}>
           <Button
             type="text"

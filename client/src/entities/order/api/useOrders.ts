@@ -3,6 +3,7 @@ import { Endpoints, useEntity, type ErrorResponse } from '@shared/lib/swr';
 import type { Order } from '../model/order';
 
 type CreateOrderDTO = {
+  name?: string;
   characteristics: Order['characteristics'];
   orderGroupId: number;
   items: Order['items'];

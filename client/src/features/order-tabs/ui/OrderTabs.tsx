@@ -1,8 +1,9 @@
-import { DeleteOutlined } from '@ant-design/icons';
+import { CheckOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import { css } from '@emotion/css';
-import { Skeleton, Tabs } from 'antd';
-import type { FC } from 'react';
+import { App, Button, Input, Skeleton, Tabs } from 'antd';
+import { type FC, type MouseEvent, useState } from 'react';
 
+import { useOrdersMutations } from '@entities/order';
 import { useCurrentOrderGroupID } from '@shared/lib';
 
 import { useLoadTabs } from '../hooks/useLoadTabs';
@@ -14,6 +15,17 @@ const styles = {
       user-select: none;
     }
   `,
+  tabLabel: css`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  `,
+  editButton: css`
+    padding: 0 2px;
+  `,
+  input: css`
+    width: 140px;
+  `,
 };
 
 type Props = {
@@ -22,10 +34,92 @@ type Props = {
 };
 
 export const OrderTabs: FC<Props> = ({ onCreate, onDelete }) => {
+  const { message } = App.useApp();
   const { groupID } = useCurrentOrderGroupID();
   const { isLoading } = useLoadTabs(groupID);
+  const { update } = useOrdersMutations();
+  const [editingKey, setEditingKey] = useState<string>();
+  const [editingName, setEditingName] = useState('');
 
-  const { currentTabKey, setCurrentTabKey, tabs } = orderTabsStore();
+  const { currentTabKey, renameTab, setCurrentTabKey, tabs } = orderTabsStore();
+
+  const beginEditing = (event: MouseEvent, key: string, name: string) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setEditingKey(key);
+    setEditingName(name);
+  };
+
+  const stopTabsEvent = (event: MouseEvent) => {
+    event.stopPropagation();
+  };
+
+  const cancelEditing = () => {
+    setEditingKey(undefined);
+    setEditingName('');
+  };
+
+  const saveName = async (key: string) => {
+    const name = editingName.trim();
+    const currentName = tabs.find((tab) => tab.key === key)?.label;
+
+    if (!name) {
+      message.warning('Название вкладки не может быть пустым');
+      return;
+    }
+
+    if (name === currentName) {
+      cancelEditing();
+      return;
+    }
+
+    try {
+      await update.trigger(key, { name });
+      renameTab(key, name);
+      cancelEditing();
+    } catch {
+      message.error('Не удалось переименовать вкладку');
+    }
+  };
+
+  const items = tabs.map((tab) => ({
+    ...tab,
+    label:
+      editingKey === tab.key ? (
+        <Input
+          autoFocus
+          className={styles.input}
+          disabled={update.isMutating}
+          maxLength={100}
+          size="small"
+          suffix={<CheckOutlined />}
+          value={editingName}
+          onBlur={() => void saveName(tab.key)}
+          onChange={(event) => setEditingName(event.target.value)}
+          onClick={(event) => event.stopPropagation()}
+          onMouseDown={stopTabsEvent}
+          onKeyDown={(event) => {
+            event.stopPropagation();
+            if (event.key === 'Enter') void saveName(tab.key);
+            if (event.key === 'Escape') cancelEditing();
+          }}
+        />
+      ) : (
+        <span className={styles.tabLabel}>
+          {tab.label}
+          {currentTabKey === tab.key && (
+            <Button
+              aria-label="Переименовать вкладку"
+              className={styles.editButton}
+              icon={<EditOutlined />}
+              size="small"
+              type="text"
+              onMouseDown={(event) => beginEditing(event, tab.key, tab.label)}
+            />
+          )}
+        </span>
+      ),
+  }));
   const onEdit = (
     targetKey: React.MouseEvent | React.KeyboardEvent | string,
     action: 'add' | 'remove',
@@ -49,7 +143,7 @@ export const OrderTabs: FC<Props> = ({ onCreate, onDelete }) => {
       removeIcon={<DeleteOutlined />}
       type="editable-card"
       size="small"
-      items={tabs}
+      items={items}
       onEdit={onEdit}
     />
   );

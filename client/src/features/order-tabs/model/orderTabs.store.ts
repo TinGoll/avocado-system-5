@@ -11,6 +11,7 @@ type OrderTabsState = {
   initialization: boolean;
   setCurrentTabKey: (tabKey?: string) => void;
   setTabs: (tabs: TabItem[]) => void;
+  renameTab: (tabKey: string, name: string) => void;
   reset: () => void;
 };
 
@@ -20,6 +21,13 @@ export const orderTabsStore = create<OrderTabsState>((set) => ({
   currentTabKey: undefined,
 
   setCurrentTabKey: (tabKey) => set({ currentTabKey: tabKey }),
+
+  renameTab: (tabKey, name) =>
+    set((state) => ({
+      tabs: state.tabs.map((tab) =>
+        tab.key === tabKey ? { ...tab, label: name } : tab,
+      ),
+    })),
 
   setTabs: (tabs) =>
     set((state) => {
