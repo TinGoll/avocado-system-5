@@ -1,11 +1,11 @@
-import type { Customer } from './customer';
-import { mockCustomers } from './customer.mock';
+import { useCustomers } from '../api/customer.api';
 
 export const useCustomerMap = () => {
+  const { map, isLoading, error } = useCustomers();
+
   return {
-    customers: Object.fromEntries(
-      (mockCustomers ?? []).map((customer) => [customer.id, customer]),
-    ) as Record<Customer['id'], Customer>,
-    isLoading: false,
+    customers: map,
+    isLoading,
+    error,
   };
 };

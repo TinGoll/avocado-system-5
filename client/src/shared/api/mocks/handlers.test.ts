@@ -16,6 +16,24 @@ describe('MSW API mocks', () => {
     expect(body.items).toHaveLength(2);
   });
 
+  it('returns customers from GET /api/customers', async () => {
+    const response = await fetch('http://localhost/api/customers');
+    const body = (await response.json()) as {
+      items: { id: string; name: string; level: string }[];
+    };
+
+    expect(response.ok).toBe(true);
+    expect(body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'customer-1',
+          name: 'Иван Петров',
+          level: 'gold',
+        }),
+      ]),
+    );
+  });
+
   it('persists created entities in memory', async () => {
     const createResponse = await fetch('http://localhost/patinas', {
       method: 'POST',
@@ -38,5 +56,16 @@ describe('MSW API mocks', () => {
     expect(body.items).toEqual([
       { id: 'aa000000-0000-4000-8000-000000000001', name: 'Документ 1' },
     ]);
+  });
+
+  it('returns an order group with multiple documents', async () => {
+    const response = await fetch('http://localhost/order-groups');
+    const body = (await response.json()) as {
+      items: { id: number; orders: { id: string }[] }[];
+    };
+
+    const group = body.items.find(({ id }) => id === 2);
+
+    expect(group?.orders).toHaveLength(3);
   });
 });

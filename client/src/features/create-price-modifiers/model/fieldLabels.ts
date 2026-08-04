@@ -19,7 +19,7 @@ const orderGroupFieldLabels: LabelsMap<
   orderCount: { _title: 'Количество документов' },
 };
 
-const orderFieldLabels: LabelsMap<Omit<Order, 'items'>> = {
+const orderFieldLabels: LabelsMap<Omit<Order, 'items' | 'name'>> = {
   id: {
     _title: 'ID Документа',
   },

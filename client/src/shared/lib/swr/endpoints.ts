@@ -1,4 +1,5 @@
 export const Endpoints = {
+  CUSTOMERS: 'customers',
   COLORS: 'colors',
   FACADE_PROFILES: 'facade-profiles',
   MATERIALS: 'materials',

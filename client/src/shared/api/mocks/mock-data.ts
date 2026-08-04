@@ -10,6 +10,23 @@ const withDates = <T extends MockEntity>(entity: T) => ({
 });
 
 export const mockData: Record<string, MockEntity[]> = {
+  customers: [
+    {
+      id: 'customer-1',
+      name: 'Иван Петров',
+      level: 'gold',
+    },
+    {
+      id: 'customer-2',
+      name: 'Анна Соколова',
+      level: 'silver',
+    },
+    {
+      id: 'customer-3',
+      name: 'Михаил Орлов',
+      level: 'bronze',
+    },
+  ],
   colors: [
     withDates({
       id: '11000000-0000-4000-8000-000000000001',
@@ -122,7 +139,13 @@ export const mockData: Record<string, MockEntity[]> = {
       customer: { id: 'customer-1', name: 'Иван Петров', level: 'gold' },
       status: 'draft',
       startedAt: '2026-08-01',
-      orderCount: 1,
+    }),
+    withDates({
+      id: 2,
+      orderNumber: 'АВ-2026-002',
+      customer: { id: 'customer-2', name: 'Анна Соколова', level: 'silver' },
+      status: 'in_production',
+      startedAt: '2026-08-03',
     }),
   ],
   orders: [
@@ -136,6 +159,68 @@ export const mockData: Record<string, MockEntity[]> = {
       },
       totalPrice: 8500,
       items: [],
+    }),
+    withDates({
+      id: 'aa000000-0000-4000-8000-000000000002',
+      name: 'Фасады кухни',
+      orderGroupId: 2,
+      characteristics: {
+        material: { name: 'Дуб', type: 'hardwood' },
+        color: { name: 'Орех', type: 'stain' },
+        profile: { name: 'Классика', characteristics: { width: 70 } },
+        panel: { name: 'Гладкая филёнка', characteristics: { style: 'flat' } },
+        varnish: { name: 'Матовый' },
+      },
+      totalPrice: 42800,
+      items: [
+        {
+          id: 'ab000000-0000-4000-8000-000000000001',
+          quantity: 8,
+          calculatedCustomerPrice: 33600,
+        },
+        {
+          id: 'ab000000-0000-4000-8000-000000000002',
+          quantity: 4,
+          calculatedCustomerPrice: 9200,
+        },
+      ],
+    }),
+    withDates({
+      id: 'aa000000-0000-4000-8000-000000000003',
+      name: 'Декоративные элементы',
+      orderGroupId: 2,
+      characteristics: {
+        material: { name: 'МДФ', type: 'mdf' },
+        color: { name: 'Белая эмаль', type: 'enamel' },
+        patina: { name: 'Серебро' },
+        varnish: { name: 'Глянцевый' },
+      },
+      totalPrice: 15600,
+      items: [
+        {
+          id: 'ab000000-0000-4000-8000-000000000003',
+          quantity: 6,
+          calculatedCustomerPrice: 15600,
+        },
+      ],
+    }),
+    withDates({
+      id: 'aa000000-0000-4000-8000-000000000004',
+      name: 'Пилястры',
+      orderGroupId: 2,
+      characteristics: {
+        material: { name: 'Дуб', type: 'hardwood' },
+        color: { name: 'Орех', type: 'stain' },
+        patina: { name: 'Золото' },
+      },
+      totalPrice: 12800,
+      items: [
+        {
+          id: 'ab000000-0000-4000-8000-000000000004',
+          quantity: 4,
+          calculatedCustomerPrice: 12800,
+        },
+      ],
     }),
   ],
 };
