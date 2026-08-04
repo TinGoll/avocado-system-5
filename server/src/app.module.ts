@@ -13,6 +13,7 @@ import { PatinasModule } from './modules/patinas/patinas.module';
 import { PanelsModule } from './modules/panels/panels.module';
 import { FacadeProfilesModule } from './modules/facade-profiles/facade-profiles.module';
 import { OrderGroupsModule } from './modules/order-groups/order-groups.module';
+import { CustomersModule } from './modules/customers/customers.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { OrderGroupsModule } from './modules/order-groups/order-groups.module';
     PanelsModule,
     FacadeProfilesModule,
     OrderGroupsModule,
+    CustomersModule,
   ],
   controllers: [],
   providers: [],
