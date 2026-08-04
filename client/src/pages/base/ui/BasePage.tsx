@@ -3,6 +3,7 @@ import type { FC } from 'react';
 import { Outlet } from 'react-router';
 
 import { Navbar } from '@widgets/navbar';
+import { Sidebar } from '@widgets/sidebar';
 
 const styles = css`
   flex: 1;
@@ -34,9 +35,9 @@ const styles = css`
     overflow: hidden;
 
     & .app-sidebar {
-      width: 200px;
+      flex: 0 0 auto;
       border-right: 1px solid var(--app-devider-color);
-      overflow: auto;
+      overflow: hidden;
     }
 
     & .app-content {
@@ -54,19 +55,9 @@ const BasePage: FC = () => {
         <Navbar />
       </header>
       <main className="app-main">
-        <div className="app-sidebar">
-          sidebar
-          <br />
-          dfd
-          <br />
-          dsfdsf
-          <br />
-          dfdf
-          <br />
-          ...
-          <br />
-          scroll me!
-        </div>
+        <aside className="app-sidebar">
+          <Sidebar />
+        </aside>
         <div className="app-content">
           <Outlet />
         </div>
