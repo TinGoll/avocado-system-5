@@ -107,6 +107,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
         }}
         onFinish={handleFinish}
         autoComplete="off"
+        preserve={false}
       >
         <Form.Item<ProductTemplateFieldType>
           label="Название"

@@ -39,6 +39,7 @@ export const CreateEntityButton = <T,>({
         title={title}
         open={open}
         onCancel={handleCancel}
+        destroyOnHidden
         okButtonProps={{ hidden: true }}
         cancelButtonProps={{ hidden: true }}
       >
