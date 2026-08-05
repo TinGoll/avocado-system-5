@@ -1,6 +1,7 @@
 import { css } from '@emotion/css';
 import {
   App,
+  AutoComplete,
   Button,
   Col,
   Form,
@@ -11,7 +12,7 @@ import {
   Skeleton,
   type FormProps,
 } from 'antd';
-import type { FC } from 'react';
+import { useMemo, type FC } from 'react';
 
 import {
   CUSTOMER_PRICING_METHOD,
@@ -46,13 +47,41 @@ type Props = {
 
 export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
   const [form] = Form.useForm<ProductTemplateFieldType>();
-  const { isMutating, trigger, isLoading } = useCreateProductTemplates();
+  const { isMutating, trigger, isLoading, products } =
+    useCreateProductTemplates();
   const { notification } = App.useApp();
+
+  const productNames = useMemo(
+    () =>
+      new Set(
+        products?.map(({ name }) => name.trim().toLocaleLowerCase()) ?? [],
+      ),
+    [products],
+  );
+
+  const groupOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          products
+            ?.map(({ group }) => group?.trim())
+            .filter((group): group is string => Boolean(group)) ?? [],
+        ),
+      )
+        .sort((left, right) => left.localeCompare(right))
+        .map((value) => ({ value })),
+    [products],
+  );
 
   const handleFinish: FormProps<ProductTemplateFieldType>['onFinish'] = (
     values,
   ) => {
-    trigger({ ...values, attributes: {} }).then((template) => {
+    trigger({
+      ...values,
+      name: values.name.trim(),
+      group: values.group?.trim() || undefined,
+      attributes: {},
+    }).then((template) => {
       onCreated?.(template);
       notification.success({ message: 'Номенклатура успешно добавлена' });
       form.resetFields();
@@ -83,13 +112,38 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
           label="Название"
           name="name"
           tooltip="Название номенклатуры должно быть уникальным"
-          rules={[{ required: true, message: 'Введите название' }]}
+          rules={[
+            { required: true, whitespace: true, message: 'Введите название' },
+            {
+              validator: (_, value?: string) => {
+                if (
+                  value &&
+                  productNames.has(value.trim().toLocaleLowerCase())
+                ) {
+                  return Promise.reject(
+                    new Error('Номенклатура с таким названием уже существует'),
+                  );
+                }
+
+                return Promise.resolve();
+              },
+            },
+          ]}
         >
           <Input />
         </Form.Item>
 
         <Form.Item<ProductTemplateFieldType> label="Группа" name="group">
-          <Input />
+          <AutoComplete
+            options={groupOptions}
+            placeholder="Введите или выберите группу"
+            filterOption={(inputValue, option) =>
+              String(option?.value ?? '')
+                .toLocaleLowerCase()
+                .includes(inputValue.trim().toLocaleLowerCase())
+            }
+            allowClear
+          />
         </Form.Item>
 
         <Row gutter={16}>
