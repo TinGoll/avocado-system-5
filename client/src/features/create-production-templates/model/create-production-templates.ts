@@ -1,13 +1,12 @@
-export interface ProductionTemplateCharacteristics {
-  width: number;
-  grooveDepth: number;
-  grooveWidth?: number;
-  style?: string;
-}
+import type {
+  CustomerPricingMethod,
+  ProductCharacteristics,
+} from '@entities/product';
 
-export interface CreateProductionTemplateData {
+export type ProductTemplateFieldType = {
   name: string;
-  characteristics: ProductionTemplateCharacteristics;
-}
-
-export type FieldType = CreateProductionTemplateData;
+  group?: string;
+  defaultCharacteristics: ProductCharacteristics;
+  customerPricingMethod: CustomerPricingMethod;
+  baseCustomerPrice: number;
+};

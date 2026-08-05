@@ -1,24 +1,25 @@
 import { css } from '@emotion/css';
 import {
   App,
-  AutoComplete,
   Button,
   Col,
-  Divider,
   Form,
   Input,
   InputNumber,
+  Radio,
   Row,
   Skeleton,
   type FormProps,
 } from 'antd';
-import type { DefaultOptionType } from 'antd/es/select';
-import { useMemo, type FC } from 'react';
+import type { FC } from 'react';
 
-import type { ProductTemplate } from '@entities/product';
+import {
+  CUSTOMER_PRICING_METHOD,
+  type ProductTemplate,
+} from '@entities/product';
 
 import { useCreateProductTemplates } from '../hooks/useCreateProductTemplates';
-import type { FieldType } from '../model/create-production-templates';
+import type { ProductTemplateFieldType } from '../model/create-production-templates';
 
 const styles = {
   form: css`
@@ -26,14 +27,12 @@ const styles = {
     & .ant-form-item {
       margin-bottom: 16px;
     }
-
-    & .form-divider {
-      margin: 8px 0;
+    & .ant-input-number {
+      width: 100%;
     }
   `,
   formActions: css`
     display: flex;
-    align-items: center;
     justify-content: flex-end;
     gap: 16px;
     padding-top: 16px;
@@ -46,52 +45,16 @@ type Props = {
 };
 
 export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
-  const [form] = Form.useForm<FieldType>();
-  const { isMutating, trigger, isLoading, products } =
-    useCreateProductTemplates();
+  const [form] = Form.useForm<ProductTemplateFieldType>();
+  const { isMutating, trigger, isLoading } = useCreateProductTemplates();
   const { notification } = App.useApp();
 
-  const styleOptions = useMemo<DefaultOptionType[]>(() => {
-    if (!products?.length) return [];
-    const unique = Array.from(
-      new Set(
-        products
-          .map((p) => p.group)
-          .filter((s): s is string => Boolean(s?.trim())),
-      ),
-    );
-    return unique.map((value) => ({ value }));
-  }, [products]);
-
-  const handleSearch = (text: string) => {
-    if (!text) return styleOptions;
-
-    const filtered = styleOptions.filter((opt) => {
-      const value = opt.value ? String(opt.value) : '';
-      return value.toLowerCase().includes(text.toLowerCase());
-    });
-
-    if (!filtered.some((o) => o.value === text)) {
-      return [{ value: text }, ...filtered];
-    }
-
-    return filtered;
-  };
-
-  const handleFinish: FormProps<FieldType>['onFinish'] = (values) => {
-    trigger({
-      name: values.name,
-      characteristics: {
-        width: values.characteristics.width,
-        grooveDepth: values.characteristics.grooveDepth,
-        grooveWidth: values.characteristics.grooveWidth,
-        style: values.characteristics.style,
-      },
-    } as unknown as Omit<ProductTemplate, 'id'>).then((data) => {
-      onCreated?.(data);
-      notification.success({
-        message: 'Фасадный профиль успешно добавлен',
-      });
+  const handleFinish: FormProps<ProductTemplateFieldType>['onFinish'] = (
+    values,
+  ) => {
+    trigger({ ...values, attributes: {} }).then((template) => {
+      onCreated?.(template);
+      notification.success({ message: 'Номенклатура успешно добавлена' });
       form.resetFields();
     });
   };
@@ -100,78 +63,88 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
     onCancel?.();
     form.resetFields();
   };
+
   return (
     <Skeleton loading={isLoading} active>
       <Form
-        name="create_profile_form"
+        name="create_product_template_form"
         form={form}
         className={styles.form}
         layout="vertical"
-        initialValues={{ characteristics: {} }}
+        initialValues={{
+          defaultCharacteristics: {},
+          customerPricingMethod: CUSTOMER_PRICING_METHOD.PER_ITEM,
+          baseCustomerPrice: 0,
+        }}
         onFinish={handleFinish}
         autoComplete="off"
       >
-        <Form.Item<FieldType>
+        <Form.Item<ProductTemplateFieldType>
           label="Название"
           name="name"
-          tooltip="Название профиля должно быть уникальным"
-          rules={[{ required: true, message: 'Введи название профиля' }]}
+          tooltip="Название номенклатуры должно быть уникальным"
+          rules={[{ required: true, message: 'Введите название' }]}
         >
           <Input />
         </Form.Item>
 
+        <Form.Item<ProductTemplateFieldType> label="Группа" name="group">
+          <Input />
+        </Form.Item>
+
         <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item<FieldType>
-              label="Ширина профиля в мм."
-              name={['characteristics', 'width'] as const}
-              rules={[{ required: true, message: 'Обязательный параметр' }]}
+          <Col span={8}>
+            <Form.Item
+              label="Ширина, мм"
+              name={['defaultCharacteristics', 'width']}
             >
-              <InputNumber />
+              <InputNumber min={0} />
             </Form.Item>
           </Col>
-          <Col span={12}>
-            <Form.Item<FieldType>
-              label="Глубина паза в мм."
-              name={['characteristics', 'grooveDepth'] as const}
-              tooltip="Глубина паза учавствует в расчете филёнки."
-              rules={[
-                {
-                  required: true,
-                  message: 'Обязательный параметр',
-                },
-              ]}
+          <Col span={8}>
+            <Form.Item
+              label="Высота, мм"
+              name={['defaultCharacteristics', 'height']}
             >
-              <InputNumber />
+              <InputNumber min={0} />
             </Form.Item>
           </Col>
-          <Col span={12}>
-            <Form.Item<FieldType>
-              label="Стиль профиля"
-              name={['characteristics', 'style'] as const}
-              tooltip="Стиль - необязательный параметр, но можно задействовать для увеличения гибкости ценообразования"
+          <Col span={8}>
+            <Form.Item
+              label="Толщина, мм"
+              name={['defaultCharacteristics', 'thickness']}
             >
-              <AutoComplete
-                options={styleOptions}
-                onSearch={handleSearch}
-                placeholder="Введите или выберите стиль"
-                allowClear
-                filterOption={false}
-              />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item<FieldType>
-              tooltip="Можно оставить пустым."
-              label="Ширина паза в мм."
-              name={['characteristics', 'grooveWidth'] as const}
-            >
-              <InputNumber />
+              <InputNumber min={0} />
             </Form.Item>
           </Col>
         </Row>
 
-        <Divider className="form-divider" />
+        <Form.Item<ProductTemplateFieldType>
+          label="Способ расчета цены"
+          name="customerPricingMethod"
+          rules={[{ required: true, message: 'Выберите способ расчета' }]}
+        >
+          <Radio.Group block optionType="button" buttonStyle="solid">
+            <Radio.Button value={CUSTOMER_PRICING_METHOD.PER_ITEM}>
+              За штуку
+            </Radio.Button>
+            <Radio.Button value={CUSTOMER_PRICING_METHOD.AREA}>
+              По площади
+            </Radio.Button>
+            <Radio.Button value={CUSTOMER_PRICING_METHOD.VOLUME}>
+              По объему
+            </Radio.Button>
+          </Radio.Group>
+        </Form.Item>
+
+        <Form.Item<ProductTemplateFieldType>
+          label="Базовая цена"
+          name="baseCustomerPrice"
+          rules={[{ required: true, message: 'Введите базовую цену' }]}
+        >
+          <InputNumber min={0} precision={2} />
+        </Form.Item>
+
         <div className={styles.formActions}>
           <Button variant="solid" color="danger" onClick={handleCancel}>
             Отмена

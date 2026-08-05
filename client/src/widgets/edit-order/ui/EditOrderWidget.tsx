@@ -7,6 +7,7 @@ import { CreateFacadePanelButton } from '@features/create-facade-panel';
 import { CreateFacadeProfileButton } from '@features/create-facade-profile';
 import { CreateMaterialButton } from '@features/create-material';
 import { CreatePatinaButton } from '@features/create-patina';
+import { CreateProductTemplatesButton } from '@features/create-production-templates';
 import { CreateVarnishButton } from '@features/create-varnish';
 import { EditOrderFields } from '@features/edit-order';
 import { OrderTabs, orderTabsStore, Toolbar } from '@features/order-tabs';
@@ -69,7 +70,15 @@ export const EditOrderWidget: FC = () => {
           />
         )}
       />
-      <AddOrderItemForm />
+      <AddOrderItemForm
+        createProductTemplateButton={
+          <CreateProductTemplatesButton
+            aria-label="Добавить номенклатуру"
+            icon={<PlusOutlined />}
+            type="text"
+          />
+        }
+      />
     </div>
   );
 };

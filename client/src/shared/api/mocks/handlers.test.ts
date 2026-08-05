@@ -49,6 +49,27 @@ describe('MSW API mocks', () => {
     expect(entity.name).toBe('Бронза');
   });
 
+  it('creates a product template', async () => {
+    const payload = {
+      name: 'Тестовая номенклатура',
+      group: 'Тест',
+      defaultCharacteristics: { width: 600, height: 700 },
+      customerPricingMethod: 'area',
+      baseCustomerPrice: 5000,
+      attributes: {},
+    };
+    const response = await fetch('http://localhost/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const created = (await response.json()) as typeof payload & { id: string };
+
+    expect(response.status).toBe(201);
+    expect(created).toMatchObject(payload);
+    expect(created.id).toBeTruthy();
+  });
+
   it('returns order ids for a group', async () => {
     const response = await fetch('http://localhost/order-groups/1/order-ids');
     const body = (await response.json()) as { items: { id: string }[] };
