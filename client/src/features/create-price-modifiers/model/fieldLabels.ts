@@ -207,6 +207,9 @@ const itemFieldLabels: LabelsMap<OrderItem> = {
       thickness: {
         _title: 'Толщина',
       },
+      comment: {
+        _title: 'Комментарий',
+      },
     },
   },
   calculatedProductionCost: {

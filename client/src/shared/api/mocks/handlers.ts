@@ -33,6 +33,39 @@ const notFound = (resource: string, id: string) =>
     { status: 404 },
   );
 
+const badRequest = (message: string) =>
+  HttpResponse.json(
+    {
+      error: {
+        message,
+        code: 'BAD_REQUEST',
+      },
+    },
+    { status: 400 },
+  );
+
+const calculateOrderItemPrice = (
+  template: MockEntity,
+  characteristics: Record<string, unknown>,
+  quantity: number,
+) => {
+  const basePrice = Number(template.baseCustomerPrice) || 0;
+
+  if (template.customerPricingMethod === 'area') {
+    const width = Number(characteristics.width) || 0;
+    const height = Number(characteristics.height) || 0;
+    return (width * height * basePrice * quantity) / 1_000_000;
+  }
+
+  if (template.customerPricingMethod === 'linear_meter') {
+    const length =
+      Number(characteristics.height) || Number(characteristics.width) || 0;
+    return (length * basePrice * quantity) / 1_000;
+  }
+
+  return basePrice * quantity;
+};
+
 const createId = (resource: string) => {
   if (resource === 'order-groups') {
     return (
@@ -126,16 +159,43 @@ const orderHandlers = [
     const template = findById('products', String(body.templateId));
     if (!template) return notFound('products', String(body.templateId));
 
+    const quantity = Number(body.quantity);
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      return badRequest('quantity must be a positive integer');
+    }
+
+    const characteristics = {
+      ...((template.defaultCharacteristics as Record<string, unknown>) ?? {}),
+      ...((body.characteristics as Record<string, unknown>) ?? {}),
+    };
+    const calculatedCustomerPrice = calculateOrderItemPrice(
+      template,
+      characteristics,
+      quantity,
+    );
+
     const item = {
       id: crypto.randomUUID(),
       template,
-      snapshot: template,
-      quantity: body.quantity,
-      characteristics: body.characteristics,
+      snapshot: {
+        name: template.name,
+        baseCustomerPrice: template.baseCustomerPrice,
+        attributes: template.attributes,
+        customerPricingMethod: template.customerPricingMethod,
+        defaultCharacteristics: template.defaultCharacteristics,
+      },
+      quantity,
+      characteristics,
       calculatedProductionCost: 0,
-      calculatedCustomerPrice: 0,
+      calculatedCustomerPrice,
     };
     order.items = [...((order.items as unknown[]) ?? []), item];
+    order.totalPrice = (
+      order.items as { calculatedCustomerPrice: number }[]
+    ).reduce(
+      (total, orderItem) => total + orderItem.calculatedCustomerPrice,
+      0,
+    );
     order.updatedAt = new Date().toISOString();
     return HttpResponse.json(order, { status: 201 });
   }),

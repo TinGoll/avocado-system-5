@@ -71,6 +71,7 @@ export const EditOrderWidget: FC = () => {
         )}
       />
       <AddOrderItemForm
+        orderID={orderID ?? ''}
         createProductTemplateButton={
           <CreateProductTemplatesButton
             aria-label="Добавить номенклатуру"

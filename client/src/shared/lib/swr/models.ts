@@ -180,6 +180,7 @@ export interface OrderItemCharacteristics {
   width?: number;
   height?: number;
   thickness?: number;
+  comment?: string;
 }
 
 export interface OrderGroup {
