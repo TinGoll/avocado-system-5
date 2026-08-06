@@ -1,7 +1,7 @@
-import { PlusCircleOutlined, PlusOutlined } from '@ant-design/icons';
+import { PlusCircleOutlined } from '@ant-design/icons';
 import { css } from '@emotion/css';
 import { Button, Form, Input, InputNumber } from 'antd';
-import type { FC } from 'react';
+import type { FC, ReactNode } from 'react';
 
 const styles = {
   container: css`
@@ -31,10 +31,16 @@ const styles = {
   `,
 };
 
-export const AddOrderItemForm: FC = () => {
+type Props = {
+  createProductTemplateButton: ReactNode;
+};
+
+export const AddOrderItemForm: FC<Props> = ({
+  createProductTemplateButton,
+}) => {
   return (
     <div className={styles.container}>
-      <Button icon={<PlusOutlined />} type="text" />
+      {createProductTemplateButton}
       <Form
         className={styles.form}
         name="item-creator-form"

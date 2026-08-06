@@ -54,5 +54,22 @@ export const useOptimisticOrderUpdate = () => {
     });
   };
 
-  return { updateOrder, updateCharacteristic, isMutating };
+  const removeCharacteristic = (key: keyof Order['characteristics']) => {
+    const currentOrder = useOrderStore.getState().currentOrder;
+    if (!currentOrder) {
+      return;
+    }
+
+    const characteristics = { ...currentOrder.characteristics };
+    delete characteristics[key];
+
+    return updateOrder({ characteristics });
+  };
+
+  return {
+    updateOrder,
+    updateCharacteristic,
+    removeCharacteristic,
+    isMutating,
+  };
 };

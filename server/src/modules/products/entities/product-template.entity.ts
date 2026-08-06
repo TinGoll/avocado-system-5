@@ -13,6 +13,7 @@ import {
 
 export enum CustomerPricingMethod {
   PER_ITEM = 'per_item',
+  LINEAR_METER = 'linear_meter',
   AREA = 'area',
   VOLUME = 'volume',
 }

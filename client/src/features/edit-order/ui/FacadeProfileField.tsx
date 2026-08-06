@@ -26,7 +26,8 @@ type Props = {
 export const FacadeProfileField: FC<Props> = ({ renderCreateAction }) => {
   const { currentOrder } = useOrderStore();
   const { map: profiles, isLoading } = useFacadeProfileMap();
-  const { updateCharacteristic, isMutating } = useOptimisticOrderUpdate();
+  const { updateCharacteristic, removeCharacteristic, isMutating } =
+    useOptimisticOrderUpdate();
 
   const handleUpdate = (item?: FacadeProfile) => {
     const updateItem = item ?? ({} as FacadeProfile);
@@ -61,6 +62,7 @@ export const FacadeProfileField: FC<Props> = ({ renderCreateAction }) => {
         <div className={styles.actions}>
           {renderCreateAction?.(handleUpdate)}
           <Popconfirm
+            onConfirm={() => removeCharacteristic('profile')}
             title="Удалить это поле?"
             description={
               <Text type="secondary">
@@ -71,7 +73,13 @@ export const FacadeProfileField: FC<Props> = ({ renderCreateAction }) => {
             cancelText="Нет"
             placement="rightTop"
           >
-            <Button type="text" size="small" icon={<CloseOutlined />} />
+            <Button
+              aria-label="Удалить поле Профиль"
+              type="text"
+              size="small"
+              icon={<CloseOutlined />}
+              loading={isMutating}
+            />
           </Popconfirm>
         </div>
       </Field.Label>
