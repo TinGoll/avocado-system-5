@@ -131,7 +131,35 @@ export class OrdersService {
       );
     }
 
-    Object.assign(itemToUpdate, updateItemDto);
+    const { templateId, ...itemUpdates } = updateItemDto;
+
+    if (templateId && templateId !== itemToUpdate.template.id) {
+      const template = await this.productsRepository.findOne({
+        where: { id: templateId },
+        relations: { operations: true },
+      });
+
+      if (!template) {
+        throw new BadRequestException(
+          `Product template with ID "${templateId}" not found.`,
+        );
+      }
+
+      itemToUpdate.template = template;
+      itemToUpdate.snapshot = {
+        name: template.name,
+        baseCustomerPrice: template.baseCustomerPrice,
+        attributes: template.attributes,
+        customerPricingMethod: template.customerPricingMethod,
+        defaultCharacteristics: template.defaultCharacteristics,
+      };
+      itemToUpdate.characteristics = {
+        ...template.defaultCharacteristics,
+        ...itemToUpdate.characteristics,
+      };
+    }
+
+    Object.assign(itemToUpdate, itemUpdates);
     await this.recalculatePricesForOrder(order);
 
     return this.ordersRepository.save(order);

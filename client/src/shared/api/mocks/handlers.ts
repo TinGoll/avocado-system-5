@@ -251,6 +251,20 @@ const orderHandlers = [
     if (index === -1) return notFound('order items', String(params.itemId));
 
     const body = (await request.json()) as Record<string, unknown>;
+    if (body.templateId) {
+      const template = findById('products', String(body.templateId));
+      if (!template) return notFound('products', String(body.templateId));
+
+      body.template = template;
+      body.snapshot = {
+        name: template.name,
+        baseCustomerPrice: template.baseCustomerPrice,
+        attributes: template.attributes,
+        customerPricingMethod: template.customerPricingMethod,
+        defaultCharacteristics: template.defaultCharacteristics,
+      };
+      delete body.templateId;
+    }
     items[index] = { ...items[index], ...body } as MockEntity;
     return HttpResponse.json(order);
   }),
