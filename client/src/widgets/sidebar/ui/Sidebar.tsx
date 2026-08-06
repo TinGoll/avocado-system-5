@@ -27,9 +27,10 @@ const styles = {
   `,
   toggle: css`
     width: 100%;
-    height: 48px;
+    height: 32px;
     flex: 0 0 auto;
     border-radius: 0;
+    justify-content: flex-start;
   `,
 };
 
@@ -60,6 +61,9 @@ export const Sidebar: FC = () => {
         title={collapsed ? 'Развернуть меню' : 'Свернуть меню'}
         type="text"
         onClick={() => setCollapsed((value) => !value)}
+        variant='filled'
+        size='small'
+        color='lime'
       >
         {collapsed ? null : 'Свернуть'}
       </Button>
