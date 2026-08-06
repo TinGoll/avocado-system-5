@@ -89,4 +89,49 @@ describe('MSW API mocks', () => {
 
     expect(group?.orders).toHaveLength(3);
   });
+
+  it('adds an item to an order and returns it on the next request', async () => {
+    const orderId = 'aa000000-0000-4000-8000-000000000001';
+    const response = await fetch(`http://localhost/orders/${orderId}/items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        templateId: '88000000-0000-4000-8000-000000000001',
+        quantity: 2,
+        characteristics: {
+          width: 500,
+          height: 700,
+          comment: 'Тестовый фасад',
+        },
+      }),
+    });
+    const updatedOrder = (await response.json()) as {
+      items: Record<string, unknown>[];
+      totalPrice: number;
+    };
+
+    expect(response.status).toBe(201);
+    expect(updatedOrder.items).toContainEqual(
+      expect.objectContaining({
+        quantity: 2,
+        characteristics: expect.objectContaining({
+          width: 500,
+          height: 700,
+          thickness: 20,
+          comment: 'Тестовый фасад',
+        }),
+        calculatedCustomerPrice: 5950,
+      }),
+    );
+    expect(updatedOrder.totalPrice).toBe(5950);
+
+    const getResponse = await fetch(
+      `http://localhost/orders/${orderId}/with-items`,
+    );
+    const persistedOrder = (await getResponse.json()) as {
+      items: Record<string, unknown>[];
+    };
+
+    expect(persistedOrder.items).toEqual(updatedOrder.items);
+  });
 });

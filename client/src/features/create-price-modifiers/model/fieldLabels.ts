@@ -122,6 +122,9 @@ const itemFieldLabels: LabelsMap<OrderItem> = {
   id: {
     _title: 'ID элемента заказа',
   },
+  position: {
+    _title: 'Позиция в заказе',
+  },
   template: {
     _title: 'Шаблон продукта',
     children: {
@@ -206,6 +209,9 @@ const itemFieldLabels: LabelsMap<OrderItem> = {
       },
       thickness: {
         _title: 'Толщина',
+      },
+      comment: {
+        _title: 'Комментарий',
       },
     },
   },

@@ -45,7 +45,11 @@ export class OrdersService {
     }
 
     order.items = await Promise.all(
-      items.map((itemDto) => this.createOrderItem(itemDto, order)),
+      items.map(async (itemDto, position) => {
+        const item = await this.createOrderItem(itemDto, order);
+        item.position = position;
+        return item;
+      }),
     );
 
     this.recalculateOrderTotal(order);
@@ -67,6 +71,7 @@ export class OrdersService {
     }
 
     const newOrderItem = await this.createOrderItem(createItemDto, order);
+    newOrderItem.position = order.items.length;
     order.items.push(newOrderItem);
     this.recalculateOrderTotal(order);
 
@@ -120,9 +125,47 @@ export class OrdersService {
     await this.orderItemsRepository.delete(itemId);
 
     order.items.splice(itemIndex, 1);
+    order.items.forEach((item, index) => {
+      item.position = index;
+    });
     this.recalculateOrderTotal(order);
 
     return this.ordersRepository.save(order);
+  }
+
+  async reorderItems(orderId: string, itemIds: string[]): Promise<Order> {
+    if (!Array.isArray(itemIds)) {
+      throw new BadRequestException('itemIds must be an array');
+    }
+
+    const order = await this.ordersRepository.findOne({
+      where: { id: orderId },
+      relations: { items: { template: true }, orderGroup: true },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order with ID "${orderId}" not found`);
+    }
+
+    const currentIds = new Set(order.items.map(({ id }) => id));
+    const containsAllItems =
+      itemIds.length === currentIds.size &&
+      itemIds.every((itemId) => currentIds.has(itemId));
+
+    if (!containsAllItems) {
+      throw new BadRequestException(
+        'Item IDs must contain every item from the order exactly once',
+      );
+    }
+
+    const positions = new Map(itemIds.map((itemId, index) => [itemId, index]));
+    order.items.forEach((item) => {
+      item.position = positions.get(item.id)!;
+    });
+    await this.orderItemsRepository.save(order.items);
+
+    order.items.sort((a, b) => a.position - b.position);
+    return order;
   }
 
   private async recalculatePricesForOrder(order: Order): Promise<void> {
@@ -211,7 +254,8 @@ export class OrdersService {
   async findOneWithItems(id: string): Promise<Order> {
     const order = await this.ordersRepository.findOne({
       where: { id },
-      relations: ['items'],
+      relations: { items: { template: true } },
+      order: { items: { position: 'ASC' } },
     });
 
     if (!order) {

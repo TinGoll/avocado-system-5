@@ -14,6 +14,7 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 import { CreateOrderItemDto } from './dto/create-order-item.dto';
 import { Order } from './entities/order.entity';
 import { UpdateOrderItemDto } from './dto/update-order-item.dto';
+import { ReorderOrderItemsDto } from './dto/reorder-order-items.dto';
 
 @Controller('orders')
 export class OrdersController {
@@ -58,6 +59,14 @@ export class OrdersController {
   @Get(':id/with-items')
   findOneWithItems(@Param('id', ParseUUIDPipe) id: string) {
     return this.ordersService.findOneWithItems(id);
+  }
+
+  @Patch(':orderId/items/reorder')
+  reorderOrderItems(
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @Body() reorderDto: ReorderOrderItemsDto,
+  ) {
+    return this.ordersService.reorderItems(orderId, reorderDto.itemIds);
   }
 
   @Patch(':orderId/items/:itemId')

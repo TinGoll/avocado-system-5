@@ -25,6 +25,7 @@ const toDTO = (props: AddItemProps): AddItemDTO => ({
 
 const createTempItem = (props: AddItemProps): OrderItem => ({
   id: `temp-${uuidv4()}`,
+  position: 0,
   template: props.template,
   snapshot: props.template,
   quantity: props.quantity,
@@ -50,7 +51,10 @@ export const useOptimisticAddItem = ({ orderID }: Props) => {
       }
 
       const prevOrder = currentOrder;
-      const tempItem = createTempItem(props);
+      const tempItem = {
+        ...createTempItem(props),
+        position: currentOrder.items?.length ?? 0,
+      };
 
       const optimisticOrder: Order = {
         ...currentOrder,

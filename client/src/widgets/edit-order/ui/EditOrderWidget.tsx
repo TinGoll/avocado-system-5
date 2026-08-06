@@ -1,7 +1,7 @@
 import { PlusOutlined } from '@ant-design/icons';
 import type { FC } from 'react';
 
-import { AddOrderItemForm } from '@features/add-order-items';
+import { AddOrderItemForm, OrderItemsList } from '@features/add-order-items';
 import { CreateColorButton } from '@features/create-color';
 import { CreateFacadePanelButton } from '@features/create-facade-panel';
 import { CreateFacadeProfileButton } from '@features/create-facade-profile';
@@ -71,6 +71,7 @@ export const EditOrderWidget: FC = () => {
         )}
       />
       <AddOrderItemForm
+        orderID={orderID ?? ''}
         createProductTemplateButton={
           <CreateProductTemplatesButton
             aria-label="Добавить номенклатуру"
@@ -79,6 +80,7 @@ export const EditOrderWidget: FC = () => {
           />
         }
       />
+      <OrderItemsList orderID={orderID ?? ''} />
     </div>
   );
 };
