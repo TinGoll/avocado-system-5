@@ -1,7 +1,7 @@
 import { CopyOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { css } from '@emotion/css';
 import { Button, Divider } from 'antd';
-import { type FC } from 'react';
+import { type FC, type ReactNode } from 'react';
 
 const styles = {
   toolbar: css`
@@ -25,12 +25,14 @@ const styles = {
 };
 
 type Props = {
+  addFieldsAction?: ReactNode;
   onAddFields?: () => void;
   onDeleteOrder?: () => void;
   onCopyOrder?: () => void;
 };
 
 export const Toolbar: FC<Props> = ({
+  addFieldsAction,
   onAddFields,
   onDeleteOrder,
   onCopyOrder,
@@ -39,12 +41,14 @@ export const Toolbar: FC<Props> = ({
     <div className={styles.toolbar}>
       <div className={styles.inner}>
         <div className={styles.actions}>
-          <Button
-            type="text"
-            size="small"
-            icon={<PlusOutlined />}
-            onClick={onAddFields}
-          />
+          {addFieldsAction ?? (
+            <Button
+              type="text"
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={onAddFields}
+            />
+          )}
           <Button
             type="text"
             size="small"

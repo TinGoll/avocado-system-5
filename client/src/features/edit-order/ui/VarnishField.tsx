@@ -20,7 +20,8 @@ type Props = {
 export const VarnishField: FC<Props> = ({ renderCreateAction }) => {
   const { currentOrder } = useOrderStore();
   const { map: varnishes, isLoading } = useVarnishMap();
-  const { updateCharacteristic, isMutating } = useOptimisticOrderUpdate();
+  const { updateCharacteristic, removeCharacteristic, isMutating } =
+    useOptimisticOrderUpdate();
 
   const handleUpdate = (item?: Varnish) => {
     const updateItem = item ?? ({} as Varnish);
@@ -55,6 +56,7 @@ export const VarnishField: FC<Props> = ({ renderCreateAction }) => {
         <div className={styles.actions}>
           {renderCreateAction?.(handleUpdate)}
           <Popconfirm
+            onConfirm={() => removeCharacteristic('varnish')}
             title="Удалить это поле?"
             description={
               <Text type="secondary">
@@ -65,7 +67,13 @@ export const VarnishField: FC<Props> = ({ renderCreateAction }) => {
             cancelText="Нет"
             placement="rightTop"
           >
-            <Button type="text" size="small" icon={<CloseOutlined />} />
+            <Button
+              aria-label="Удалить поле Лак"
+              type="text"
+              size="small"
+              icon={<CloseOutlined />}
+              loading={isMutating}
+            />
           </Popconfirm>
         </div>
       </Field.Label>

@@ -9,7 +9,7 @@ import { CreateMaterialButton } from '@features/create-material';
 import { CreatePatinaButton } from '@features/create-patina';
 import { CreateProductTemplatesButton } from '@features/create-production-templates';
 import { CreateVarnishButton } from '@features/create-varnish';
-import { EditOrderFields } from '@features/edit-order';
+import { AddOrderFieldsButton, EditOrderFields } from '@features/edit-order';
 import { OrderTabs, orderTabsStore, Toolbar } from '@features/order-tabs';
 
 export const EditOrderWidget: FC = () => {
@@ -18,7 +18,7 @@ export const EditOrderWidget: FC = () => {
   return (
     <div>
       <OrderTabs />
-      <Toolbar />
+      <Toolbar addFieldsAction={<AddOrderFieldsButton />} />
       <EditOrderFields
         orderID={orderID}
         renderCreateColor={(onCreated) => (
