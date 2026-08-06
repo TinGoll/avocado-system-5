@@ -93,7 +93,7 @@ export type ProductTemplate = {
   defaultCharacteristics: ProductCharacteristics;
   customerPricingMethod: CustomerPricingMethod;
   baseCustomerPrice: number;
-  attributes: object;
+  attributes: Record<string, string | number | boolean>;
   group?: string;
 };
 
@@ -134,7 +134,7 @@ export type OrderStatus = (typeof ORDER_STATUS)[keyof typeof ORDER_STATUS];
 export type Snapshot = {
   name: string;
   baseCustomerPrice: number;
-  attributes: object;
+  attributes: Record<string, string | number | boolean>;
   customerPricingMethod: ProductTemplate['customerPricingMethod'];
   defaultCharacteristics: ProductTemplate['defaultCharacteristics'];
 };
@@ -177,6 +177,7 @@ export interface OrderCharacteristics {
 }
 
 export interface OrderItemCharacteristics {
+  [key: string]: string | number | boolean | undefined;
   width?: number;
   height?: number;
   thickness?: number;

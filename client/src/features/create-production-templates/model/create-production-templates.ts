@@ -2,6 +2,7 @@ import type {
   CustomerPricingMethod,
   ProductCharacteristics,
 } from '@entities/product';
+import type { DynamicField } from '@shared/ui/dynamic-fields';
 
 export type ProductTemplateFieldType = {
   name: string;
@@ -9,4 +10,6 @@ export type ProductTemplateFieldType = {
   defaultCharacteristics: ProductCharacteristics;
   customerPricingMethod: CustomerPricingMethod;
   baseCustomerPrice: number;
+  attributes: DynamicField[];
+  additionalCharacteristics: DynamicField[];
 };

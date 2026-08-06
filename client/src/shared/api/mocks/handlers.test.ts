@@ -134,4 +134,41 @@ describe('MSW API mocks', () => {
 
     expect(persistedOrder.items).toEqual(updatedOrder.items);
   });
+
+  it('updates additional attributes and characteristics of an order item', async () => {
+    const orderId = 'aa000000-0000-4000-8000-000000000001';
+    const orderResponse = await fetch(
+      `http://localhost/orders/${orderId}/with-items`,
+    );
+    const order = (await orderResponse.json()) as {
+      items: { id: string }[];
+    };
+    const itemId = order.items[0].id;
+
+    const response = await fetch(
+      `http://localhost/orders/${orderId}/items/${itemId}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          attributes: { edge: 'painted', fragile: true },
+          characteristics: { height: 800, holes: 4 },
+        }),
+      },
+    );
+    const updatedOrder = (await response.json()) as {
+      items: {
+        id: string;
+        snapshot: { attributes: Record<string, unknown> };
+        characteristics: Record<string, unknown>;
+      }[];
+    };
+    const updatedItem = updatedOrder.items.find(({ id }) => id === itemId);
+
+    expect(updatedItem?.snapshot.attributes).toEqual({
+      edge: 'painted',
+      fragile: true,
+    });
+    expect(updatedItem?.characteristics).toEqual({ height: 800, holes: 4 });
+  });
 });

@@ -131,7 +131,7 @@ export class OrdersService {
       );
     }
 
-    const { templateId, ...itemUpdates } = updateItemDto;
+    const { templateId, attributes, ...itemUpdates } = updateItemDto;
 
     if (templateId && templateId !== itemToUpdate.template.id) {
       const template = await this.productsRepository.findOne({
@@ -156,6 +156,13 @@ export class OrdersService {
       itemToUpdate.characteristics = {
         ...template.defaultCharacteristics,
         ...itemToUpdate.characteristics,
+      };
+    }
+
+    if (attributes) {
+      itemToUpdate.snapshot = {
+        ...itemToUpdate.snapshot,
+        attributes,
       };
     }
 

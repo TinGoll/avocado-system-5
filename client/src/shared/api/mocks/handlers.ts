@@ -265,6 +265,13 @@ const orderHandlers = [
       };
       delete body.templateId;
     }
+    if (body.attributes) {
+      body.snapshot = {
+        ...((body.snapshot ?? items[index].snapshot) as object),
+        attributes: body.attributes,
+      };
+      delete body.attributes;
+    }
     items[index] = { ...items[index], ...body } as MockEntity;
     return HttpResponse.json(order);
   }),

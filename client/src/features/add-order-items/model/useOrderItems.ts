@@ -10,6 +10,7 @@ type ReorderItemsDto = {
 export type UpdateOrderItemDto = {
   templateId?: string;
   quantity?: number;
+  attributes?: Record<string, string | number | boolean>;
   characteristics?: Order['items'][number]['characteristics'];
 };
 
@@ -132,6 +133,9 @@ export const useOrderItems = ({ orderID }: { orderID: string }) => {
                 quantity: updates.quantity ?? item.quantity,
                 characteristics:
                   updates.characteristics ?? item.characteristics,
+                snapshot: updates.attributes
+                  ? { ...item.snapshot, attributes: updates.attributes }
+                  : item.snapshot,
               }
             : item,
         ),

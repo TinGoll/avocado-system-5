@@ -1,4 +1,8 @@
-import { DeleteOutlined, HolderOutlined } from '@ant-design/icons';
+import {
+  DeleteOutlined,
+  EditOutlined,
+  HolderOutlined,
+} from '@ant-design/icons';
 import { css } from '@emotion/css';
 import {
   App,
@@ -23,6 +27,7 @@ import {
 import type { OrderItem } from '@entities/order';
 import { useProductTemplates } from '@entities/product';
 
+import { EditOrderItemModal } from './EditOrderItemModal';
 import { useOrderItems, type UpdateOrderItemDto } from './model/useOrderItems';
 
 const styles = {
@@ -197,6 +202,7 @@ export const OrderItemsList: FC<Props> = ({ orderID }) => {
   const { token } = theme.useToken();
   const [draggedItemID, setDraggedItemID] = useState<string>();
   const [dropTargetItemID, setDropTargetItemID] = useState<string>();
+  const [editingItem, setEditingItem] = useState<OrderItem>();
   const { notification } = App.useApp();
   const { data: productTemplates } = useProductTemplates();
   const { items, moveItem, moveItemTo, removeItem, updateItem, isMutating } =
@@ -210,6 +216,18 @@ export const OrderItemsList: FC<Props> = ({ orderID }) => {
   const handleUpdate = async (itemID: string, updates: UpdateOrderItemDto) => {
     try {
       await updateItem(itemID, updates);
+    } catch {
+      notification.error({ message: 'Не удалось изменить элемент заказа' });
+    }
+  };
+
+  const handleModalUpdate = async (
+    itemID: string,
+    updates: UpdateOrderItemDto,
+  ) => {
+    try {
+      await updateItem(itemID, updates);
+      setEditingItem(undefined);
     } catch {
       notification.error({ message: 'Не удалось изменить элемент заказа' });
     }
@@ -369,9 +387,17 @@ export const OrderItemsList: FC<Props> = ({ orderID }) => {
     {
       title: '',
       key: 'actions',
-      width: 48,
+      width: 76,
       render: (_, item) => (
         <div className={styles.actions}>
+          <Button
+            aria-label="Редактировать элемент"
+            type="text"
+            icon={<EditOutlined />}
+            disabled={isMutating}
+            size="small"
+            onClick={() => setEditingItem(item)}
+          />
           <Popconfirm
             title="Удалить элемент?"
             okText="Удалить"
@@ -433,6 +459,14 @@ export const OrderItemsList: FC<Props> = ({ orderID }) => {
         }}
         scroll={{ x: 900 }}
         size="small"
+      />
+      <EditOrderItemModal
+        item={editingItem}
+        open={Boolean(editingItem)}
+        templates={productTemplates?.products ?? []}
+        loading={isMutating}
+        onCancel={() => setEditingItem(undefined)}
+        onSave={handleModalUpdate}
       />
     </div>
   );

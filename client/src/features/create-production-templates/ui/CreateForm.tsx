@@ -18,6 +18,10 @@ import {
   CUSTOMER_PRICING_METHOD,
   type ProductTemplate,
 } from '@entities/product';
+import {
+  DynamicFields,
+  dynamicFieldsToObject,
+} from '@shared/ui/dynamic-fields';
 
 import { useCreateProductTemplates } from '../hooks/useCreateProductTemplates';
 import type { ProductTemplateFieldType } from '../model/create-production-templates';
@@ -76,11 +80,16 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
   const handleFinish: FormProps<ProductTemplateFieldType>['onFinish'] = (
     values,
   ) => {
+    const { additionalCharacteristics, ...templateValues } = values;
     trigger({
-      ...values,
+      ...templateValues,
       name: values.name.trim(),
       group: values.group?.trim() || undefined,
-      attributes: {},
+      attributes: dynamicFieldsToObject(values.attributes),
+      defaultCharacteristics: {
+        ...values.defaultCharacteristics,
+        ...dynamicFieldsToObject(additionalCharacteristics),
+      },
     }).then((template) => {
       onCreated?.(template);
       notification.success({ message: 'Номенклатура успешно добавлена' });
@@ -102,6 +111,8 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
         layout="vertical"
         initialValues={{
           defaultCharacteristics: {},
+          attributes: [],
+          additionalCharacteristics: [],
           customerPricingMethod: CUSTOMER_PRICING_METHOD.PER_ITEM,
           baseCustomerPrice: 0,
         }}
@@ -173,6 +184,17 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
             </Form.Item>
           </Col>
         </Row>
+
+        <Form.Item label="Дополнительные характеристики">
+          <DynamicFields
+            name="additionalCharacteristics"
+            addButtonText="Добавить характеристику"
+          />
+        </Form.Item>
+
+        <Form.Item label="Атрибуты">
+          <DynamicFields name="attributes" addButtonText="Добавить атрибут" />
+        </Form.Item>
 
         <Form.Item<ProductTemplateFieldType>
           label="Способ расчета цены"
