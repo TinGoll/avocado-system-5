@@ -20,6 +20,27 @@ export const useOrderItems = ({ orderID }: { orderID: string }) => {
     disabled: !orderID,
   });
 
+  const saveItemsOrder = useCallback(
+    async (items: Order['items'], previousOrder: Order) => {
+      const reorderedItems = items.map((item, position) => ({
+        ...item,
+        position,
+      }));
+      setCurrentOrder({ ...previousOrder, items: reorderedItems });
+
+      try {
+        const updatedOrder = (await update.trigger('reorder', {
+          itemIds: reorderedItems.map(({ id }) => id),
+        })) as unknown as Order;
+        setCurrentOrder(updatedOrder);
+      } catch (error) {
+        setCurrentOrder(previousOrder);
+        throw error;
+      }
+    },
+    [setCurrentOrder, update],
+  );
+
   const moveItem = useCallback(
     async (itemID: string, offset: -1 | 1) => {
       if (!currentOrder) return;
@@ -35,23 +56,26 @@ export const useOrderItems = ({ orderID }: { orderID: string }) => {
         items[nextIndex],
         items[currentIndex],
       ];
-      const reorderedItems = items.map((item, position) => ({
-        ...item,
-        position,
-      }));
-      setCurrentOrder({ ...currentOrder, items: reorderedItems });
-
-      try {
-        const updatedOrder = (await update.trigger('reorder', {
-          itemIds: reorderedItems.map(({ id }) => id),
-        })) as unknown as Order;
-        setCurrentOrder(updatedOrder);
-      } catch (error) {
-        setCurrentOrder(previousOrder);
-        throw error;
-      }
+      await saveItemsOrder(items, previousOrder);
     },
-    [currentOrder, setCurrentOrder, update],
+    [currentOrder, saveItemsOrder],
+  );
+
+  const moveItemTo = useCallback(
+    async (itemID: string, targetItemID: string) => {
+      if (!currentOrder || itemID === targetItemID) return;
+
+      const previousOrder = currentOrder;
+      const items = [...currentOrder.items];
+      const currentIndex = items.findIndex(({ id }) => id === itemID);
+      const targetIndex = items.findIndex(({ id }) => id === targetItemID);
+      if (currentIndex < 0 || targetIndex < 0) return;
+
+      const [movedItem] = items.splice(currentIndex, 1);
+      items.splice(targetIndex, 0, movedItem);
+      await saveItemsOrder(items, previousOrder);
+    },
+    [currentOrder, saveItemsOrder],
   );
 
   const removeItem = useCallback(
@@ -78,6 +102,7 @@ export const useOrderItems = ({ orderID }: { orderID: string }) => {
   return {
     items: currentOrder?.items ?? [],
     moveItem,
+    moveItemTo,
     removeItem,
     isMutating: remove.isMutating || update.isMutating,
   };
