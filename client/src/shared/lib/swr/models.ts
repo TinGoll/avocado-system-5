@@ -207,6 +207,7 @@ export interface Order {
 
 export interface OrderItem {
   id: string;
+  position: number;
   template: ProductTemplate;
   quantity: number;
   snapshot: Snapshot;

@@ -188,6 +188,7 @@ const orderHandlers = [
       characteristics,
       calculatedProductionCost: 0,
       calculatedCustomerPrice,
+      position: ((order.items as unknown[]) ?? []).length,
     };
     order.items = [...((order.items as unknown[]) ?? []), item];
     order.totalPrice = (
@@ -198,6 +199,26 @@ const orderHandlers = [
     );
     order.updatedAt = new Date().toISOString();
     return HttpResponse.json(order, { status: 201 });
+  }),
+  http.patch('*/orders/:orderId/items/reorder', async ({ params, request }) => {
+    const order = findById('orders', String(params.orderId));
+    if (!order) return notFound('orders', String(params.orderId));
+
+    const { itemIds } = (await request.json()) as { itemIds: string[] };
+    const items = (order.items as MockEntity[]) ?? [];
+    const itemsById = new Map(items.map((item) => [String(item.id), item]));
+    if (
+      itemIds.length !== items.length ||
+      itemIds.some((itemId) => !itemsById.has(itemId))
+    ) {
+      return badRequest('itemIds must contain every order item');
+    }
+
+    order.items = itemIds.map((itemId, position) => ({
+      ...itemsById.get(itemId)!,
+      position,
+    }));
+    return HttpResponse.json(order);
   }),
   http.patch('*/orders/:orderId/items/:itemId', async ({ params, request }) => {
     const order = findById('orders', String(params.orderId));

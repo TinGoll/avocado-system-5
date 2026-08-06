@@ -20,6 +20,7 @@ const toDto = ({ template, ...item }: AddItemProps): AddItemDto => ({
 
 const createTemporaryItem = (props: AddItemProps): OrderItem => ({
   id: `temp-${uuidv4()}`,
+  position: 0,
   template: props.template,
   snapshot: props.template,
   quantity: props.quantity,
@@ -45,7 +46,13 @@ export const useOptimisticAddItem = ({ orderID }: { orderID: string }) => {
       const previousOrder = currentOrder;
       setCurrentOrder({
         ...currentOrder,
-        items: [...(currentOrder.items ?? []), createTemporaryItem(props)],
+        items: [
+          ...(currentOrder.items ?? []),
+          {
+            ...createTemporaryItem(props),
+            position: currentOrder.items?.length ?? 0,
+          },
+        ],
       });
 
       try {

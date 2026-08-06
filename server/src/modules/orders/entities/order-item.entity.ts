@@ -28,6 +28,9 @@ export class OrderItem {
   @Column({ type: 'int' })
   quantity: number;
 
+  @Column({ type: 'int', default: 0 })
+  position: number;
+
   @Column({ type: 'jsonb' })
   snapshot: Snapshot;
 
