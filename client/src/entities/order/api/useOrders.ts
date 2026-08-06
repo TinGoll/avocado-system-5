@@ -6,7 +6,11 @@ type CreateOrderDTO = {
   name?: string;
   characteristics: Order['characteristics'];
   orderGroupId: number;
-  items: Order['items'];
+  items: Array<{
+    templateId: string;
+    quantity: number;
+    characteristics: Order['items'][number]['characteristics'];
+  }>;
 };
 
 type Responce = {
@@ -16,7 +20,7 @@ type Responce = {
 };
 
 export const useOrders = () => {
-  return useEntity<Order, Responce, CreateOrderDTO>({
+  return useEntity<Order, Responce, CreateOrderDTO, Partial<Order>>({
     endpoint: Endpoints.ORDERS,
     transform: ({ items, ...data }) => ({
       orders: items ?? [],
@@ -26,8 +30,15 @@ export const useOrders = () => {
 };
 
 export const useOrdersMutations = () => {
-  return useEntity<Order, Responce, CreateOrderDTO>({
+  return useEntity<Order, Responce, CreateOrderDTO, Partial<Order>>({
     endpoint: Endpoints.ORDERS,
     disabled: true,
   });
+};
+
+export const useCopyOrderMutation = (orderID?: string) => {
+  return useEntity<Order, unknown, { name?: string }>({
+    endpoint: `${Endpoints.ORDERS}/${orderID}/copy`,
+    disabled: !orderID,
+  }).create;
 };

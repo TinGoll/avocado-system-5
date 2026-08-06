@@ -57,6 +57,38 @@ export class OrdersService {
     return this.ordersRepository.save(order);
   }
 
+  async copy(id: string, name?: string): Promise<Order> {
+    const source = await this.ordersRepository.findOne({
+      where: { id },
+      relations: { items: { template: true }, orderGroup: true },
+      order: { items: { position: 'ASC' } },
+    });
+
+    if (!source) {
+      throw new NotFoundException(`Order with ID "${id}" not found`);
+    }
+
+    const copy = this.ordersRepository.create({
+      name: name ?? `Копия ${source.name ?? 'документа'}`,
+      characteristics: structuredClone(source.characteristics),
+      totalPrice: source.totalPrice,
+      orderGroup: source.orderGroup,
+      items: source.items.map((item) =>
+        this.orderItemsRepository.create({
+          template: item.template,
+          quantity: item.quantity,
+          position: item.position,
+          snapshot: structuredClone(item.snapshot),
+          characteristics: structuredClone(item.characteristics),
+          calculatedProductionCost: item.calculatedProductionCost,
+          calculatedCustomerPrice: item.calculatedCustomerPrice,
+        }),
+      ),
+    });
+
+    return this.ordersRepository.save(copy);
+  }
+
   async addItemToOrder(
     orderId: string,
     createItemDto: CreateOrderItemDto,

@@ -35,6 +35,11 @@ export class OrdersController {
     return this.ordersService.findOne(id);
   }
 
+  @Post(':id/copy')
+  copy(@Param('id', ParseUUIDPipe) id: string, @Body('name') name?: string) {
+    return this.ordersService.copy(id, name);
+  }
+
   @Patch(':id')
   update(
     @Param('id', ParseUUIDPipe) id: string,

@@ -130,6 +130,26 @@ const entityHandlers = resources.flatMap((resource) => [
 ]);
 
 const orderHandlers = [
+  http.post('*/orders/:id/copy', async ({ params, request }) => {
+    const source = findById('orders', String(params.id));
+    if (!source) return notFound('orders', String(params.id));
+
+    const body = (await request.json()) as { name?: string };
+    const now = new Date().toISOString();
+    const order = structuredClone(source);
+
+    order.id = crypto.randomUUID();
+    order.name = body.name ?? `Копия ${String(source.name ?? 'документа')}`;
+    order.items = ((order.items as MockEntity[]) ?? []).map((item) => ({
+      ...item,
+      id: crypto.randomUUID(),
+    }));
+    order.createdAt = now;
+    order.updatedAt = now;
+    getCollection('orders').unshift(order);
+
+    return HttpResponse.json(order, { status: 201 });
+  }),
   http.get('*/order-groups/:id/order-ids', ({ params }) => {
     const items = getCollection('orders')
       .filter((order) => String(order.orderGroupId) === String(params.id))

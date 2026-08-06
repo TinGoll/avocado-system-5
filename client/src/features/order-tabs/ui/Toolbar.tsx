@@ -26,6 +26,7 @@ const styles = {
 
 type Props = {
   addFieldsAction?: ReactNode;
+  isCopyingOrder?: boolean;
   onAddFields?: () => void;
   onDeleteOrder?: () => void;
   onCopyOrder?: () => void;
@@ -33,6 +34,7 @@ type Props = {
 
 export const Toolbar: FC<Props> = ({
   addFieldsAction,
+  isCopyingOrder,
   onAddFields,
   onDeleteOrder,
   onCopyOrder,
@@ -56,9 +58,12 @@ export const Toolbar: FC<Props> = ({
             onClick={onDeleteOrder}
           />
           <Button
+            aria-label="Копировать документ"
+            disabled={!onCopyOrder}
             type="text"
             size="small"
             icon={<CopyOutlined />}
+            loading={isCopyingOrder}
             onClick={onCopyOrder}
           />
         </div>
