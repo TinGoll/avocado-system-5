@@ -7,6 +7,12 @@ type ReorderItemsDto = {
   itemIds: string[];
 };
 
+export type UpdateOrderItemDto = {
+  templateId?: string;
+  quantity?: number;
+  characteristics?: Order['items'][number]['characteristics'];
+};
+
 export const useOrderItems = ({ orderID }: { orderID: string }) => {
   const { currentOrder, setCurrentOrder } = useOrderStore();
   const { remove } = useEntity<Order, unknown>({
@@ -15,6 +21,16 @@ export const useOrderItems = ({ orderID }: { orderID: string }) => {
     disabled: !orderID,
   });
   const { update } = useEntity<Order, unknown, never, ReorderItemsDto>({
+    endpoint: `${Endpoints.ORDERS}/${orderID}/items`,
+    transform: (data) => data,
+    disabled: !orderID,
+  });
+  const { update: updateItemMutation } = useEntity<
+    Order,
+    unknown,
+    never,
+    UpdateOrderItemDto
+  >({
     endpoint: `${Endpoints.ORDERS}/${orderID}/items`,
     transform: (data) => data,
     disabled: !orderID,
@@ -99,11 +115,49 @@ export const useOrderItems = ({ orderID }: { orderID: string }) => {
     [currentOrder, remove, setCurrentOrder],
   );
 
+  const updateItem = useCallback(
+    async (itemID: string, updates: UpdateOrderItemDto) => {
+      if (!currentOrder) return;
+
+      const previousOrder = currentOrder;
+      const currentItem = currentOrder.items.find(({ id }) => id === itemID);
+      if (!currentItem) return;
+
+      setCurrentOrder({
+        ...currentOrder,
+        items: currentOrder.items.map((item) =>
+          item.id === itemID
+            ? {
+                ...item,
+                quantity: updates.quantity ?? item.quantity,
+                characteristics:
+                  updates.characteristics ?? item.characteristics,
+              }
+            : item,
+        ),
+      });
+
+      try {
+        const updatedOrder = (await updateItemMutation.trigger(
+          itemID,
+          updates,
+        )) as unknown as Order;
+        setCurrentOrder(updatedOrder);
+      } catch (error) {
+        setCurrentOrder(previousOrder);
+        throw error;
+      }
+    },
+    [currentOrder, setCurrentOrder, updateItemMutation],
+  );
+
   return {
     items: currentOrder?.items ?? [],
     moveItem,
     moveItemTo,
     removeItem,
-    isMutating: remove.isMutating || update.isMutating,
+    updateItem,
+    isMutating:
+      remove.isMutating || update.isMutating || updateItemMutation.isMutating,
   };
 };

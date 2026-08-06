@@ -1,6 +1,12 @@
 import { PlusOutlined } from '@ant-design/icons';
-import type { FC } from 'react';
+import { App } from 'antd';
+import { type FC, useState } from 'react';
 
+import {
+  useCopyOrderMutation,
+  useOrdersMutations,
+  useOrderStore,
+} from '@entities/order';
 import { AddOrderItemForm, OrderItemsList } from '@features/add-order-items';
 import { CreateColorButton } from '@features/create-color';
 import { CreateFacadePanelButton } from '@features/create-facade-panel';
@@ -11,14 +17,66 @@ import { CreateProductTemplatesButton } from '@features/create-production-templa
 import { CreateVarnishButton } from '@features/create-varnish';
 import { AddOrderFieldsButton, EditOrderFields } from '@features/edit-order';
 import { OrderTabs, orderTabsStore, Toolbar } from '@features/order-tabs';
+import { useCurrentOrderGroupID } from '@shared/lib';
 
 export const EditOrderWidget: FC = () => {
-  const { currentTabKey: orderID } = orderTabsStore();
+  const { message } = App.useApp();
+  const { groupID } = useCurrentOrderGroupID();
+  const { create } = useOrdersMutations();
+  const { currentOrder } = useOrderStore();
+  const { addTab, currentTabKey: orderID, tabs } = orderTabsStore();
+  const copyOrder = useCopyOrderMutation(orderID);
+  const [creationMode, setCreationMode] = useState<'empty' | 'copy'>();
+
+  const createDocument = async (copy = false) => {
+    if (!groupID || creationMode) return;
+
+    const fallbackName = `Документ ${tabs.length + 1}`;
+    const sourceName = tabs.find((tab) => tab.key === orderID)?.label;
+    const name = copy
+      ? `Копия ${sourceName ?? currentOrder?.name ?? fallbackName}`
+      : fallbackName;
+
+    setCreationMode(copy ? 'copy' : 'empty');
+
+    try {
+      const order = copy
+        ? await copyOrder.trigger({ name })
+        : await create.trigger({
+            name,
+            orderGroupId: groupID,
+            characteristics: {},
+            items: [],
+          });
+
+      addTab({ key: order.id, label: order.name ?? name });
+      message.success(copy ? 'Документ скопирован' : 'Документ создан');
+    } catch {
+      message.error(
+        copy
+          ? 'Не удалось скопировать документ'
+          : 'Не удалось создать документ',
+      );
+    } finally {
+      setCreationMode(undefined);
+    }
+  };
 
   return (
     <div>
-      <OrderTabs />
-      <Toolbar addFieldsAction={<AddOrderFieldsButton />} />
+      <OrderTabs
+        isCreating={Boolean(creationMode)}
+        onCreate={() => void createDocument()}
+      />
+      <Toolbar
+        addFieldsAction={<AddOrderFieldsButton />}
+        isCopyingOrder={creationMode === 'copy'}
+        onCopyOrder={
+          currentOrder?.id === orderID
+            ? () => void createDocument(true)
+            : undefined
+        }
+      />
       <EditOrderFields
         orderID={orderID}
         renderCreateColor={(onCreated) => (

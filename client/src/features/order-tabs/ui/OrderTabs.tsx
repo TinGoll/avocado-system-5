@@ -1,4 +1,9 @@
-import { CheckOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
+import {
+  CheckOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  LoadingOutlined,
+} from '@ant-design/icons';
 import { css } from '@emotion/css';
 import { App, Button, Input, Skeleton, Tabs } from 'antd';
 import { type FC, type MouseEvent, useState } from 'react';
@@ -29,11 +34,12 @@ const styles = {
 };
 
 type Props = {
+  isCreating?: boolean;
   onCreate?: () => void;
   onDelete?: (key: string) => void;
 };
 
-export const OrderTabs: FC<Props> = ({ onCreate, onDelete }) => {
+export const OrderTabs: FC<Props> = ({ isCreating, onCreate, onDelete }) => {
   const { message } = App.useApp();
   const { groupID } = useCurrentOrderGroupID();
   const { isLoading } = useLoadTabs(groupID);
@@ -139,6 +145,7 @@ export const OrderTabs: FC<Props> = ({ onCreate, onDelete }) => {
     <Tabs
       className={styles.tabs}
       activeKey={currentTabKey}
+      addIcon={isCreating ? <LoadingOutlined spin /> : undefined}
       onChange={setCurrentTabKey}
       removeIcon={<DeleteOutlined />}
       type="editable-card"

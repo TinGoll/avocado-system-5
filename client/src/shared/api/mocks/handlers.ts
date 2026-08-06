@@ -130,6 +130,26 @@ const entityHandlers = resources.flatMap((resource) => [
 ]);
 
 const orderHandlers = [
+  http.post('*/orders/:id/copy', async ({ params, request }) => {
+    const source = findById('orders', String(params.id));
+    if (!source) return notFound('orders', String(params.id));
+
+    const body = (await request.json()) as { name?: string };
+    const now = new Date().toISOString();
+    const order = structuredClone(source);
+
+    order.id = crypto.randomUUID();
+    order.name = body.name ?? `Копия ${String(source.name ?? 'документа')}`;
+    order.items = ((order.items as MockEntity[]) ?? []).map((item) => ({
+      ...item,
+      id: crypto.randomUUID(),
+    }));
+    order.createdAt = now;
+    order.updatedAt = now;
+    getCollection('orders').unshift(order);
+
+    return HttpResponse.json(order, { status: 201 });
+  }),
   http.get('*/order-groups/:id/order-ids', ({ params }) => {
     const items = getCollection('orders')
       .filter((order) => String(order.orderGroupId) === String(params.id))
@@ -231,6 +251,20 @@ const orderHandlers = [
     if (index === -1) return notFound('order items', String(params.itemId));
 
     const body = (await request.json()) as Record<string, unknown>;
+    if (body.templateId) {
+      const template = findById('products', String(body.templateId));
+      if (!template) return notFound('products', String(body.templateId));
+
+      body.template = template;
+      body.snapshot = {
+        name: template.name,
+        baseCustomerPrice: template.baseCustomerPrice,
+        attributes: template.attributes,
+        customerPricingMethod: template.customerPricingMethod,
+        defaultCharacteristics: template.defaultCharacteristics,
+      };
+      delete body.templateId;
+    }
     items[index] = { ...items[index], ...body } as MockEntity;
     return HttpResponse.json(order);
   }),

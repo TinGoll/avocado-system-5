@@ -57,6 +57,38 @@ export class OrdersService {
     return this.ordersRepository.save(order);
   }
 
+  async copy(id: string, name?: string): Promise<Order> {
+    const source = await this.ordersRepository.findOne({
+      where: { id },
+      relations: { items: { template: true }, orderGroup: true },
+      order: { items: { position: 'ASC' } },
+    });
+
+    if (!source) {
+      throw new NotFoundException(`Order with ID "${id}" not found`);
+    }
+
+    const copy = this.ordersRepository.create({
+      name: name ?? `Копия ${source.name ?? 'документа'}`,
+      characteristics: structuredClone(source.characteristics),
+      totalPrice: source.totalPrice,
+      orderGroup: source.orderGroup,
+      items: source.items.map((item) =>
+        this.orderItemsRepository.create({
+          template: item.template,
+          quantity: item.quantity,
+          position: item.position,
+          snapshot: structuredClone(item.snapshot),
+          characteristics: structuredClone(item.characteristics),
+          calculatedProductionCost: item.calculatedProductionCost,
+          calculatedCustomerPrice: item.calculatedCustomerPrice,
+        }),
+      ),
+    });
+
+    return this.ordersRepository.save(copy);
+  }
+
   async addItemToOrder(
     orderId: string,
     createItemDto: CreateOrderItemDto,
@@ -99,7 +131,35 @@ export class OrdersService {
       );
     }
 
-    Object.assign(itemToUpdate, updateItemDto);
+    const { templateId, ...itemUpdates } = updateItemDto;
+
+    if (templateId && templateId !== itemToUpdate.template.id) {
+      const template = await this.productsRepository.findOne({
+        where: { id: templateId },
+        relations: { operations: true },
+      });
+
+      if (!template) {
+        throw new BadRequestException(
+          `Product template with ID "${templateId}" not found.`,
+        );
+      }
+
+      itemToUpdate.template = template;
+      itemToUpdate.snapshot = {
+        name: template.name,
+        baseCustomerPrice: template.baseCustomerPrice,
+        attributes: template.attributes,
+        customerPricingMethod: template.customerPricingMethod,
+        defaultCharacteristics: template.defaultCharacteristics,
+      };
+      itemToUpdate.characteristics = {
+        ...template.defaultCharacteristics,
+        ...itemToUpdate.characteristics,
+      };
+    }
+
+    Object.assign(itemToUpdate, itemUpdates);
     await this.recalculatePricesForOrder(order);
 
     return this.ordersRepository.save(order);
