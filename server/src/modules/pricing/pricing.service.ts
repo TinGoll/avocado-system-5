@@ -79,6 +79,11 @@ export class PricingService {
     }
 
     switch (pricingMethod) {
+      case CustomerPricingMethod.LINEAR_METER: {
+        const length = Number(get(item, 'characteristics.height', 0)) / 1000;
+        return pricePerUnit * length * quantity;
+      }
+
       case CustomerPricingMethod.AREA: {
         const width = Number(get(item, 'characteristics.width', 0)) / 1000;
         const height = Number(get(item, 'characteristics.height', 0)) / 1000;

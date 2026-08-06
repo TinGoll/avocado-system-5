@@ -183,6 +183,9 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
             <Radio.Button value={CUSTOMER_PRICING_METHOD.PER_ITEM}>
               За штуку
             </Radio.Button>
+            <Radio.Button value={CUSTOMER_PRICING_METHOD.LINEAR_METER}>
+              М. погонный
+            </Radio.Button>
             <Radio.Button value={CUSTOMER_PRICING_METHOD.AREA}>
               По площади
             </Radio.Button>

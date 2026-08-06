@@ -73,6 +73,7 @@ export type Patina = {
 
 export const CUSTOMER_PRICING_METHOD = {
   PER_ITEM: 'per_item',
+  LINEAR_METER: 'linear_meter',
   AREA: 'area',
   VOLUME: 'volume',
 } as const;

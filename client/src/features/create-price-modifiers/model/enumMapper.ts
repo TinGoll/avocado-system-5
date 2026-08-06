@@ -10,6 +10,7 @@ export const enumMapper: Record<string, string> = {
   [COLOR_TYPE.ENAMEL]: 'Эмаль',
   [COLOR_TYPE.STAIN]: 'Морилка',
   [CUSTOMER_PRICING_METHOD.PER_ITEM]: 'За штуку',
+  [CUSTOMER_PRICING_METHOD.LINEAR_METER]: 'Погонный метр',
   [CUSTOMER_PRICING_METHOD.AREA]: 'Квадратура',
   [CUSTOMER_PRICING_METHOD.VOLUME]: 'Кубатура',
   [ORDER_STATUS.DRAFT]: 'На оформлении',
