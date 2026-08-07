@@ -61,9 +61,9 @@ export const Sidebar: FC = () => {
         title={collapsed ? 'Развернуть меню' : 'Свернуть меню'}
         type="text"
         onClick={() => setCollapsed((value) => !value)}
-        variant='filled'
-        size='small'
-        color='lime'
+        variant="filled"
+        size="small"
+        color="lime"
       >
         {collapsed ? null : 'Свернуть'}
       </Button>

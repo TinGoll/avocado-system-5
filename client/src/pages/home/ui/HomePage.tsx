@@ -138,9 +138,14 @@ export const HomePage: FC = () => {
 
   return (
     <section className={pageStyles}>
-      <Typography.Title css={{
-        margin: 0
-      }} level={4}>Заказы</Typography.Title>
+      <Typography.Title
+        css={{
+          margin: 0,
+        }}
+        level={4}
+      >
+        Заказы
+      </Typography.Title>
       {error ? (
         <Alert
           message="Не удалось загрузить список заказов"
