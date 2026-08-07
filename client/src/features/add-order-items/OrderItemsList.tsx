@@ -295,6 +295,17 @@ export const OrderItemsList: FC<Props> = ({ orderID }) => {
   const handleDragStart = (event: DragEvent, itemID: string) => {
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData('text/plain', itemID);
+
+    const row = event.currentTarget.closest('tr');
+    if (row) {
+      const rowRect = row.getBoundingClientRect();
+      event.dataTransfer.setDragImage(
+        row,
+        event.clientX - rowRect.left,
+        event.clientY - rowRect.top,
+      );
+    }
+
     setDraggedItemID(itemID);
   };
 
