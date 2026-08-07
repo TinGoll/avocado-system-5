@@ -9,7 +9,13 @@ import {
   Select,
   type RefSelectProps,
 } from 'antd';
-import { useMemo, useRef, type FC, type ReactNode } from 'react';
+import {
+  useMemo,
+  useRef,
+  type FC,
+  type FocusEvent,
+  type ReactNode,
+} from 'react';
 
 import { useProductTemplates } from '@entities/product';
 
@@ -97,6 +103,12 @@ export const AddOrderItemForm: FC<Props> = ({
     });
   };
 
+  const selectValueOnFocus = (event: FocusEvent<HTMLInputElement>) => {
+    if (event.currentTarget.value) {
+      event.currentTarget.select();
+    }
+  };
+
   const handleTemplateChange = (templateId: string) => {
     const template = products.find(({ id }) => id === templateId);
 
@@ -162,12 +174,14 @@ export const AddOrderItemForm: FC<Props> = ({
                 .toLocaleLowerCase()
                 .includes(input.trim().toLocaleLowerCase())
             }
+            onFocus={selectValueOnFocus}
             onChange={handleTemplateChange}
           />
         </Form.Item>
         <Form.Item name="height">
           <InputNumber
             disabled={Boolean(selectedTemplate?.defaultCharacteristics.height)}
+            onFocus={selectValueOnFocus}
             min={0}
             variant="underlined"
             placeholder="Высота"
@@ -176,6 +190,7 @@ export const AddOrderItemForm: FC<Props> = ({
         <Form.Item name="width">
           <InputNumber
             disabled={Boolean(selectedTemplate?.defaultCharacteristics.width)}
+            onFocus={selectValueOnFocus}
             min={0}
             variant="underlined"
             placeholder="Ширина"
@@ -186,6 +201,7 @@ export const AddOrderItemForm: FC<Props> = ({
             disabled={Boolean(
               selectedTemplate?.defaultCharacteristics.thickness,
             )}
+            onFocus={selectValueOnFocus}
             min={0}
             variant="underlined"
             placeholder="Толщина"
@@ -195,12 +211,17 @@ export const AddOrderItemForm: FC<Props> = ({
           <InputNumber
             min={1}
             precision={0}
+            onFocus={selectValueOnFocus}
             variant="underlined"
             placeholder="Количество"
           />
         </Form.Item>
         <Form.Item className={styles.description} name="comment">
-          <Input variant="underlined" placeholder="Комментарий" />
+          <Input
+            variant="underlined"
+            placeholder="Комментарий"
+            onFocus={selectValueOnFocus}
+          />
         </Form.Item>
 
         <Form.Item className={styles.button}>
