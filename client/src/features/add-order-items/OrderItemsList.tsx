@@ -297,13 +297,40 @@ export const OrderItemsList: FC<Props> = ({ orderID }) => {
     event.dataTransfer.setData('text/plain', itemID);
 
     const row = event.currentTarget.closest('tr');
-    if (row) {
+    const table = row?.closest('table');
+    if (row && table) {
       const rowRect = row.getBoundingClientRect();
+      const previewContainer = document.createElement('div');
+      const previewTable = table.cloneNode(true) as HTMLTableElement;
+      const previewRow = row.cloneNode(true);
+      const previewBody = previewTable.tBodies.item(0);
+
+      previewTable.tHead?.remove();
+      previewTable.querySelector('tfoot')?.remove();
+      previewBody?.replaceChildren(previewRow);
+
+      Object.assign(previewContainer.style, {
+        position: 'fixed',
+        top: '-10000px',
+        left: '-10000px',
+        width: `${rowRect.width}px`,
+        overflow: 'hidden',
+        background: token.colorBgContainer,
+        border: `2px solid ${token.colorPrimary}`,
+        borderRadius: `${token.borderRadius}px`,
+        boxShadow: token.boxShadowSecondary,
+        pointerEvents: 'none',
+      });
+      previewTable.style.width = `${rowRect.width}px`;
+      previewContainer.append(previewTable);
+      document.body.append(previewContainer);
+
       event.dataTransfer.setDragImage(
-        row,
-        event.clientX - rowRect.left,
-        event.clientY - rowRect.top,
+        previewContainer,
+        event.clientX - rowRect.left + 2,
+        event.clientY - rowRect.top + 2,
       );
+      setTimeout(() => previewContainer.remove());
     }
 
     setDraggedItemID(itemID);
