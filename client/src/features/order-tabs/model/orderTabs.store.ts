@@ -12,6 +12,7 @@ type OrderTabsState = {
   setCurrentTabKey: (tabKey?: string) => void;
   setTabs: (tabs: TabItem[]) => void;
   addTab: (tab: TabItem) => void;
+  removeTab: (tabKey: string) => void;
   renameTab: (tabKey: string, name: string) => void;
   reset: () => void;
 };
@@ -28,6 +29,21 @@ export const orderTabsStore = create<OrderTabsState>((set) => ({
       tabs: [...state.tabs, tab],
       currentTabKey: tab.key,
     })),
+
+  removeTab: (tabKey) =>
+    set((state) => {
+      const removedTabIndex = state.tabs.findIndex((tab) => tab.key === tabKey);
+      const tabs = state.tabs.filter((tab) => tab.key !== tabKey);
+
+      if (state.currentTabKey !== tabKey) {
+        return { tabs };
+      }
+
+      return {
+        tabs,
+        currentTabKey: tabs[Math.min(removedTabIndex, tabs.length - 1)]?.key,
+      };
+    }),
 
   renameTab: (tabKey, name) =>
     set((state) => ({

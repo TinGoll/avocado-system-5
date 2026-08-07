@@ -40,14 +40,15 @@ type Props = {
 };
 
 export const OrderTabs: FC<Props> = ({ isCreating, onCreate, onDelete }) => {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const { groupID } = useCurrentOrderGroupID();
   const { isLoading } = useLoadTabs(groupID);
-  const { update } = useOrdersMutations();
+  const { remove, update } = useOrdersMutations();
   const [editingKey, setEditingKey] = useState<string>();
   const [editingName, setEditingName] = useState('');
 
-  const { currentTabKey, renameTab, setCurrentTabKey, tabs } = orderTabsStore();
+  const { currentTabKey, removeTab, renameTab, setCurrentTabKey, tabs } =
+    orderTabsStore();
 
   const beginEditing = (event: MouseEvent, key: string, name: string) => {
     event.preventDefault();
@@ -86,6 +87,29 @@ export const OrderTabs: FC<Props> = ({ isCreating, onCreate, onDelete }) => {
     } catch {
       message.error('Не удалось переименовать вкладку');
     }
+  };
+
+  const deleteDocument = (key: string) => {
+    const documentName = tabs.find((tab) => tab.key === key)?.label;
+
+    modal.confirm({
+      title: 'Удалить документ?',
+      content: documentName,
+      okText: 'Удалить',
+      okType: 'danger',
+      cancelText: 'Отмена',
+      onOk: async () => {
+        try {
+          await remove.trigger(key);
+          removeTab(key);
+          onDelete?.(key);
+          message.success('Документ удалён');
+        } catch (error) {
+          message.error('Не удалось удалить документ');
+          throw error;
+        }
+      },
+    });
   };
 
   const items = tabs.map((tab) => ({
@@ -133,7 +157,7 @@ export const OrderTabs: FC<Props> = ({ isCreating, onCreate, onDelete }) => {
     if (action === 'add') {
       onCreate?.();
     } else {
-      onDelete?.(String(targetKey));
+      deleteDocument(String(targetKey));
     }
   };
 
