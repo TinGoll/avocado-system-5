@@ -25,7 +25,11 @@ import {
 } from 'react';
 
 import type { OrderItem } from '@entities/order';
-import { useProductTemplates } from '@entities/product';
+import {
+  CUSTOMER_PRICING_METHOD,
+  useProductTemplates,
+  type CustomerPricingMethod,
+} from '@entities/product';
 
 import { EditOrderItemModal } from './EditOrderItemModal';
 import { useOrderItems, type UpdateOrderItemDto } from './model/useOrderItems';
@@ -155,6 +159,45 @@ const EditableCell: FC<EditableCellProps> = ({
 };
 
 type Props = { orderID: string };
+
+const calculatedUnitLabels: Record<CustomerPricingMethod, string> = {
+  [CUSTOMER_PRICING_METHOD.PER_ITEM]: 'ед.',
+  [CUSTOMER_PRICING_METHOD.LINEAR_METER]: 'п/м',
+  [CUSTOMER_PRICING_METHOD.AREA]: 'м.кв.',
+  [CUSTOMER_PRICING_METHOD.VOLUME]: 'м.куб.',
+};
+
+const numberFormatter = new Intl.NumberFormat('ru-RU', {
+  maximumFractionDigits: 3,
+});
+
+const currencyFormatter = new Intl.NumberFormat('ru-RU', {
+  style: 'currency',
+  currency: 'RUB',
+  maximumFractionDigits: 2,
+});
+
+const getCalculatedUnits = (item: OrderItem): number => {
+  const { width = 0, height = 0, thickness = 0 } = item.characteristics;
+  const quantity = Number(item.quantity) || 0;
+
+  switch (item.snapshot.customerPricingMethod) {
+    case CUSTOMER_PRICING_METHOD.LINEAR_METER:
+      return (Number(height) / 1000) * quantity;
+    case CUSTOMER_PRICING_METHOD.AREA:
+      return (Number(width) / 1000) * (Number(height) / 1000) * quantity;
+    case CUSTOMER_PRICING_METHOD.VOLUME:
+      return (
+        (Number(width) / 1000) *
+        (Number(height) / 1000) *
+        (Number(thickness) / 1000) *
+        quantity
+      );
+    case CUSTOMER_PRICING_METHOD.PER_ITEM:
+    default:
+      return quantity;
+  }
+};
 
 type EditableTemplateCellProps = {
   value: string;
@@ -368,6 +411,24 @@ export const OrderItemsList: FC<Props> = ({ orderID }) => {
           onSave={(next) => handleUpdate(item.id, { quantity: next as number })}
         />
       ),
+    },
+    {
+      title: 'Единицы',
+      key: 'calculatedUnits',
+      width: 120,
+      align: 'right',
+      render: (_, item) => {
+        const pricingMethod = item.snapshot.customerPricingMethod;
+
+        return `${numberFormatter.format(getCalculatedUnits(item))} ${calculatedUnitLabels[pricingMethod]}`;
+      },
+    },
+    {
+      title: 'Сумма',
+      dataIndex: 'calculatedCustomerPrice',
+      width: 140,
+      align: 'right',
+      render: (price: number) => currencyFormatter.format(Number(price) || 0),
     },
     {
       title: 'Комментарий',

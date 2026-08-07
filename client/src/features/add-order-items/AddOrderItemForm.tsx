@@ -58,6 +58,7 @@ type FormValues = {
   templateId: string;
   height?: number;
   width?: number;
+  thickness?: number;
   quantity: number;
   comment?: string;
 };
@@ -72,6 +73,11 @@ export const AddOrderItemForm: FC<Props> = ({
   const { data, isLoading, error } = useProductTemplates();
   const products = useMemo(() => data?.products ?? [], [data?.products]);
   const { addItem, isMutating } = useOptimisticAddItem({ orderID });
+  const selectedTemplateId = Form.useWatch('templateId', form);
+  const selectedTemplate = useMemo(
+    () => products.find(({ id }) => id === selectedTemplateId),
+    [products, selectedTemplateId],
+  );
 
   const options = useMemo(
     () =>
@@ -91,6 +97,16 @@ export const AddOrderItemForm: FC<Props> = ({
     });
   };
 
+  const handleTemplateChange = (templateId: string) => {
+    const template = products.find(({ id }) => id === templateId);
+
+    form.setFieldsValue({
+      height: template?.defaultCharacteristics.height,
+      width: template?.defaultCharacteristics.width,
+      thickness: template?.defaultCharacteristics.thickness,
+    });
+  };
+
   const handleFinish = async (values: FormValues) => {
     const template = products.find(({ id }) => id === values.templateId);
     if (!template) return;
@@ -102,12 +118,14 @@ export const AddOrderItemForm: FC<Props> = ({
         characteristics: {
           height: values.height,
           width: values.width,
+          thickness: values.thickness,
           comment: values.comment?.trim() || undefined,
         },
       });
       form.setFieldsValue({
-        height: undefined,
-        width: undefined,
+        height: template.defaultCharacteristics.height,
+        width: template.defaultCharacteristics.width,
+        thickness: template.defaultCharacteristics.thickness,
         quantity: 1,
         comment: undefined,
       });
@@ -144,13 +162,34 @@ export const AddOrderItemForm: FC<Props> = ({
                 .toLocaleLowerCase()
                 .includes(input.trim().toLocaleLowerCase())
             }
+            onChange={handleTemplateChange}
           />
         </Form.Item>
         <Form.Item name="height">
-          <InputNumber min={0} variant="underlined" placeholder="Высота" />
+          <InputNumber
+            disabled={Boolean(selectedTemplate?.defaultCharacteristics.height)}
+            min={0}
+            variant="underlined"
+            placeholder="Высота"
+          />
         </Form.Item>
         <Form.Item name="width">
-          <InputNumber min={0} variant="underlined" placeholder="Ширина" />
+          <InputNumber
+            disabled={Boolean(selectedTemplate?.defaultCharacteristics.width)}
+            min={0}
+            variant="underlined"
+            placeholder="Ширина"
+          />
+        </Form.Item>
+        <Form.Item name="thickness">
+          <InputNumber
+            disabled={Boolean(
+              selectedTemplate?.defaultCharacteristics.thickness,
+            )}
+            min={0}
+            variant="underlined"
+            placeholder="Толщина"
+          />
         </Form.Item>
         <Form.Item name="quantity" rules={[{ required: true, message: '' }]}>
           <InputNumber
