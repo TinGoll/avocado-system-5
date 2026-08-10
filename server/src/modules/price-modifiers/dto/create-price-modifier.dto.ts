@@ -3,12 +3,13 @@ import {
   IsEnum,
   IsNotEmpty,
   IsNumber,
-  IsObject,
   IsOptional,
   IsString,
   IsUUID,
 } from 'class-validator';
 import { ModifierType } from '../entities/price-modifier.entity';
+import type { PriceModifierCondition } from '../types/price-modifier-condition.type';
+import { IsPriceModifierConditionTree } from '../validators/is-price-modifier-condition-tree.validator';
 
 export class CreatePriceModifierDto {
   @IsString()
@@ -21,9 +22,8 @@ export class CreatePriceModifierDto {
   @IsNumber()
   value: number;
 
-  @IsObject()
-  @IsNotEmpty()
-  conditions: object;
+  @IsPriceModifierConditionTree()
+  conditions: PriceModifierCondition;
 
   @IsArray()
   @IsUUID('4', { each: true })
