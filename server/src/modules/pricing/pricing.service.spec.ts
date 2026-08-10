@@ -22,6 +22,7 @@ const createModifier = (
   priority: number,
   type: ModifierType,
   value: number,
+  templateIds: string[] = [],
 ): PriceModifier =>
   ({
     id,
@@ -29,13 +30,16 @@ const createModifier = (
     type,
     value,
     conditions: alwaysApplicableCondition,
-    productTemplates: [],
+    productTemplates: templateIds.map((templateId) => ({ id: templateId })),
   }) as PriceModifier;
 
-const createItem = (baseCustomerPrice = 100): OrderItem =>
+const createItem = (
+  baseCustomerPrice = 100,
+  templateId = 'template-id',
+): OrderItem =>
   ({
     quantity: 1,
-    template: { id: 'template-id' },
+    template: { id: templateId },
     snapshot: {
       customerPricingMethod: CustomerPricingMethod.PER_ITEM,
       baseCustomerPrice,
@@ -161,5 +165,75 @@ describe('PricingService', () => {
     await expect(
       service.calculateCustomerPrice(createItem(), order),
     ).resolves.toBeCloseTo(85);
+  });
+
+  it('loads modifiers once when calculating multiple items', async () => {
+    const { service, findMock } = createService([
+      createModifier(
+        '00000000-0000-4000-8000-000000000001',
+        10,
+        ModifierType.PERCENTAGE,
+        10,
+      ),
+    ]);
+
+    await expect(
+      service.calculateCustomerPrices(
+        [createItem(100), createItem(200), createItem(300)],
+        order,
+      ),
+    ).resolves.toEqual([110, 220, 330]);
+    expect(findMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns the same prices for batch and single-item calculations', async () => {
+    const modifiers = [
+      createModifier(
+        '00000000-0000-4000-8000-000000000001',
+        10,
+        ModifierType.PERCENTAGE,
+        10,
+      ),
+      createModifier(
+        '00000000-0000-4000-8000-000000000002',
+        20,
+        ModifierType.FIXED_AMOUNT,
+        5,
+      ),
+    ];
+    const { service } = createService(modifiers);
+    const items = [createItem(100), createItem(200)];
+
+    const batchPrices = await service.calculateCustomerPrices(items, order);
+    const singlePrices = await Promise.all(
+      items.map((item) => service.calculateCustomerPrice(item, order)),
+    );
+
+    expect(batchPrices).toEqual(singlePrices);
+  });
+
+  it('applies global and template-scoped modifiers to matching items', async () => {
+    const { service } = createService([
+      createModifier(
+        '00000000-0000-4000-8000-000000000001',
+        10,
+        ModifierType.PERCENTAGE,
+        10,
+      ),
+      createModifier(
+        '00000000-0000-4000-8000-000000000002',
+        20,
+        ModifierType.FIXED_AMOUNT,
+        25,
+        ['scoped-template'],
+      ),
+    ]);
+
+    await expect(
+      service.calculateCustomerPrices(
+        [createItem(100, 'scoped-template'), createItem(100, 'other-template')],
+        order,
+      ),
+    ).resolves.toEqual([135, 110]);
   });
 });
