@@ -27,10 +27,10 @@ const validGroup: PriceModifierCondition = {
     {
       OR: [
         {
-          source: ConditionSource.ORDER,
+          source: ConditionSource.ORDER_GROUP,
           path: 'status',
           operator: ConditionOperator.EQ,
-          value: 'new',
+          value: 'draft',
         },
       ],
     },
@@ -120,6 +120,18 @@ describe('Price modifiers validation (e2e)', () => {
     );
   });
 
+  it('publishes the same allowlist used by validation', async () => {
+    const response = await request(httpServer)
+      .get('/api/price-modifiers/condition-paths')
+      .expect(200);
+    const schemas = response.body as Record<string, Record<string, unknown>>;
+
+    expect(schemas.order.totalPrice).toBeUndefined();
+    expect(schemas.item.calculatedCustomerPrice).toBeUndefined();
+    expect(schemas.item.calculatedProductionCost).toBeUndefined();
+    expect(schemas.item.quantity).toBe('number');
+  });
+
   it('rejects unknown top-level DTO fields', () =>
     request(httpServer)
       .post('/api/price-modifiers')
@@ -137,6 +149,27 @@ describe('Price modifiers validation (e2e)', () => {
       .post('/api/price-modifiers')
       .send(createPayload(conditions))
       .expect(400),
+  );
+
+  it.each([
+    [ConditionSource.ORDER, 'totalPrice'],
+    [ConditionSource.ITEM, 'calculatedCustomerPrice'],
+    [ConditionSource.ITEM, 'calculatedProductionCost'],
+  ])('rejects cyclic condition path %s.%s', (source, path) =>
+    request(httpServer)
+      .post('/api/price-modifiers')
+      .send(createPayload({ ...leafCondition, source, path }))
+      .expect(400),
+  );
+
+  it.each([
+    [ConditionSource.ORDER, 'characteristics.material.name', 'oak'],
+    [ConditionSource.ITEM, 'quantity', 2],
+  ])('keeps accepting ordinary path %s.%s', (source, path, value) =>
+    request(httpServer)
+      .post('/api/price-modifiers')
+      .send(createPayload({ ...leafCondition, source, path, value }))
+      .expect(201),
   );
 
   it('rejects a condition tree deeper than the configured maximum', () => {

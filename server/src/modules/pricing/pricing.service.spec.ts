@@ -11,10 +11,10 @@ import { CustomerPricingMethod } from '../products/entities/product-template.ent
 import { PricingService } from './pricing.service';
 
 const alwaysApplicableCondition = {
-  source: ConditionSource.ORDER,
-  path: 'status',
-  operator: ConditionOperator.EQ,
-  value: 'new',
+  source: ConditionSource.ITEM,
+  path: 'quantity',
+  operator: ConditionOperator.GTE,
+  value: 1,
 };
 
 const createModifier = (
@@ -235,5 +235,27 @@ describe('PricingService', () => {
         order,
       ),
     ).resolves.toEqual([135, 110]);
+  });
+
+  it('does not apply a legacy modifier that uses a calculated path', async () => {
+    const modifier = createModifier(
+      '00000000-0000-4000-8000-000000000001',
+      10,
+      ModifierType.PERCENTAGE,
+      50,
+    );
+    modifier.conditions = {
+      source: ConditionSource.ITEM,
+      path: 'calculatedCustomerPrice',
+      operator: ConditionOperator.GT,
+      value: 0,
+    };
+    const { service } = createService([modifier]);
+    const item = createItem();
+    item.calculatedCustomerPrice = 100;
+
+    await expect(service.calculateCustomerPrice(item, order)).resolves.toBe(
+      100,
+    );
   });
 });

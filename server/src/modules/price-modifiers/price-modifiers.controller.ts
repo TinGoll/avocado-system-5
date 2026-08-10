@@ -10,6 +10,7 @@ import {
 import { PriceModifiersService } from './price-modifiers.service';
 import { CreatePriceModifierDto } from './dto/create-price-modifier.dto';
 import { UpdatePriceModifierDto } from './dto/update-price-modifier.dto';
+import { PRICE_MODIFIER_CONDITION_PATH_SCHEMAS } from './condition-paths/price-modifier-condition-paths';
 
 @Controller('price-modifiers')
 export class PriceModifiersController {
@@ -23,6 +24,11 @@ export class PriceModifiersController {
   @Get()
   findAll() {
     return this.priceModifiersService.findAll();
+  }
+
+  @Get('condition-paths')
+  getConditionPaths() {
+    return PRICE_MODIFIER_CONDITION_PATH_SCHEMAS;
   }
 
   @Get(':id')

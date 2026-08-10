@@ -9,6 +9,7 @@ import {
   ConditionOperator,
   ConditionSource,
 } from '../entities/price-modifier.entity';
+import { isAllowedPriceModifierConditionPath } from '../condition-paths/price-modifier-condition-paths';
 
 export const PRICE_MODIFIER_CONDITION_MAX_DEPTH = 10;
 
@@ -37,15 +38,25 @@ const isValidLeafValue = (value: unknown): boolean =>
   typeof value === 'string' ||
   (typeof value === 'number' && Number.isFinite(value));
 
-const isValidLeaf = (node: ConditionNode): boolean =>
-  hasExactlyKeys(node, leafKeys) &&
-  typeof node.source === 'string' &&
-  conditionSources.has(node.source) &&
-  typeof node.path === 'string' &&
-  node.path.trim().length > 0 &&
-  typeof node.operator === 'string' &&
-  conditionOperators.has(node.operator) &&
-  isValidLeafValue(node.value);
+const isValidLeaf = (node: ConditionNode): boolean => {
+  if (
+    !hasExactlyKeys(node, leafKeys) ||
+    typeof node.source !== 'string' ||
+    !conditionSources.has(node.source) ||
+    typeof node.path !== 'string' ||
+    node.path.trim().length === 0 ||
+    typeof node.operator !== 'string' ||
+    !conditionOperators.has(node.operator) ||
+    !isValidLeafValue(node.value)
+  ) {
+    return false;
+  }
+
+  return isAllowedPriceModifierConditionPath(
+    node.source as ConditionSource,
+    node.path,
+  );
+};
 
 const isValidConditionTree = (
   value: unknown,

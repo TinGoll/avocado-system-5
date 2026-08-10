@@ -16,6 +16,7 @@ import {
 import { CalculationMethod } from '../production-operations/entities/production-operation.entity';
 import { get } from 'src/shared/utils/object-helpers';
 import { PriceModifierCondition } from '../price-modifiers/types/price-modifier-condition.type';
+import { isAllowedPriceModifierConditionPath } from '../price-modifiers/condition-paths/price-modifier-condition-paths';
 
 @Injectable()
 export class PricingService {
@@ -214,6 +215,10 @@ export class PricingService {
     order: Order,
   ): boolean {
     const { source, path, operator, value } = leaf;
+
+    if (!isAllowedPriceModifierConditionPath(source, path)) {
+      return false;
+    }
 
     let dataSource: any;
 
