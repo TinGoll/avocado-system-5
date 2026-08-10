@@ -9,7 +9,11 @@ import {
   ConditionOperator,
   ConditionSource,
 } from '../entities/price-modifier.entity';
-import { isAllowedPriceModifierConditionPath } from '../condition-paths/price-modifier-condition-paths';
+import {
+  getPriceModifierConditionPathField,
+  isConditionOperatorAllowedForField,
+  isConditionValueValidForField,
+} from '../condition-paths/price-modifier-condition-paths';
 
 export const PRICE_MODIFIER_CONDITION_MAX_DEPTH = 10;
 
@@ -34,10 +38,6 @@ const hasExactlyKeys = (
   );
 };
 
-const isValidLeafValue = (value: unknown): boolean =>
-  typeof value === 'string' ||
-  (typeof value === 'number' && Number.isFinite(value));
-
 const isValidLeaf = (node: ConditionNode): boolean => {
   if (
     !hasExactlyKeys(node, leafKeys) ||
@@ -46,15 +46,22 @@ const isValidLeaf = (node: ConditionNode): boolean => {
     typeof node.path !== 'string' ||
     node.path.trim().length === 0 ||
     typeof node.operator !== 'string' ||
-    !conditionOperators.has(node.operator) ||
-    !isValidLeafValue(node.value)
+    !conditionOperators.has(node.operator)
   ) {
     return false;
   }
 
-  return isAllowedPriceModifierConditionPath(
+  const field = getPriceModifierConditionPathField(
     node.source as ConditionSource,
     node.path,
+  );
+  return (
+    field !== undefined &&
+    isConditionOperatorAllowedForField(
+      field,
+      node.operator as ConditionOperator,
+    ) &&
+    isConditionValueValidForField(field, node.value)
   );
 };
 

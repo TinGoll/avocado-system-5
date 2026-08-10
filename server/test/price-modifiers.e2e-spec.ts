@@ -129,7 +129,10 @@ describe('Price modifiers validation (e2e)', () => {
     expect(schemas.order.totalPrice).toBeUndefined();
     expect(schemas.item.calculatedCustomerPrice).toBeUndefined();
     expect(schemas.item.calculatedProductionCost).toBeUndefined();
-    expect(schemas.item.quantity).toBe('number');
+    expect(schemas.item.quantity).toEqual({
+      label: 'Количество',
+      type: 'number',
+    });
   });
 
   it('rejects unknown top-level DTO fields', () =>
@@ -152,9 +155,51 @@ describe('Price modifiers validation (e2e)', () => {
   );
 
   it.each([
+    ['a numeric field with a string value', { ...leafCondition, value: '2' }],
+    [
+      'a string field with a number value',
+      {
+        ...leafCondition,
+        source: ConditionSource.ORDER,
+        path: 'characteristics.material.name',
+        operator: ConditionOperator.EQ,
+        value: 2,
+      },
+    ],
+    [
+      'an enum field with an unknown option',
+      {
+        ...leafCondition,
+        source: ConditionSource.ORDER_GROUP,
+        path: 'status',
+        operator: ConditionOperator.EQ,
+        value: 'unknown',
+      },
+    ],
+    [
+      'a string field with an ordering operator',
+      {
+        ...leafCondition,
+        source: ConditionSource.ORDER,
+        path: 'characteristics.material.name',
+        operator: ConditionOperator.GT,
+        value: 'oak',
+      },
+    ],
+  ])('rejects %s', (_caseName, conditions) =>
+    request(httpServer)
+      .post('/api/price-modifiers')
+      .send(createPayload(conditions))
+      .expect(400),
+  );
+
+  it.each([
     [ConditionSource.ORDER, 'totalPrice'],
     [ConditionSource.ITEM, 'calculatedCustomerPrice'],
     [ConditionSource.ITEM, 'calculatedProductionCost'],
+    [ConditionSource.ORDER_GROUP, 'orderCount'],
+    [ConditionSource.ITEM, 'quantity.value'],
+    [ConditionSource.ORDER, 'characteristics.material'],
   ])('rejects cyclic condition path %s.%s', (source, path) =>
     request(httpServer)
       .post('/api/price-modifiers')
@@ -163,12 +208,17 @@ describe('Price modifiers validation (e2e)', () => {
   );
 
   it.each([
-    [ConditionSource.ORDER, 'characteristics.material.name', 'oak'],
-    [ConditionSource.ITEM, 'quantity', 2],
-  ])('keeps accepting ordinary path %s.%s', (source, path, value) =>
+    [
+      ConditionSource.ORDER,
+      'characteristics.material.name',
+      ConditionOperator.EQ,
+      'oak',
+    ],
+    [ConditionSource.ITEM, 'quantity', ConditionOperator.GTE, 2],
+  ])('keeps accepting ordinary path %s.%s', (source, path, operator, value) =>
     request(httpServer)
       .post('/api/price-modifiers')
-      .send(createPayload({ ...leafCondition, source, path, value }))
+      .send(createPayload({ ...leafCondition, source, path, operator, value }))
       .expect(201),
   );
 

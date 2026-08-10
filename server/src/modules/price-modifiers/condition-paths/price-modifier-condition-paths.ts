@@ -1,12 +1,29 @@
-import { ConditionSource } from '../entities/price-modifier.entity';
+import { CustomerLevel } from '../../customers/entities/customer.entity';
+import { OrderStatus } from '../../order-groups/entities/order-group.entity';
+import { CustomerPricingMethod } from '../../products/entities/product-template.entity';
+import {
+  ConditionOperator,
+  ConditionSource,
+} from '../entities/price-modifier.entity';
 
 export type ConditionPathField =
-  | 'string'
-  | 'number'
-  | { _type: 'enum'; options: readonly string[] };
+  | { readonly label: string; readonly type: 'string' }
+  | { readonly label: string; readonly type: 'number' }
+  | {
+      readonly label: string;
+      readonly type: 'enum';
+      readonly options: readonly string[];
+    };
+
+export type ConditionPathGroup = {
+  readonly label: string;
+  readonly children: ConditionPathSchema;
+};
+
+export type ConditionPathNode = ConditionPathField | ConditionPathGroup;
 
 export type ConditionPathSchema = {
-  readonly [key: string]: ConditionPathField | ConditionPathSchema;
+  readonly [key: string]: ConditionPathNode;
 };
 
 export type PriceModifierConditionPathSchemas = Record<
@@ -14,114 +31,140 @@ export type PriceModifierConditionPathSchemas = Record<
   ConditionPathSchema
 >;
 
-// This response contract is also the allowlist used by DTO validation. Fields
-// produced by pricing are intentionally absent, so a modifier cannot depend on
-// the result of the calculation it participates in.
+const field = (label: string, type: 'string' | 'number'): ConditionPathField =>
+  type === 'string' ? { label, type } : { label, type };
+
+const enumField = <T extends string>(
+  label: string,
+  options: readonly T[],
+): ConditionPathField => ({ label, type: 'enum', options });
+
+const group = (
+  label: string,
+  children: ConditionPathSchema,
+): ConditionPathGroup => ({ label, children });
+
+// This response contract is the single source for the client path selector,
+// labels and editors, as well as the server-side allowlist and validation.
+// Pricing result fields are deliberately absent to prevent cyclic modifiers.
 export const PRICE_MODIFIER_CONDITION_PATH_SCHEMAS = {
   [ConditionSource.ORDER_GROUP]: {
-    id: 'number',
-    orderNumber: 'string',
-    customer: {
-      name: 'string',
-      level: {
-        _type: 'enum',
-        options: ['bronze', 'silver', 'gold'],
-      },
-    },
-    status: {
-      _type: 'enum',
-      options: ['draft', 'in_production', 'completed', 'cancelled'],
-    },
+    id: field('ID заказа', 'number'),
+    orderNumber: field('Номер заказа', 'string'),
+    customer: group('Заказчик', {
+      name: field('Имя заказчика', 'string'),
+      level: enumField('Уровень лояльности', Object.values(CustomerLevel)),
+    }),
+    status: enumField('Статус заказа', Object.values(OrderStatus)),
   },
   [ConditionSource.ORDER]: {
-    characteristics: {
-      color: {
-        name: 'string',
-        type: {
-          _type: 'enum',
-          options: ['stain', 'enamel'],
-        },
-      },
-      material: {
-        name: 'string',
-        type: {
-          _type: 'enum',
-          options: ['softwood', 'hardwood', 'mdf'],
-        },
-      },
-      patina: { name: 'string' },
-      panel: {
-        name: 'string',
-        characteristics: { style: 'string' },
-      },
-      varnish: { name: 'string' },
-      profile: {
-        name: 'string',
-        characteristics: {
-          width: 'number',
-          grooveDepth: 'number',
-          grooveWidth: 'number',
-          style: 'string',
-        },
-      },
-    },
+    characteristics: group('Параметры документа', {
+      color: group('Краситель', {
+        name: field('Название', 'string'),
+        type: enumField('Тип', ['stain', 'enamel']),
+      }),
+      material: group('Материал', {
+        name: field('Название', 'string'),
+        type: enumField('Тип', ['softwood', 'hardwood', 'mdf']),
+      }),
+      patina: group('Патина', { name: field('Название', 'string') }),
+      panel: group('Филёнка', {
+        name: field('Название', 'string'),
+        characteristics: group('Характеристики', {
+          style: field('Стиль', 'string'),
+        }),
+      }),
+      varnish: group('Лак', { name: field('Название', 'string') }),
+      profile: group('Фасадный профиль', {
+        name: field('Название', 'string'),
+        characteristics: group('Характеристики', {
+          width: field('Ширина профиля', 'number'),
+          grooveDepth: field('Глубина паза', 'number'),
+          grooveWidth: field('Ширина паза', 'number'),
+          style: field('Стиль', 'string'),
+        }),
+      }),
+    }),
   },
   [ConditionSource.ITEM]: {
-    template: {
-      name: 'string',
-      defaultCharacteristics: {
-        width: 'number',
-        height: 'number',
-        thickness: 'number',
-      },
-      customerPricingMethod: {
-        _type: 'enum',
-        options: ['per_item', 'linear_meter', 'area', 'volume'],
-      },
-      baseCustomerPrice: 'number',
-      group: 'string',
-    },
-    quantity: 'number',
-    snapshot: {
-      name: 'string',
-      baseCustomerPrice: 'number',
-      customerPricingMethod: {
-        _type: 'enum',
-        options: ['per_item', 'linear_meter', 'area', 'volume'],
-      },
-      defaultCharacteristics: {
-        width: 'number',
-        height: 'number',
-        thickness: 'number',
-      },
-    },
-    characteristics: {
-      width: 'number',
-      height: 'number',
-      thickness: 'number',
-    },
+    template: group('Шаблон продукта', {
+      name: field('Название', 'string'),
+      defaultCharacteristics: group('Характеристики по умолчанию', {
+        width: field('Ширина', 'number'),
+        height: field('Высота', 'number'),
+        thickness: field('Толщина', 'number'),
+      }),
+      customerPricingMethod: enumField(
+        'Метод расчёта для заказчика',
+        Object.values(CustomerPricingMethod),
+      ),
+      baseCustomerPrice: field('Базовая стоимость', 'number'),
+      group: field('Группа', 'string'),
+    }),
+    quantity: field('Количество', 'number'),
+    snapshot: group('Снимок', {
+      name: field('Название', 'string'),
+      baseCustomerPrice: field('Базовая цена для заказчика', 'number'),
+      customerPricingMethod: enumField(
+        'Метод расчёта для заказчика',
+        Object.values(CustomerPricingMethod),
+      ),
+      defaultCharacteristics: group('Характеристики по умолчанию', {
+        width: field('Ширина', 'number'),
+        height: field('Высота', 'number'),
+        thickness: field('Толщина', 'number'),
+      }),
+    }),
+    characteristics: group('Характеристики', {
+      width: field('Ширина', 'number'),
+      height: field('Высота', 'number'),
+      thickness: field('Толщина', 'number'),
+    }),
   },
 } as const satisfies PriceModifierConditionPathSchemas;
 
-const isConditionPathField = (
-  value: ConditionPathField | ConditionPathSchema,
-): value is ConditionPathField =>
-  typeof value === 'string' || Object.hasOwn(value, '_type');
+export const isConditionPathField = (
+  node: ConditionPathNode,
+): node is ConditionPathField => Object.hasOwn(node, 'type');
+
+export const getPriceModifierConditionPathField = (
+  source: ConditionSource,
+  path: string,
+): ConditionPathField | undefined => {
+  const parts = path.split('.');
+  let schema: ConditionPathSchema =
+    PRICE_MODIFIER_CONDITION_PATH_SCHEMAS[source];
+
+  for (const [index, part] of parts.entries()) {
+    const node = schema[part];
+    if (!node) return undefined;
+    if (index === parts.length - 1) {
+      return isConditionPathField(node) ? node : undefined;
+    }
+    if (isConditionPathField(node)) return undefined;
+    schema = node.children;
+  }
+
+  return undefined;
+};
 
 export const isAllowedPriceModifierConditionPath = (
   source: ConditionSource,
   path: string,
+): boolean => getPriceModifierConditionPathField(source, path) !== undefined;
+
+export const isConditionOperatorAllowedForField = (
+  field: ConditionPathField,
+  operator: ConditionOperator,
+): boolean => field.type === 'number' || operator === ConditionOperator.EQ;
+
+export const isConditionValueValidForField = (
+  field: ConditionPathField,
+  value: unknown,
 ): boolean => {
-  const parts = path.split('.');
-  let current: ConditionPathField | ConditionPathSchema =
-    PRICE_MODIFIER_CONDITION_PATH_SCHEMAS[source];
-
-  for (const part of parts) {
-    if (isConditionPathField(current) || !Object.hasOwn(current, part)) {
-      return false;
-    }
-    current = current[part];
+  if (field.type === 'number') {
+    return typeof value === 'number' && Number.isFinite(value);
   }
-
-  return isConditionPathField(current);
+  if (typeof value !== 'string') return false;
+  return field.type === 'string' || field.options.includes(value);
 };

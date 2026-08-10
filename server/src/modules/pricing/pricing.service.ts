@@ -16,7 +16,11 @@ import {
 import { CalculationMethod } from '../production-operations/entities/production-operation.entity';
 import { get } from 'src/shared/utils/object-helpers';
 import { PriceModifierCondition } from '../price-modifiers/types/price-modifier-condition.type';
-import { isAllowedPriceModifierConditionPath } from '../price-modifiers/condition-paths/price-modifier-condition-paths';
+import {
+  getPriceModifierConditionPathField,
+  isConditionOperatorAllowedForField,
+  isConditionValueValidForField,
+} from '../price-modifiers/condition-paths/price-modifier-condition-paths';
 
 @Injectable()
 export class PricingService {
@@ -216,7 +220,12 @@ export class PricingService {
   ): boolean {
     const { source, path, operator, value } = leaf;
 
-    if (!isAllowedPriceModifierConditionPath(source, path)) {
+    const field = getPriceModifierConditionPathField(source, path);
+    if (
+      !field ||
+      !isConditionOperatorAllowedForField(field, operator) ||
+      !isConditionValueValidForField(field, value)
+    ) {
       return false;
     }
 
@@ -246,15 +255,9 @@ export class PricingService {
       return false;
     }
 
-    const isComparableNumber =
-      typeof actualValue === 'number' && typeof value === 'number';
-    const isComparableString =
-      typeof actualValue === 'string' && typeof value === 'string';
-
     if (
-      operator !== ConditionOperator.EQ &&
-      !isComparableNumber &&
-      !isComparableString
+      (field.type === 'number' && typeof actualValue !== 'number') ||
+      (field.type !== 'number' && typeof actualValue !== 'string')
     ) {
       return false;
     }
@@ -264,7 +267,7 @@ export class PricingService {
         if (typeof actualValue === 'string' && typeof value === 'string') {
           return actualValue.toLowerCase() === value.toLowerCase();
         }
-        return actualValue == value;
+        return actualValue === value;
 
       case ConditionOperator.GT:
         return actualValue > (value as number | string);
