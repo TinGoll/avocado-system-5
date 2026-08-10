@@ -45,6 +45,16 @@ export const PriceModifierForm: React.FC = () => {
           value={modifier.value}
           onChange={(value) => updateField('value', value)}
         />
+
+        <label>Приоритет применения</label>
+        <InputNumber
+          style={{ width: '100%' }}
+          precision={0}
+          step={1}
+          placeholder="Меньшее значение применяется раньше"
+          value={modifier.priority}
+          onChange={(value) => updateField('priority', value)}
+        />
       </Space>
 
       <Divider orientation="left">Условия применения</Divider>

@@ -52,6 +52,7 @@ const defaultInitialState: PriceModifier = {
   name: '',
   type: 'percentage',
   value: 0,
+  priority: 0,
   conditions: {
     source: 'order_group',
     path: '',

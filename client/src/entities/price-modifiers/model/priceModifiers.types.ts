@@ -61,6 +61,7 @@ export type PriceModifier = {
   name: string;
   type: ModifierType;
   value: number;
+  priority: number;
   conditions: PriceModifierCondition;
   productTemplates: ProductTemplate[];
 
