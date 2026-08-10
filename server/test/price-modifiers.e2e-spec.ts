@@ -41,6 +41,7 @@ const createPayload = (conditions: unknown = validGroup) => ({
   name: 'Large order discount',
   type: 'percentage',
   value: '12.5',
+  priority: '10',
   conditions,
 });
 
@@ -91,10 +92,15 @@ describe('Price modifiers validation (e2e)', () => {
 
     const body = response.body as Record<string, unknown>;
     expect(body.value).toBe(12.5);
+    expect(body.priority).toBe(10);
     expect(body.conditions).toEqual(validGroup);
 
     expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ value: 12.5, conditions: validGroup }),
+      expect.objectContaining({
+        value: 12.5,
+        priority: 10,
+        conditions: validGroup,
+      }),
     );
   });
 
@@ -105,12 +111,12 @@ describe('Price modifiers validation (e2e)', () => {
 
     await request(httpServer)
       .patch('/api/price-modifiers/existing-modifier')
-      .send({ value: '7.25', conditions })
+      .send({ value: '7.25', priority: '20', conditions })
       .expect(200);
 
     expect(update).toHaveBeenCalledWith(
       'existing-modifier',
-      expect.objectContaining({ value: 7.25, conditions }),
+      expect.objectContaining({ value: 7.25, priority: 20, conditions }),
     );
   });
 

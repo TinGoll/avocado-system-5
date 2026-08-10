@@ -1,6 +1,7 @@
 import {
   IsArray,
   IsEnum,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -21,6 +22,9 @@ export class CreatePriceModifierDto {
 
   @IsNumber()
   value: number;
+
+  @IsInt()
+  priority: number;
 
   @IsPriceModifierConditionTree()
   conditions: PriceModifierCondition;
