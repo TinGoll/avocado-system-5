@@ -8,23 +8,88 @@ import {
   Space,
   Spin,
 } from 'antd';
+import { useRef, useState, type FC } from 'react';
 
-import { MODIFER_TYPE } from '@entities/price-modifiers';
+import {
+  MODIFER_TYPE,
+  toCreatePriceModifierDto,
+  toUpdatePriceModifierDto,
+  usePriceModifiers,
+  type PriceModifier,
+} from '@entities/price-modifiers';
 
 import { useConditionPathSchemas } from '../api/useConditionPathSchemas';
 import { usePriceModifierStore } from '../model/priceModifierStore';
 
 import { ConditionBuilder } from './ConditionBuilder';
 
-export const PriceModifierForm: React.FC = () => {
+type Props = {
+  onSaved?: (modifier: PriceModifier) => void;
+};
+
+const getErrorMessage = (error: unknown) => {
+  if (typeof error !== 'object' || error === null) {
+    return 'Не удалось сохранить модификатор';
+  }
+
+  const response = 'response' in error ? error.response : undefined;
+  if (typeof response === 'object' && response !== null && 'data' in response) {
+    const data = response.data;
+    if (typeof data === 'object' && data !== null && 'error' in data) {
+      const apiError = data.error;
+      if (
+        typeof apiError === 'object' &&
+        apiError !== null &&
+        'message' in apiError &&
+        typeof apiError.message === 'string'
+      ) {
+        return apiError.message;
+      }
+    }
+  }
+
+  return error instanceof Error
+    ? error.message
+    : 'Не удалось сохранить модификатор';
+};
+
+export const PriceModifierForm: FC<Props> = ({ onSaved }) => {
   const modifier = usePriceModifierStore((state) => state.modifier);
   const { updateField } = usePriceModifierStore((state) => state.actions);
-  const { data: schemas, error, isLoading } = useConditionPathSchemas();
+  const { create, update, isLoading: isModifiersLoading } = usePriceModifiers();
+  const {
+    data: schemas,
+    error: schemasError,
+    isLoading: isSchemasLoading,
+  } = useConditionPathSchemas();
+  const [saveError, setSaveError] = useState<string>();
+  const [isSaved, setIsSaved] = useState(false);
+  const submitLock = useRef(false);
+  const isSaving = create.isMutating || update.isMutating;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (submitLock.current || isSaving) return;
+
+    submitLock.current = true;
+    setSaveError(undefined);
+    setIsSaved(false);
     const finalState = usePriceModifierStore.getState().modifier;
-    // eslint-disable-next-line no-console
-    console.log('Price Modifier:', finalState);
+
+    try {
+      const savedModifier = finalState.id
+        ? await update.trigger(
+            finalState.id,
+            toUpdatePriceModifierDto(finalState),
+          )
+        : await create.trigger(toCreatePriceModifierDto(finalState));
+
+      setIsSaved(true);
+      onSaved?.(savedModifier);
+    } catch (error) {
+      setSaveError(getErrorMessage(error));
+    } finally {
+      submitLock.current = false;
+    }
   };
 
   return (
@@ -70,8 +135,10 @@ export const PriceModifierForm: React.FC = () => {
 
       <Divider orientation="left">Условия применения</Divider>
 
-      {isLoading && <Spin />}
-      {error && (
+      {(isSchemasLoading || isModifiersLoading) && (
+        <Spin aria-label="Загрузка модификаторов" />
+      )}
+      {schemasError && (
         <Alert
           type="error"
           message="Не удалось загрузить разрешённые поля условий"
@@ -79,11 +146,21 @@ export const PriceModifierForm: React.FC = () => {
       )}
       {schemas && <ConditionBuilder name={['conditions']} schemas={schemas} />}
 
+      {saveError && <Alert type="error" message={saveError} showIcon />}
+      {isSaved && (
+        <Alert type="success" message="Модификатор сохранён" showIcon />
+      )}
+
       <Divider />
 
       <Space>
-        <Button type="primary" onClick={handleSubmit}>
-          💾 Сохранить
+        <Button
+          type="primary"
+          onClick={handleSubmit}
+          loading={isSaving}
+          disabled={isSaving}
+        >
+          Сохранить
         </Button>
       </Space>
     </div>

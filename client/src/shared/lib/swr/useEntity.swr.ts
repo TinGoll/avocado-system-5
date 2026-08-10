@@ -61,7 +61,7 @@ export function useEntity<
       revalidateExtraKeys();
       return result;
     } catch (err) {
-      if (rollback) await mutate(rollback, { revalidate: false });
+      await mutate(() => rollback, { revalidate: false });
       throw err;
     }
   };
@@ -95,17 +95,24 @@ export function useEntity<
     const tempItem = { ...(newItem as object), id: tempId } as R;
     const rollback = data;
 
-    const promise = createTrigger({ data: newItem, path }).then((savedItem) => {
-      mutate(
-        (current) => ({
-          ...current,
-          items: current?.items?.map((i) => (i.id === tempId ? savedItem : i)),
-        }),
-        { revalidate: false },
-      );
-      options?.onSuccess?.(savedItem);
-      return savedItem;
-    });
+    const promise = createTrigger({ data: newItem, path })
+      .then(async (savedItem) => {
+        await mutate(
+          (current) => ({
+            ...current,
+            items: current?.items?.map((i) =>
+              i.id === tempId ? savedItem : i,
+            ),
+          }),
+          { revalidate: false },
+        );
+        options?.onSuccess?.(savedItem);
+        return savedItem;
+      })
+      .catch((error: Error) => {
+        options?.onError?.(error);
+        throw error;
+      });
 
     return await optimisticMutate(
       (current) => ({
@@ -145,12 +152,24 @@ export function useEntity<
   ) => {
     const rollback = data;
 
-    const promise = updateTrigger({ id, data: updates, path }).then(
-      (updatedItem) => {
+    const promise = updateTrigger({ id, data: updates, path })
+      .then(async (updatedItem) => {
+        await mutate(
+          (current) => ({
+            ...current,
+            items: current?.items?.map((item) =>
+              item.id === id ? updatedItem : item,
+            ),
+          }),
+          { revalidate: false },
+        );
         options?.onSuccess?.(updatedItem);
         return updatedItem;
-      },
-    );
+      })
+      .catch((error: Error) => {
+        options?.onError?.(error);
+        throw error;
+      });
 
     return await optimisticMutate(
       (current) => ({
@@ -190,10 +209,15 @@ export function useEntity<
   ) => {
     const rollback = data;
 
-    const promise = deleteTrigger({ id, path }).then((data) => {
-      options?.onSuccess?.();
-      return data;
-    });
+    const promise = deleteTrigger({ id, path })
+      .then((data) => {
+        options?.onSuccess?.();
+        return data;
+      })
+      .catch((error: Error) => {
+        options?.onError?.(error);
+        throw error;
+      });
 
     return await optimisticMutate(
       (current) => ({
