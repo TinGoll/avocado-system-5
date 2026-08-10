@@ -31,6 +31,10 @@ export class PricingService {
       relations: {
         productTemplates: true,
       },
+      order: {
+        priority: 'ASC',
+        id: 'ASC',
+      },
     });
 
     let finalPrice = totalBasePrice;
@@ -51,9 +55,13 @@ export class PricingService {
 
       if (this.checkConditions(modifier.conditions, item, order)) {
         const modifierValue = Number(modifier.value);
+
+        // Business rule: modifiers are applied sequentially by ascending
+        // priority, then UUID. A percentage changes the current price, while
+        // a fixed amount changes it directly. Negative values are discounts.
         switch (modifier.type) {
           case ModifierType.PERCENTAGE:
-            finalPrice += finalPrice * (modifier.value / 100);
+            finalPrice += finalPrice * (modifierValue / 100);
             break;
           case ModifierType.FIXED_AMOUNT:
             finalPrice += modifierValue;
