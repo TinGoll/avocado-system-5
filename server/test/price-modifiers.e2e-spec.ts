@@ -1,0 +1,154 @@
+import { INestApplication } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import { Server } from 'node:http';
+import request from 'supertest';
+import { AllExceptionsFilter } from '../src/common/filters/all-exceptions.filter';
+import { createAppValidationPipe } from '../src/common/pipes/app-validation.pipe';
+import { CreatePriceModifierDto } from '../src/modules/price-modifiers/dto/create-price-modifier.dto';
+import { UpdatePriceModifierDto } from '../src/modules/price-modifiers/dto/update-price-modifier.dto';
+import {
+  ConditionOperator,
+  ConditionSource,
+} from '../src/modules/price-modifiers/entities/price-modifier.entity';
+import { PriceModifiersController } from '../src/modules/price-modifiers/price-modifiers.controller';
+import { PriceModifiersService } from '../src/modules/price-modifiers/price-modifiers.service';
+import type { PriceModifierCondition } from '../src/modules/price-modifiers/types/price-modifier-condition.type';
+
+const leafCondition: PriceModifierCondition = {
+  source: ConditionSource.ITEM,
+  path: 'quantity',
+  operator: ConditionOperator.GTE,
+  value: 2,
+};
+
+const validGroup: PriceModifierCondition = {
+  AND: [
+    leafCondition,
+    {
+      OR: [
+        {
+          source: ConditionSource.ORDER,
+          path: 'status',
+          operator: ConditionOperator.EQ,
+          value: 'new',
+        },
+      ],
+    },
+  ],
+};
+
+const createPayload = (conditions: unknown = validGroup) => ({
+  name: 'Large order discount',
+  type: 'percentage',
+  value: '12.5',
+  conditions,
+});
+
+describe('Price modifiers validation (e2e)', () => {
+  let app: INestApplication;
+  let httpServer: Server;
+  const create = jest.fn((dto: CreatePriceModifierDto) => ({
+    id: 'created-modifier',
+    ...dto,
+  }));
+  const update = jest.fn((id: string, dto: UpdatePriceModifierDto) => ({
+    id,
+    ...dto,
+  }));
+
+  beforeAll(async () => {
+    const moduleRef = await Test.createTestingModule({
+      controllers: [PriceModifiersController],
+      providers: [
+        {
+          provide: PriceModifiersService,
+          useValue: { create, update },
+        },
+      ],
+    }).compile();
+
+    app = moduleRef.createNestApplication();
+    app.setGlobalPrefix('api');
+    app.useGlobalPipes(createAppValidationPipe());
+    app.useGlobalFilters(new AllExceptionsFilter());
+    await app.init();
+    httpServer = app.getHttpServer() as Server;
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('accepts a valid condition tree on POST and transforms DTO values', async () => {
+    const response = await request(httpServer)
+      .post('/api/price-modifiers')
+      .send(createPayload())
+      .expect(201);
+
+    const body = response.body as Record<string, unknown>;
+    expect(body.value).toBe(12.5);
+    expect(body.conditions).toEqual(validGroup);
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ value: 12.5, conditions: validGroup }),
+    );
+  });
+
+  it('accepts a valid partial modifier on PATCH', async () => {
+    const conditions: PriceModifierCondition = {
+      OR: [leafCondition],
+    };
+
+    await request(httpServer)
+      .patch('/api/price-modifiers/existing-modifier')
+      .send({ value: '7.25', conditions })
+      .expect(200);
+
+    expect(update).toHaveBeenCalledWith(
+      'existing-modifier',
+      expect.objectContaining({ value: 7.25, conditions }),
+    );
+  });
+
+  it('rejects unknown top-level DTO fields', () =>
+    request(httpServer)
+      .post('/api/price-modifiers')
+      .send({ ...createPayload(), unexpected: true })
+      .expect(400));
+
+  it.each([
+    ['an unknown source', { ...leafCondition, source: 'customer' }],
+    ['an unknown operator', { ...leafCondition, operator: 'contains' }],
+    ['an empty path', { ...leafCondition, path: '   ' }],
+    ['an empty group', { AND: [] }],
+    ['both AND and OR', { AND: [leafCondition], OR: [leafCondition] }],
+  ])('rejects a tree with %s', (_caseName, conditions) =>
+    request(httpServer)
+      .post('/api/price-modifiers')
+      .send(createPayload(conditions))
+      .expect(400),
+  );
+
+  it('rejects a condition tree deeper than the configured maximum', () => {
+    let conditions: unknown = leafCondition;
+
+    for (let depth = 0; depth < 10; depth += 1) {
+      conditions = { AND: [conditions] };
+    }
+
+    return request(httpServer)
+      .post('/api/price-modifiers')
+      .send(createPayload(conditions))
+      .expect(400);
+  });
+
+  it('returns 400 instead of 500 for a corrupted condition tree', () =>
+    request(httpServer)
+      .patch('/api/price-modifiers/existing-modifier')
+      .send({ conditions: { AND: [null] } })
+      .expect(400));
+});
