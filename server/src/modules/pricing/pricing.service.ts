@@ -25,7 +25,17 @@ export class PricingService {
   ) {}
 
   async calculateCustomerPrice(item: OrderItem, order: Order): Promise<number> {
-    const totalBasePrice = this.calculateTotalBasePrice(item);
+    const [price] = await this.calculateCustomerPrices([item], order);
+    return price;
+  }
+
+  async calculateCustomerPrices(
+    items: readonly OrderItem[],
+    order: Order,
+  ): Promise<number[]> {
+    if (items.length === 0) {
+      return [];
+    }
 
     const modifiers = await this.modifiersRepository.find({
       relations: {
@@ -37,6 +47,17 @@ export class PricingService {
       },
     });
 
+    return items.map((item) =>
+      this.calculateCustomerPriceWithModifiers(item, order, modifiers),
+    );
+  }
+
+  private calculateCustomerPriceWithModifiers(
+    item: OrderItem,
+    order: Order,
+    modifiers: readonly PriceModifier[],
+  ): number {
+    const totalBasePrice = this.calculateTotalBasePrice(item);
     let finalPrice = totalBasePrice;
 
     for (const modifier of modifiers) {
