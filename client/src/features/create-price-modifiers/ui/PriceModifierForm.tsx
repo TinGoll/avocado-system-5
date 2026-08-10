@@ -1,7 +1,17 @@
-import { Button, Divider, Input, InputNumber, Select, Space } from 'antd';
+import {
+  Alert,
+  Button,
+  Divider,
+  Input,
+  InputNumber,
+  Select,
+  Space,
+  Spin,
+} from 'antd';
 
 import { MODIFER_TYPE } from '@entities/price-modifiers';
 
+import { useConditionPathSchemas } from '../api/useConditionPathSchemas';
 import { usePriceModifierStore } from '../model/priceModifierStore';
 
 import { ConditionBuilder } from './ConditionBuilder';
@@ -9,6 +19,7 @@ import { ConditionBuilder } from './ConditionBuilder';
 export const PriceModifierForm: React.FC = () => {
   const modifier = usePriceModifierStore((state) => state.modifier);
   const { updateField } = usePriceModifierStore((state) => state.actions);
+  const { data: schemas, error, isLoading } = useConditionPathSchemas();
 
   const handleSubmit = () => {
     const finalState = usePriceModifierStore.getState().modifier;
@@ -59,7 +70,14 @@ export const PriceModifierForm: React.FC = () => {
 
       <Divider orientation="left">Условия применения</Divider>
 
-      <ConditionBuilder name={['conditions']} />
+      {isLoading && <Spin />}
+      {error && (
+        <Alert
+          type="error"
+          message="Не удалось загрузить разрешённые поля условий"
+        />
+      )}
+      {schemas && <ConditionBuilder name={['conditions']} schemas={schemas} />}
 
       <Divider />
 

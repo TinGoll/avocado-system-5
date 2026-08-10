@@ -22,7 +22,7 @@ import { getEnumName } from '../model/enumMapper';
 import {
   getFieldTypeFromPath,
   isSchemaLeaf,
-  schemas,
+  type PriceModifierConditionPathSchemas,
 } from '../model/pathSchema';
 import { usePriceModifierStore } from '../model/priceModifierStore';
 
@@ -39,11 +39,13 @@ const getIn = (obj: any, path: (string | number)[]) => {
 interface ConditionBuilderProps {
   name: (string | number)[];
   onRemove?: () => void;
+  schemas: PriceModifierConditionPathSchemas;
 }
 
 export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({
   name,
   onRemove,
+  schemas,
 }) => {
   const condition = usePriceModifierStore(
     (state) => getIn(state.modifier, name) as PriceModifierCondition,
@@ -67,7 +69,7 @@ export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({
     if (!('source' in condition) || !condition.path) return undefined;
     const schema = schemas[condition.source];
     return getFieldTypeFromPath(schema, condition.path);
-  }, [condition]);
+  }, [condition, schemas]);
 
   const isValueInputEnabled = useMemo(() => {
     if (!fieldType) {
@@ -204,6 +206,7 @@ export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({
                 key={index}
                 name={currentPath}
                 onRemove={handleRemove}
+                schemas={schemas}
               />
             );
           })}
@@ -240,6 +243,7 @@ export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({
           <PathSelector
             source={(condition as LeafCondition).source}
             value={(condition as LeafCondition).path}
+            schemas={schemas}
             onChange={(newPath) => {
               updateConditionField(name, 'path', newPath);
               updateConditionField(name, 'value', '');

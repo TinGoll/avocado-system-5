@@ -4,7 +4,10 @@ import { useMemo } from 'react';
 import type { CONDITION_SOURCE } from '@entities/price-modifiers';
 
 import { getLabelForKeyInContext } from '../model/fieldLabels';
-import { isSchemaLeaf, schemas } from '../model/pathSchema';
+import {
+  isSchemaLeaf,
+  type PriceModifierConditionPathSchemas,
+} from '../model/pathSchema';
 
 interface PathSelectorProps {
   source:
@@ -13,12 +16,14 @@ interface PathSelectorProps {
     | typeof CONDITION_SOURCE.ORDER_GROUP;
   value: string;
   onChange: (path: string) => void;
+  schemas: PriceModifierConditionPathSchemas;
 }
 
 export const PathSelector: React.FC<PathSelectorProps> = ({
   source,
   value,
   onChange,
+  schemas,
 }) => {
   const schema = schemas[source];
   const pathParts = useMemo(() => (value ? value.split('.') : []), [value]);

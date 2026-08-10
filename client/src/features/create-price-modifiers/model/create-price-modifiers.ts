@@ -16,8 +16,11 @@ type Paths<T, TPrefix extends string = ''> = {
       : Paths<T[K], `${TPrefix}${K & string}.`>;
 }[keyof T];
 
-export type OrderPath = Paths<Order>;
-export type ItemPath = Paths<OrderItem>;
+export type OrderPath = Exclude<Paths<Order>, 'totalPrice'>;
+export type ItemPath = Exclude<
+  Paths<OrderItem>,
+  'calculatedCustomerPrice' | 'calculatedProductionCost'
+>;
 
 export type LeafCondition =
   | {
