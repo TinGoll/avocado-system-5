@@ -12,6 +12,7 @@ const HomePage = lazy(() =>
 const OrderEditPage = lazy(() => import('@pages/order-edit'));
 const OrderPage = lazy(() => import('@pages/order'));
 const OrderPrintPage = lazy(() => import('@pages/order-print'));
+const PriceModifiersPage = lazy(() => import('@pages/price-modifiers'));
 
 const withPageLoadingFallback = (page: ReactNode): JSX.Element => (
   <Suspense
@@ -41,6 +42,10 @@ export const routesElements = (): JSX.Element => (
         <Route
           path={ROUTES.order}
           element={withPageLoadingFallback(<OrderPage />)}
+        />
+        <Route
+          path={ROUTES.priceModifiers}
+          element={withPageLoadingFallback(<PriceModifiersPage />)}
         />
         <Route path="*" element={<div>Страница не найдена</div>} />
       </Route>

@@ -19,6 +19,8 @@ interface PriceModifierState {
 
     setInitialState: (initialState: PriceModifier) => void;
 
+    reset: () => void;
+
     updateConditionField: (
       path: (string | number)[],
       field: string,
@@ -47,7 +49,7 @@ interface PriceModifierState {
   };
 }
 
-const defaultInitialState: PriceModifier = {
+const createDefaultInitialState = (): PriceModifier => ({
   id: '',
   name: '',
   type: 'percentage',
@@ -62,12 +64,15 @@ const defaultInitialState: PriceModifier = {
   productTemplates: [],
   createdAt: new Date(),
   updatedAt: new Date(),
-};
+});
 
 export const usePriceModifierStore = create<PriceModifierState>((set) => ({
-  modifier: defaultInitialState,
+  modifier: createDefaultInitialState(),
   actions: {
-    setInitialState: (initialState) => set({ modifier: initialState }),
+    setInitialState: (initialState) =>
+      set({ modifier: structuredClone(initialState) }),
+
+    reset: () => set({ modifier: createDefaultInitialState() }),
 
     updateField: (field, value) => {
       set(

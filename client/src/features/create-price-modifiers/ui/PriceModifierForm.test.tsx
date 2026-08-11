@@ -5,6 +5,7 @@ import {
   usePriceModifiers,
   type PriceModifier,
 } from '@entities/price-modifiers';
+import { useProductTemplates, type ProductTemplate } from '@entities/product';
 
 import { useConditionPathSchemas } from '../api/useConditionPathSchemas';
 import { usePriceModifierStore } from '../model/priceModifierStore';
@@ -21,12 +22,31 @@ vi.mock('@entities/price-modifiers', async (importOriginal) => {
   };
 });
 
+vi.mock('@entities/product', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@entities/product')>();
+
+  return {
+    ...actual,
+    useProductTemplates: vi.fn(),
+  };
+});
+
 vi.mock('../api/useConditionPathSchemas', () => ({
   useConditionPathSchemas: vi.fn(),
 }));
 
 const mockedUsePriceModifiers = vi.mocked(usePriceModifiers);
+const mockedUseProductTemplates = vi.mocked(useProductTemplates);
 const mockedUseConditionPathSchemas = vi.mocked(useConditionPathSchemas);
+
+const productTemplate = {
+  id: 'template-1',
+  name: 'Фасад',
+  defaultCharacteristics: {},
+  customerPricingMethod: 'per_item',
+  baseCustomerPrice: 100,
+  attributes: {},
+} satisfies ProductTemplate;
 
 const modifier: PriceModifier = {
   id: '',
@@ -96,7 +116,11 @@ describe('PriceModifierForm', () => {
       update: { trigger: vi.fn(), isMutating: false },
       remove: { trigger: vi.fn(), isMutating: false },
     } as unknown as ReturnType<typeof usePriceModifiers>);
-    usePriceModifierStore.getState().actions.setInitialState(modifier);
+    mockedUseProductTemplates.mockReturnValue({
+      data: { products: [productTemplate], map: {} },
+      error: undefined,
+      isLoading: false,
+    } as ReturnType<typeof useProductTemplates>);
     container = document.createElement('div');
     document.body.append(container);
     root = createRoot(container);
@@ -112,7 +136,11 @@ describe('PriceModifierForm', () => {
     createTrigger.mockResolvedValue(savedModifier);
     const onSaved = vi.fn();
 
-    act(() => root.render(<PriceModifierForm onSaved={onSaved} />));
+    act(() =>
+      root.render(
+        <PriceModifierForm initialModifier={modifier} onSaved={onSaved} />,
+      ),
+    );
     await act(async () => {
       findSaveButton(container).click();
       await Promise.resolve();
@@ -126,6 +154,116 @@ describe('PriceModifierForm', () => {
     );
     expect(onSaved).toHaveBeenCalledWith(savedModifier);
     expect(container.textContent).toContain('Модификатор сохранён');
+  });
+
+  it('creates a modifier for selected product templates', async () => {
+    createTrigger.mockResolvedValue({
+      ...savedModifier,
+      productTemplates: [productTemplate],
+    });
+
+    act(() => root.render(<PriceModifierForm initialModifier={modifier} />));
+    act(() => {
+      usePriceModifierStore
+        .getState()
+        .actions.updateField('productTemplates', [productTemplate]);
+    });
+    await act(async () => {
+      findSaveButton(container).click();
+      await Promise.resolve();
+    });
+
+    expect(createTrigger).toHaveBeenCalledWith(
+      expect.objectContaining({ productTemplateIds: ['template-1'] }),
+    );
+  });
+
+  it('stretches the product template selector to the form width', () => {
+    act(() => root.render(<PriceModifierForm initialModifier={modifier} />));
+
+    const selector = container
+      .querySelector('#price-modifier-product-templates')
+      ?.closest<HTMLElement>('.ant-select');
+
+    expect(selector?.style.width).toBe('100%');
+  });
+
+  it('initializes nested conditions for editing and sends the edited tree', async () => {
+    const nestedModifier: PriceModifier = {
+      ...savedModifier,
+      conditions: {
+        AND: [
+          modifier.conditions,
+          {
+            OR: [
+              {
+                source: 'item',
+                path: 'quantity',
+                operator: 'gte',
+                value: 2,
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const updateTrigger = vi.fn().mockResolvedValue(nestedModifier);
+    mockedUsePriceModifiers.mockReturnValue({
+      data: undefined,
+      error: undefined,
+      isLoading: false,
+      create: { trigger: createTrigger, isMutating: false },
+      update: { trigger: updateTrigger, isMutating: false },
+      remove: { trigger: vi.fn(), isMutating: false },
+    } as unknown as ReturnType<typeof usePriceModifiers>);
+
+    act(() =>
+      root.render(<PriceModifierForm initialModifier={nestedModifier} />),
+    );
+
+    expect(usePriceModifierStore.getState().modifier.conditions).toEqual(
+      nestedModifier.conditions,
+    );
+
+    act(() => {
+      usePriceModifierStore
+        .getState()
+        .actions.updateConditionField(
+          ['conditions', 'AND', 1, 'OR', 0],
+          'value',
+          5,
+        );
+    });
+    await act(async () => {
+      findSaveButton(container).click();
+      await Promise.resolve();
+    });
+
+    expect(updateTrigger).toHaveBeenCalledWith(
+      nestedModifier.id,
+      expect.objectContaining({
+        conditions: expect.objectContaining({ AND: expect.any(Array) }),
+      }),
+    );
+    expect(
+      (
+        updateTrigger.mock.calls[0][1].conditions as {
+          AND: [unknown, { OR: [{ value: number }] }];
+        }
+      ).AND[1].OR[0].value,
+    ).toBe(5);
+  });
+
+  it('resets the store when the form is closed', () => {
+    act(() =>
+      root.render(<PriceModifierForm initialModifier={savedModifier} />),
+    );
+    expect(usePriceModifierStore.getState().modifier.id).toBe(savedModifier.id);
+
+    act(() => root.unmount());
+
+    expect(usePriceModifierStore.getState().modifier.id).toBe('');
+    root = createRoot(container);
   });
 
   it('shows a server error', async () => {

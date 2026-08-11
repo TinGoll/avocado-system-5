@@ -1,8 +1,22 @@
-import { http, HttpResponse } from 'msw';
+import { http, HttpResponse, passthrough } from 'msw';
 
 import { mockData, type MockEntity } from './mock-data';
+import { priceModifierConditionPathSchemas } from './price-modifier-condition-paths';
 
-const resources = Object.keys(mockData);
+const resources = Object.keys(mockData).filter(
+  (resource) => resource !== 'price-modifiers',
+);
+
+export const isFrontendAssetRequest = (request: Request) => {
+  const pathname = new URL(request.url).pathname;
+
+  return (
+    pathname.startsWith('/src/') ||
+    pathname.startsWith('/@') ||
+    pathname.startsWith('/node_modules/') ||
+    pathname.startsWith('/assets/')
+  );
+};
 
 const getCollection = (resource: string) => mockData[resource] ?? [];
 
@@ -77,13 +91,17 @@ const createId = (resource: string) => {
 };
 
 const entityHandlers = resources.flatMap((resource) => [
-  http.get(`*/${resource}`, () =>
-    HttpResponse.json({
-      items: getCollectionResponse(resource),
-      meta: { total: getCollection(resource).length },
-    }),
+  http.get(`*/${resource}`, ({ request }) =>
+    isFrontendAssetRequest(request)
+      ? passthrough()
+      : HttpResponse.json({
+          items: getCollectionResponse(resource),
+          meta: { total: getCollection(resource).length },
+        }),
   ),
-  http.get(`*/${resource}/:id`, ({ params }) => {
+  http.get(`*/${resource}/:id`, ({ params, request }) => {
+    if (isFrontendAssetRequest(request)) return passthrough();
+
     const entity = findById(resource, String(params.id));
     return entity
       ? HttpResponse.json(entity)
@@ -128,6 +146,91 @@ const entityHandlers = resources.flatMap((resource) => [
     return new HttpResponse(null, { status: 204 });
   }),
 ]);
+
+const resolveProductTemplates = (templateIds: unknown) => {
+  if (!Array.isArray(templateIds)) return undefined;
+
+  const ids = templateIds.map(String);
+  const templates = getCollection('products').filter(({ id }) =>
+    ids.includes(String(id)),
+  );
+
+  return templates.length === ids.length ? templates : null;
+};
+
+const priceModifierHandlers = [
+  http.get('*/price-modifiers/condition-paths', () =>
+    HttpResponse.json(priceModifierConditionPathSchemas),
+  ),
+  http.get('*/price-modifiers', () =>
+    HttpResponse.json({
+      items: getCollection('price-modifiers'),
+      meta: { total: getCollection('price-modifiers').length },
+    }),
+  ),
+  http.get('*/price-modifiers/:id', ({ params, request }) => {
+    if (isFrontendAssetRequest(request)) return passthrough();
+
+    const modifier = findById('price-modifiers', String(params.id));
+    return modifier
+      ? HttpResponse.json(modifier)
+      : notFound('price-modifiers', String(params.id));
+  }),
+  http.post('*/price-modifiers', async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const productTemplates = resolveProductTemplates(body.productTemplateIds);
+    if (productTemplates === null) {
+      return badRequest('One or more product template IDs are invalid.');
+    }
+
+    const now = new Date().toISOString();
+    const modifierData = { ...body };
+    delete modifierData.productTemplateIds;
+    const modifier: MockEntity = {
+      ...modifierData,
+      id: createId('price-modifiers'),
+      productTemplates: productTemplates ?? [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    getCollection('price-modifiers').unshift(modifier);
+    return HttpResponse.json(modifier, { status: 201 });
+  }),
+  http.patch('*/price-modifiers/:id', async ({ params, request }) => {
+    const collection = getCollection('price-modifiers');
+    const index = collection.findIndex(
+      ({ id }) => String(id) === String(params.id),
+    );
+    if (index === -1) return notFound('price-modifiers', String(params.id));
+
+    const body = (await request.json()) as Record<string, unknown>;
+    const productTemplates = resolveProductTemplates(body.productTemplateIds);
+    if (productTemplates === null) {
+      return badRequest('One or more product template IDs are invalid.');
+    }
+
+    const modifierData = { ...body };
+    delete modifierData.productTemplateIds;
+    const modifier: MockEntity = {
+      ...collection[index],
+      ...modifierData,
+      ...(productTemplates === undefined ? {} : { productTemplates }),
+      updatedAt: new Date().toISOString(),
+    };
+    collection[index] = modifier;
+    return HttpResponse.json(modifier);
+  }),
+  http.delete('*/price-modifiers/:id', ({ params }) => {
+    const collection = getCollection('price-modifiers');
+    const index = collection.findIndex(
+      ({ id }) => String(id) === String(params.id),
+    );
+    if (index === -1) return notFound('price-modifiers', String(params.id));
+
+    const [modifier] = collection.splice(index, 1);
+    return HttpResponse.json(modifier);
+  }),
+];
 
 const orderHandlers = [
   http.post('*/orders/:id/copy', async ({ params, request }) => {
@@ -289,4 +392,8 @@ const orderHandlers = [
   }),
 ];
 
-export const handlers = [...orderHandlers, ...entityHandlers];
+export const handlers = [
+  ...priceModifierHandlers,
+  ...orderHandlers,
+  ...entityHandlers,
+];

@@ -8,7 +8,7 @@ import {
   Space,
   Spin,
 } from 'antd';
-import { useRef, useState, type FC } from 'react';
+import { useEffect, useRef, useState, type FC } from 'react';
 
 import {
   MODIFER_TYPE,
@@ -17,6 +17,7 @@ import {
   usePriceModifiers,
   type PriceModifier,
 } from '@entities/price-modifiers';
+import { useProductTemplates } from '@entities/product';
 
 import { useConditionPathSchemas } from '../api/useConditionPathSchemas';
 import { usePriceModifierStore } from '../model/priceModifierStore';
@@ -24,7 +25,9 @@ import { usePriceModifierStore } from '../model/priceModifierStore';
 import { ConditionBuilder } from './ConditionBuilder';
 
 type Props = {
+  initialModifier?: PriceModifier;
   onSaved?: (modifier: PriceModifier) => void;
+  onCancel?: () => void;
 };
 
 const getErrorMessage = (error: unknown) => {
@@ -53,10 +56,21 @@ const getErrorMessage = (error: unknown) => {
     : 'Не удалось сохранить модификатор';
 };
 
-export const PriceModifierForm: FC<Props> = ({ onSaved }) => {
+export const PriceModifierForm: FC<Props> = ({
+  initialModifier,
+  onSaved,
+  onCancel,
+}) => {
   const modifier = usePriceModifierStore((state) => state.modifier);
-  const { updateField } = usePriceModifierStore((state) => state.actions);
+  const { updateField, setInitialState, reset } = usePriceModifierStore(
+    (state) => state.actions,
+  );
   const { create, update, isLoading: isModifiersLoading } = usePriceModifiers();
+  const {
+    data: productTemplatesData,
+    error: productTemplatesError,
+    isLoading: isProductTemplatesLoading,
+  } = useProductTemplates();
   const {
     data: schemas,
     error: schemasError,
@@ -66,6 +80,16 @@ export const PriceModifierForm: FC<Props> = ({ onSaved }) => {
   const [isSaved, setIsSaved] = useState(false);
   const submitLock = useRef(false);
   const isSaving = create.isMutating || update.isMutating;
+
+  useEffect(() => {
+    if (initialModifier) {
+      setInitialState(initialModifier);
+    } else {
+      reset();
+    }
+
+    return reset;
+  }, [initialModifier, reset, setInitialState]);
 
   const handleSubmit = async () => {
     if (submitLock.current || isSaving) return;
@@ -146,6 +170,49 @@ export const PriceModifierForm: FC<Props> = ({ onSaved }) => {
       )}
       {schemas && <ConditionBuilder name={['conditions']} schemas={schemas} />}
 
+      <Divider orientation="left">Область действия</Divider>
+
+      <Space direction="vertical" style={{ width: '100%' }}>
+        <label htmlFor="price-modifier-product-templates">
+          Шаблоны продуктов
+        </label>
+        <Select
+          id="price-modifier-product-templates"
+          aria-label="Шаблоны продуктов"
+          mode="multiple"
+          allowClear
+          style={{ width: '100%' }}
+          loading={isProductTemplatesLoading}
+          placeholder="Не выбрано — модификатор действует глобально"
+          value={modifier.productTemplates.map(({ id }) => String(id))}
+          options={(productTemplatesData?.products ?? []).map((template) => ({
+            label: template.name,
+            value: String(template.id),
+          }))}
+          onChange={(templateIds: string[]) => {
+            const selectedIds = new Set(templateIds);
+            updateField(
+              'productTemplates',
+              (productTemplatesData?.products ?? []).filter((template) =>
+                selectedIds.has(String(template.id)),
+              ),
+            );
+          }}
+        />
+        <span>
+          {modifier.productTemplates.length === 0
+            ? 'Глобальный модификатор'
+            : `Выбрано шаблонов: ${modifier.productTemplates.length}`}
+        </span>
+        {productTemplatesError && (
+          <Alert
+            type="error"
+            message="Не удалось загрузить шаблоны продуктов"
+            showIcon
+          />
+        )}
+      </Space>
+
       {saveError && <Alert type="error" message={saveError} showIcon />}
       {isSaved && (
         <Alert type="success" message="Модификатор сохранён" showIcon />
@@ -162,6 +229,7 @@ export const PriceModifierForm: FC<Props> = ({ onSaved }) => {
         >
           Сохранить
         </Button>
+        {onCancel && <Button onClick={onCancel}>Отмена</Button>}
       </Space>
     </div>
   );

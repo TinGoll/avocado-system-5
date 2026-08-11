@@ -1,6 +1,7 @@
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  PercentageOutlined,
   ShoppingCartOutlined,
 } from '@ant-design/icons';
 import { css } from '@emotion/css';
@@ -44,12 +45,23 @@ export const Sidebar: FC = () => {
         className={styles.menu}
         inlineCollapsed={collapsed}
         mode="inline"
-        selectedKeys={pathname === '/' ? ['/'] : []}
+        selectedKeys={
+          pathname === '/price-modifiers'
+            ? ['/price-modifiers']
+            : pathname === '/'
+              ? ['/']
+              : []
+        }
         items={[
           {
             key: '/',
             icon: <ShoppingCartOutlined />,
             label: <Link to="/">Заказы</Link>,
+          },
+          {
+            key: '/price-modifiers',
+            icon: <PercentageOutlined />,
+            label: <Link to="/price-modifiers">Модификаторы цен</Link>,
           },
         ]}
       />
