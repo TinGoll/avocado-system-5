@@ -258,6 +258,27 @@ const priceModifierHandlers = [
 ];
 
 const orderHandlers = [
+  http.post('*/orders/:id/recalculate-prices', ({ params }) => {
+    const order = findById('orders', String(params.id));
+    if (!order) return notFound('orders', String(params.id));
+
+    const items = (order.items as MockEntity[]) ?? [];
+    order.items = items.map((item) => ({
+      ...item,
+      calculatedCustomerPrice: calculateOrderItemPrice(
+        item.snapshot as MockEntity,
+        item.characteristics as Record<string, unknown>,
+        Number(item.quantity),
+      ),
+    }));
+    order.totalPrice = (order.items as MockEntity[]).reduce(
+      (total, item) => total + Number(item.calculatedCustomerPrice),
+      0,
+    );
+    order.updatedAt = new Date().toISOString();
+
+    return HttpResponse.json(order);
+  }),
   http.post('*/orders/:id/copy', async ({ params, request }) => {
     const source = findById('orders', String(params.id));
     if (!source) return notFound('orders', String(params.id));

@@ -15,7 +15,11 @@ import { CreateMaterialButton } from '@features/create-material';
 import { CreatePatinaButton } from '@features/create-patina';
 import { CreateProductTemplatesButton } from '@features/create-production-templates';
 import { CreateVarnishButton } from '@features/create-varnish';
-import { AddOrderFieldsButton, EditOrderFields } from '@features/edit-order';
+import {
+  AddOrderFieldsButton,
+  EditOrderFields,
+  RecalculateOrderPricesButton,
+} from '@features/edit-order';
 import { OrderTabs, orderTabsStore, Toolbar } from '@features/order-tabs';
 import { useCurrentOrderGroupID } from '@shared/lib';
 
@@ -70,6 +74,9 @@ export const EditOrderWidget: FC = () => {
       />
       <Toolbar
         addFieldsAction={<AddOrderFieldsButton />}
+        recalculatePricesAction={
+          <RecalculateOrderPricesButton orderID={orderID} />
+        }
         isCopyingOrder={creationMode === 'copy'}
         onCopyOrder={
           currentOrder?.id === orderID

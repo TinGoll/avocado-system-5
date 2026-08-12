@@ -334,6 +334,26 @@ export class OrdersService {
     return order;
   }
 
+  async recalculatePrices(id: string): Promise<Order> {
+    const order = await this.ordersRepository.findOne({
+      where: { id },
+      relations: {
+        items: {
+          template: true,
+        },
+        orderGroup: true,
+      },
+      order: { items: { position: 'ASC' } },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order with ID "${id}" not found`);
+    }
+
+    await this.recalculatePricesForOrder(order);
+    return this.ordersRepository.save(order);
+  }
+
   async update(id: string, updateDto: UpdateOrderDto): Promise<Order> {
     const order = await this.ordersRepository.findOne({
       where: { id },

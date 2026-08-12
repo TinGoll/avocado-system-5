@@ -26,6 +26,7 @@ const styles = {
 
 type Props = {
   addFieldsAction?: ReactNode;
+  recalculatePricesAction?: ReactNode;
   isCopyingOrder?: boolean;
   onAddFields?: () => void;
   onDeleteOrder?: () => void;
@@ -34,6 +35,7 @@ type Props = {
 
 export const Toolbar: FC<Props> = ({
   addFieldsAction,
+  recalculatePricesAction,
   isCopyingOrder,
   onAddFields,
   onDeleteOrder,
@@ -43,6 +45,7 @@ export const Toolbar: FC<Props> = ({
     <div className={styles.toolbar}>
       <div className={styles.inner}>
         <div className={styles.actions}>
+          {recalculatePricesAction}
           {addFieldsAction ?? (
             <Button
               type="text"
