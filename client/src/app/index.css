@@ -52,6 +52,39 @@ button {
 button:hover {
   border-color: #646cff;
 }
+
+@media print {
+  body:has(.order-invoice-print-area) {
+    background: #ffffff;
+  }
+
+  body:has(.order-invoice-print-area) .app-header,
+  body:has(.order-invoice-print-area) .app-sidebar,
+  body:has(.order-invoice-print-area) .app-footer,
+  body:has(.order-invoice-print-area) .order-view-controls,
+  body:has(.order-invoice-print-area) .order-view-tabs .ant-tabs-nav {
+    display: none !important;
+  }
+
+  body:has(.order-invoice-print-area) .order-view-tabs .ant-tabs-content-holder {
+    padding-top: 0;
+  }
+
+  body:has(.order-invoice-print-area) .app-main,
+  body:has(.order-invoice-print-area) .app-content {
+    display: block;
+    overflow: visible;
+  }
+
+  body:has(.order-invoice-print-area) .order-view-page {
+    padding: 0;
+  }
+
+  body:has(.order-invoice-print-area) .order-invoice-print-area {
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
 /* @media (prefers-color-scheme: light) {
   :root {
     color: #213547;

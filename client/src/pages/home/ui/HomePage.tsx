@@ -33,7 +33,7 @@ const formatPrice = (price: number): string =>
 const formatDate = (date?: Date): string =>
   date ? dayjs(date).format(DATE_DEFAULT_FORMAT) : '—';
 
-const getOrderPath = (groupId: number): string => `/order/${groupId}/editing`;
+const getOrderPath = (groupId: number): string => `/order/${groupId}`;
 
 const documentColumns: TableColumnsType<Order> = [
   {
