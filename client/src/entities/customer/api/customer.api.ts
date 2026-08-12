@@ -21,15 +21,19 @@ const transformCustomers = ({ items, meta }: PaginatedResponse<Customer>) => {
 };
 
 export const useCustomers = () => {
-  const { data, isLoading, error } = useEntity<Customer, CustomersData>({
+  const entity = useEntity<Customer, CustomersData>({
     endpoint: Endpoints.CUSTOMERS,
     transform: transformCustomers,
   });
+  const { data, isLoading, error } = entity;
 
   return {
     customers: data?.customers ?? [],
     map: data?.map ?? {},
     isLoading,
     error,
+    create: entity.create,
+    update: entity.update,
+    remove: entity.remove,
   };
 };

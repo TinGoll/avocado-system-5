@@ -171,6 +171,7 @@ export const HomePage: FC = () => {
             style: { cursor: 'pointer' },
           })}
           scroll={{ x: 900 }}
+          size="small"
           expandable={{
             rowExpandable: (group) => (group.orders?.length ?? 0) > 0,
             expandedRowRender: (group) => (
