@@ -8,7 +8,8 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ProductTemplate } from './entities/product-template.entity';
 import { ProductionOperation } from '../production-operations/entities/production-operation.entity';
-import { In, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
+import { PriceModifier } from '../price-modifiers/entities/price-modifier.entity';
 
 @Injectable()
 export class ProductsService {
@@ -17,24 +18,52 @@ export class ProductsService {
     private readonly productsRepository: Repository<ProductTemplate>,
     @InjectRepository(ProductionOperation)
     private readonly operationsRepository: Repository<ProductionOperation>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async create(createDto: CreateProductDto): Promise<ProductTemplate> {
-    const { operationIds, ...productData } = createDto;
+    const { operationIds, priceModifierIds, ...productData } = createDto;
 
-    const template = this.productsRepository.create(productData);
+    return this.dataSource.transaction(async (manager) => {
+      const template = manager.create(ProductTemplate, productData);
 
-    if (operationIds && operationIds.length > 0) {
-      const operations = await this.operationsRepository.findBy({
-        id: In(operationIds),
-      });
-      if (operations.length !== operationIds.length) {
-        throw new BadRequestException('One or more operation IDs are invalid.');
+      if (operationIds && operationIds.length > 0) {
+        const operations = await manager.findBy(ProductionOperation, {
+          id: In(operationIds),
+        });
+        if (operations.length !== operationIds.length) {
+          throw new BadRequestException(
+            'One or more operation IDs are invalid.',
+          );
+        }
+        template.operations = operations;
       }
-      template.operations = operations;
-    }
 
-    return this.productsRepository.save(template);
+      let priceModifiers: PriceModifier[] = [];
+      if (priceModifierIds && priceModifierIds.length > 0) {
+        priceModifiers = await manager.findBy(PriceModifier, {
+          id: In(priceModifierIds),
+        });
+        if (priceModifiers.length !== priceModifierIds.length) {
+          throw new BadRequestException(
+            'One or more price modifier IDs are invalid.',
+          );
+        }
+      }
+
+      const savedTemplate = await manager.save(ProductTemplate, template);
+
+      if (priceModifierIds && priceModifierIds.length > 0) {
+        await manager
+          .createQueryBuilder()
+          .relation(PriceModifier, 'productTemplates')
+          .of(priceModifierIds)
+          .add(savedTemplate.id);
+      }
+
+      savedTemplate.priceModifiers = priceModifiers;
+      return savedTemplate;
+    });
   }
 
   findAll(): Promise<ProductTemplate[]> {

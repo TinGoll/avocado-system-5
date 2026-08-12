@@ -109,14 +109,39 @@ const entityHandlers = resources.flatMap((resource) => [
   }),
   http.post(`*/${resource}`, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
+    const priceModifierIds =
+      resource === 'products' && Array.isArray(body.priceModifierIds)
+        ? body.priceModifierIds.map(String)
+        : [];
+    const priceModifiers = getCollection('price-modifiers').filter(({ id }) =>
+      priceModifierIds.includes(String(id)),
+    );
+
+    if (
+      resource === 'products' &&
+      priceModifiers.length !== priceModifierIds.length
+    ) {
+      return badRequest('One or more price modifier IDs are invalid.');
+    }
+
+    const entityData = { ...body };
+    delete entityData.priceModifierIds;
     const now = new Date().toISOString();
     const entity: MockEntity = {
-      ...body,
+      ...entityData,
       id: createId(resource),
       createdAt: now,
       updatedAt: now,
     };
     getCollection(resource).unshift(entity);
+
+    priceModifiers.forEach((modifier) => {
+      const productTemplates = Array.isArray(modifier.productTemplates)
+        ? modifier.productTemplates
+        : [];
+      modifier.productTemplates = [...productTemplates, entity];
+    });
+
     return HttpResponse.json(entity, { status: 201 });
   }),
   http.patch(`*/${resource}/:id`, async ({ params, request }) => {

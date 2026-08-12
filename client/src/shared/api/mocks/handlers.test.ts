@@ -170,7 +170,8 @@ describe('MSW API mocks', () => {
   });
 
   it('creates a product template', async () => {
-    const payload = {
+    const priceModifierId = '99000000-0000-4000-8000-000000000002';
+    const productPayload = {
       name: 'Тестовая номенклатура',
       group: 'Тест',
       defaultCharacteristics: { width: 600, height: 700 },
@@ -178,16 +179,35 @@ describe('MSW API mocks', () => {
       baseCustomerPrice: 5000,
       attributes: {},
     };
+    const payload = {
+      ...productPayload,
+      priceModifierIds: [priceModifierId],
+    };
     const response = await fetch('http://localhost/products', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    const created = (await response.json()) as typeof payload & { id: string };
+    const created = (await response.json()) as Omit<
+      typeof payload,
+      'priceModifierIds'
+    > & { id: string; priceModifierIds?: string[] };
 
     expect(response.status).toBe(201);
-    expect(created).toMatchObject(payload);
+    expect(created).toMatchObject(productPayload);
+    expect(created.priceModifierIds).toBeUndefined();
     expect(created.id).toBeTruthy();
+
+    const modifierResponse = await fetch(
+      `http://localhost/price-modifiers/${priceModifierId}`,
+    );
+    const modifier = (await modifierResponse.json()) as {
+      productTemplates: { id: string }[];
+    };
+
+    expect(modifier.productTemplates).toContainEqual(
+      expect.objectContaining({ id: created.id }),
+    );
   });
 
   it('returns order ids for a group', async () => {

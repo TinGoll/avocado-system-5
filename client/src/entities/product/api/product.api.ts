@@ -1,6 +1,9 @@
 import { Endpoints, useEntity, type ErrorResponse } from '@shared/lib/swr';
 
-import type { ProductTemplate } from '../model/product';
+import type {
+  CreateProductTemplateDto,
+  ProductTemplate,
+} from '../model/product';
 
 type Responce = {
   products: ProductTemplate[];
@@ -9,8 +12,9 @@ type Responce = {
   error?: ErrorResponse;
 };
 export const useProductTemplates = () =>
-  useEntity<ProductTemplate, Responce>({
+  useEntity<ProductTemplate, Responce, CreateProductTemplateDto>({
     endpoint: Endpoints.PRODUCTS,
+    extraKeysToRevalidate: [Endpoints.PRICE_MODIFIERS],
     transform: ({ items, ...data }) => ({
       products: items || [],
       map: Object.fromEntries((items ?? []).map((item) => [item.id, item])),
