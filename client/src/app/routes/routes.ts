@@ -3,4 +3,5 @@ export const ROUTES = {
   orderEdit: '/order/:groupID/editing',
   orderPrint: '/order/:groupID/print',
   order: '/order/:groupID',
+  priceModifiers: '/price-modifiers',
 };

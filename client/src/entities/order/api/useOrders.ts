@@ -1,4 +1,11 @@
-import { Endpoints, useEntity, type ErrorResponse } from '@shared/lib/swr';
+import useSWRMutation from 'swr/mutation';
+
+import {
+  Endpoints,
+  fetcher,
+  useEntity,
+  type ErrorResponse,
+} from '@shared/lib/swr';
 
 import type { Order } from '../model/order';
 
@@ -42,3 +49,9 @@ export const useCopyOrderMutation = (orderID?: string) => {
     disabled: !orderID,
   }).create;
 };
+
+export const useRecalculateOrderPricesMutation = (orderID?: string) =>
+  useSWRMutation<Order, Error, string | null>(
+    orderID ? `${Endpoints.ORDERS}/${orderID}/recalculate-prices` : null,
+    (url) => fetcher<Order>({ url, method: 'POST' }),
+  );

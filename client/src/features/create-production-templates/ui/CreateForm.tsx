@@ -1,5 +1,6 @@
 import { css } from '@emotion/css';
 import {
+  Alert,
   App,
   AutoComplete,
   Button,
@@ -9,6 +10,7 @@ import {
   InputNumber,
   Radio,
   Row,
+  Select,
   Skeleton,
   type FormProps,
 } from 'antd';
@@ -51,8 +53,14 @@ type Props = {
 
 export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
   const [form] = Form.useForm<ProductTemplateFieldType>();
-  const { isMutating, trigger, isLoading, products } =
-    useCreateProductTemplates();
+  const {
+    isMutating,
+    trigger,
+    isLoading,
+    products,
+    priceModifiers,
+    priceModifiersError,
+  } = useCreateProductTemplates();
   const { notification } = App.useApp();
 
   const productNames = useMemo(
@@ -75,6 +83,20 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
         .sort((left, right) => left.localeCompare(right))
         .map((value) => ({ value })),
     [products],
+  );
+
+  const priceModifierOptions = useMemo(
+    () =>
+      priceModifiers?.map((modifier) => {
+        const isGlobal = modifier.productTemplates.length === 0;
+
+        return {
+          label: isGlobal ? `${modifier.name} (глобальный)` : modifier.name,
+          value: modifier.id,
+          disabled: isGlobal,
+        };
+      }) ?? [],
+    [priceModifiers],
   );
 
   const handleFinish: FormProps<ProductTemplateFieldType>['onFinish'] = (
@@ -113,6 +135,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
           defaultCharacteristics: {},
           attributes: [],
           additionalCharacteristics: [],
+          priceModifierIds: [],
           customerPricingMethod: CUSTOMER_PRICING_METHOD.PER_ITEM,
           baseCustomerPrice: 0,
         }}
@@ -224,6 +247,30 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
         >
           <InputNumber min={0} precision={2} />
         </Form.Item>
+
+        <Form.Item<ProductTemplateFieldType>
+          label="Ценовые модификаторы"
+          name="priceModifierIds"
+          extra="Глобальные модификаторы уже применяются ко всем продуктам"
+        >
+          <Select
+            aria-label="Ценовые модификаторы"
+            mode="multiple"
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            placeholder="Выберите модификаторы"
+            options={priceModifierOptions}
+          />
+        </Form.Item>
+
+        {priceModifiersError && (
+          <Alert
+            type="error"
+            message="Не удалось загрузить ценовые модификаторы"
+            showIcon
+          />
+        )}
 
         <div className={styles.formActions}>
           <Button variant="solid" color="danger" onClick={handleCancel}>

@@ -1,6 +1,6 @@
 import { setupServer } from 'msw/node';
 
-import { handlers } from './handlers';
+import { handlers, isFrontendAssetRequest } from './handlers';
 
 const server = setupServer(...handlers);
 
@@ -8,12 +8,132 @@ describe('MSW API mocks', () => {
   beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
   afterAll(() => server.close());
 
+  it('does not treat Vite modules as API entities', () => {
+    expect(
+      isFrontendAssetRequest(
+        new Request('http://localhost:5173/src/pages/price-modifiers/index.ts'),
+      ),
+    ).toBe(true);
+    expect(
+      isFrontendAssetRequest(
+        new Request('http://localhost:5173/price-modifiers/modifier-1'),
+      ),
+    ).toBe(false);
+  });
+
   it('returns seeded collections', async () => {
     const response = await fetch('http://localhost/colors');
     const body = (await response.json()) as { items: unknown[] };
 
     expect(response.ok).toBe(true);
     expect(body.items).toHaveLength(2);
+  });
+
+  it('returns condition path schemas for the modifier form', async () => {
+    const response = await fetch(
+      'http://localhost/price-modifiers/condition-paths',
+    );
+    const schemas = (await response.json()) as {
+      order_group: { customer: { children: { level: unknown } } };
+      order: unknown;
+      item: { quantity: { type: string } };
+    };
+
+    expect(response.ok).toBe(true);
+    expect(schemas.order_group.customer.children.level).toBeDefined();
+    expect(schemas.order).toBeDefined();
+    expect(schemas.item.quantity.type).toBe('number');
+  });
+
+  it('creates a global price modifier', async () => {
+    const response = await fetch('http://localhost/price-modifiers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Глобальная наценка',
+        type: 'percentage',
+        value: 5,
+        priority: 10,
+        conditions: {
+          source: 'order_group',
+          path: 'status',
+          operator: 'eq',
+          value: 'draft',
+        },
+        productTemplateIds: [],
+      }),
+    });
+    const modifier = (await response.json()) as {
+      id: string;
+      productTemplates: unknown[];
+      productTemplateIds?: string[];
+    };
+
+    expect(response.status).toBe(201);
+    expect(modifier.productTemplates).toEqual([]);
+    expect(modifier.productTemplateIds).toBeUndefined();
+
+    await fetch(`http://localhost/price-modifiers/${modifier.id}`, {
+      method: 'DELETE',
+    });
+  });
+
+  it('creates and edits a price modifier scoped to product templates', async () => {
+    const templateId = '88000000-0000-4000-8000-000000000001';
+    const createResponse = await fetch('http://localhost/price-modifiers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Наценка на фасады',
+        type: 'fixed_amount',
+        value: 500,
+        priority: 2,
+        conditions: {
+          AND: [
+            {
+              source: 'item',
+              path: 'quantity',
+              operator: 'gte',
+              value: 2,
+            },
+          ],
+        },
+        productTemplateIds: [templateId],
+      }),
+    });
+    const created = (await createResponse.json()) as {
+      id: string;
+      productTemplates: { id: string; name: string }[];
+    };
+
+    expect(created.productTemplates).toEqual([
+      expect.objectContaining({ id: templateId, name: 'Фасад прямой' }),
+    ]);
+
+    const updateResponse = await fetch(
+      `http://localhost/price-modifiers/${created.id}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          priority: 1,
+          productTemplateIds: [],
+        }),
+      },
+    );
+    const updated = (await updateResponse.json()) as {
+      priority: number;
+      productTemplates: unknown[];
+    };
+
+    expect(updated.priority).toBe(1);
+    expect(updated.productTemplates).toEqual([]);
+
+    const deleteResponse = await fetch(
+      `http://localhost/price-modifiers/${created.id}`,
+      { method: 'DELETE' },
+    );
+    expect(deleteResponse.ok).toBe(true);
   });
 
   it('returns customers from GET /api/customers', async () => {
@@ -50,7 +170,8 @@ describe('MSW API mocks', () => {
   });
 
   it('creates a product template', async () => {
-    const payload = {
+    const priceModifierId = '99000000-0000-4000-8000-000000000002';
+    const productPayload = {
       name: 'Тестовая номенклатура',
       group: 'Тест',
       defaultCharacteristics: { width: 600, height: 700 },
@@ -58,16 +179,35 @@ describe('MSW API mocks', () => {
       baseCustomerPrice: 5000,
       attributes: {},
     };
+    const payload = {
+      ...productPayload,
+      priceModifierIds: [priceModifierId],
+    };
     const response = await fetch('http://localhost/products', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    const created = (await response.json()) as typeof payload & { id: string };
+    const created = (await response.json()) as Omit<
+      typeof payload,
+      'priceModifierIds'
+    > & { id: string; priceModifierIds?: string[] };
 
     expect(response.status).toBe(201);
-    expect(created).toMatchObject(payload);
+    expect(created).toMatchObject(productPayload);
+    expect(created.priceModifierIds).toBeUndefined();
     expect(created.id).toBeTruthy();
+
+    const modifierResponse = await fetch(
+      `http://localhost/price-modifiers/${priceModifierId}`,
+    );
+    const modifier = (await modifierResponse.json()) as {
+      productTemplates: { id: string }[];
+    };
+
+    expect(modifier.productTemplates).toContainEqual(
+      expect.objectContaining({ id: created.id }),
+    );
   });
 
   it('returns order ids for a group', async () => {

@@ -241,16 +241,19 @@ export class OrdersService {
       return;
     }
 
-    await Promise.all(
-      order.items.map(async (item) => {
-        const productionCostPerUnit =
-          this.pricingService.calculateProductionCost(item, item.template);
-        item.calculatedProductionCost = productionCostPerUnit * item.quantity;
-
-        item.calculatedCustomerPrice =
-          await this.pricingService.calculateCustomerPrice(item, order);
-      }),
+    const customerPrices = await this.pricingService.calculateCustomerPrices(
+      order.items,
+      order,
     );
+
+    order.items.forEach((item, index) => {
+      const productionCostPerUnit = this.pricingService.calculateProductionCost(
+        item,
+        item.template,
+      );
+      item.calculatedProductionCost = productionCostPerUnit * item.quantity;
+      item.calculatedCustomerPrice = customerPrices[index];
+    });
 
     this.recalculateOrderTotal(order);
   }
@@ -329,6 +332,26 @@ export class OrdersService {
       throw new NotFoundException(`Order with ID "${id}" not found`);
     }
     return order;
+  }
+
+  async recalculatePrices(id: string): Promise<Order> {
+    const order = await this.ordersRepository.findOne({
+      where: { id },
+      relations: {
+        items: {
+          template: true,
+        },
+        orderGroup: true,
+      },
+      order: { items: { position: 'ASC' } },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order with ID "${id}" not found`);
+    }
+
+    await this.recalculatePricesForOrder(order);
+    return this.ordersRepository.save(order);
   }
 
   async update(id: string, updateDto: UpdateOrderDto): Promise<Order> {

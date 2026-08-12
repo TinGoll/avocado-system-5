@@ -21,8 +21,10 @@ import {
 import { getEnumName } from '../model/enumMapper';
 import {
   getFieldTypeFromPath,
+  getAllowedOperators,
+  getValueEditorType,
   isSchemaLeaf,
-  schemas,
+  type PriceModifierConditionPathSchemas,
 } from '../model/pathSchema';
 import { usePriceModifierStore } from '../model/priceModifierStore';
 
@@ -39,11 +41,13 @@ const getIn = (obj: any, path: (string | number)[]) => {
 interface ConditionBuilderProps {
   name: (string | number)[];
   onRemove?: () => void;
+  schemas: PriceModifierConditionPathSchemas;
 }
 
 export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({
   name,
   onRemove,
+  schemas,
 }) => {
   const condition = usePriceModifierStore(
     (state) => getIn(state.modifier, name) as PriceModifierCondition,
@@ -67,7 +71,7 @@ export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({
     if (!('source' in condition) || !condition.path) return undefined;
     const schema = schemas[condition.source];
     return getFieldTypeFromPath(schema, condition.path);
-  }, [condition]);
+  }, [condition, schemas]);
 
   const isValueInputEnabled = useMemo(() => {
     if (!fieldType) {
@@ -76,7 +80,7 @@ export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({
     return isSchemaLeaf(fieldType);
   }, [fieldType]);
 
-  const availableOperators = useMemo(() => {
+  const operatorOptions = useMemo(() => {
     const allOperators = [
       { value: CONDITION_OPERATOR.EQ, label: 'Равно' },
       { value: CONDITION_OPERATOR.GT, label: 'Больше' },
@@ -85,21 +89,8 @@ export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({
       { value: CONDITION_OPERATOR.LTE, label: 'Меньше или равно' },
     ];
 
-    if (!fieldType) {
-      return allOperators;
-    }
-    const fieldTypeName =
-      typeof fieldType === 'string' ? fieldType : fieldType._type;
-
-    switch (fieldTypeName) {
-      case 'number':
-        return allOperators;
-      case 'string':
-      case 'enum':
-        return [{ value: CONDITION_OPERATOR.EQ, label: 'Равно' }];
-      default:
-        return allOperators;
-    }
+    const allowed = new Set(getAllowedOperators(fieldType));
+    return allOperators.filter(({ value }) => allowed.has(value));
   }, [fieldType]);
 
   const renderValueInput = () => {
@@ -111,10 +102,7 @@ export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({
       return <Input placeholder="Завершите выбор поля" disabled />;
     }
 
-    const fieldTypeName =
-      typeof fieldType === 'string' ? fieldType : fieldType._type;
-
-    switch (fieldTypeName) {
+    switch (getValueEditorType(fieldType)) {
       case 'number':
         return (
           <InputNumber
@@ -130,9 +118,14 @@ export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({
             style={{ width: '100%' }}
             value={(condition as LeafCondition).value as string}
             onChange={(value) => updateConditionField(name, 'value', value)}
-            options={(fieldType as { options: readonly string[] }).options.map(
-              (opt) => ({ label: getEnumName(opt), value: opt }),
-            )}
+            options={
+              fieldType.type === 'enum'
+                ? fieldType.options.map((opt) => ({
+                    label: getEnumName(opt),
+                    value: opt,
+                  }))
+                : []
+            }
           />
         );
 
@@ -204,6 +197,7 @@ export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({
                 key={index}
                 name={currentPath}
                 onRemove={handleRemove}
+                schemas={schemas}
               />
             );
           })}
@@ -240,6 +234,7 @@ export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({
           <PathSelector
             source={(condition as LeafCondition).source}
             value={(condition as LeafCondition).path}
+            schemas={schemas}
             onChange={(newPath) => {
               updateConditionField(name, 'path', newPath);
               updateConditionField(name, 'value', '');
@@ -251,7 +246,7 @@ export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({
             value={(condition as LeafCondition).operator}
             onChange={(value) => updateConditionField(name, 'operator', value)}
             style={{ width: '100%' }}
-            options={availableOperators}
+            options={operatorOptions}
             disabled={!isValueInputEnabled}
           />
 

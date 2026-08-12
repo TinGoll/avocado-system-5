@@ -49,6 +49,9 @@ export class PriceModifier {
   })
   value: number;
 
+  @Column({ type: 'integer', default: 0 })
+  priority: number;
+
   @Column({ type: 'jsonb' })
   conditions: PriceModifierCondition;
 

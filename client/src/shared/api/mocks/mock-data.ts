@@ -119,10 +119,59 @@ export const mockData: Record<string, MockEntity[]> = {
   ],
   'price-modifiers': [
     withDates({
+      id: '99000000-0000-4000-8000-000000000002',
+      name: 'Оптовая скидка на фасады',
+      type: 'percentage',
+      value: -7.5,
+      priority: 10,
+      conditions: {
+        AND: [
+          {
+            source: 'item',
+            path: 'quantity',
+            operator: 'gte',
+            value: 10,
+          },
+          {
+            OR: [
+              {
+                source: 'item',
+                path: 'template.group',
+                operator: 'eq',
+                value: 'Фасады',
+              },
+              {
+                source: 'item',
+                path: 'snapshot.name',
+                operator: 'eq',
+                value: 'Фасад прямой',
+              },
+            ],
+          },
+        ],
+      },
+      productTemplates: [
+        {
+          id: '88000000-0000-4000-8000-000000000001',
+          name: 'Фасад прямой',
+          group: 'Фасады',
+          defaultCharacteristics: {
+            width: 600,
+            height: 720,
+            thickness: 20,
+          },
+          customerPricingMethod: 'area',
+          baseCustomerPrice: 8500,
+          attributes: {},
+        },
+      ],
+    }),
+    withDates({
       id: '99000000-0000-4000-8000-000000000001',
       name: 'Срочный заказ',
       type: 'percentage',
       value: 20,
+      priority: 0,
       conditions: {
         source: 'order_group',
         path: 'status',

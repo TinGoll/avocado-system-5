@@ -5,3 +5,4 @@ export * from './MaterialField';
 export * from './PatinaField';
 export * from './VarnishField';
 export * from './AddOrderFieldsButton';
+export * from './RecalculateOrderPricesButton';

@@ -40,6 +40,11 @@ export class OrdersController {
     return this.ordersService.copy(id, name);
   }
 
+  @Post(':id/recalculate-prices')
+  recalculatePrices(@Param('id', ParseUUIDPipe) id: string) {
+    return this.ordersService.recalculatePrices(id);
+  }
+
   @Patch(':id')
   update(
     @Param('id', ParseUUIDPipe) id: string,

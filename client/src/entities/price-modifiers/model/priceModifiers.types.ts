@@ -61,9 +61,26 @@ export type PriceModifier = {
   name: string;
   type: ModifierType;
   value: number;
+  priority: number;
   conditions: PriceModifierCondition;
   productTemplates: ProductTemplate[];
 
   createdAt: Date;
   updatedAt: Date;
 };
+
+export type CreatePriceModifierDto = Pick<
+  PriceModifier,
+  'name' | 'type' | 'value' | 'priority' | 'conditions'
+> & {
+  productTemplateIds?: string[];
+};
+
+export type UpdatePriceModifierDto = Partial<CreatePriceModifierDto>;
+
+export type PriceModifierInput = Pick<
+  PriceModifier,
+  'name' | 'type' | 'value' | 'priority' | 'conditions' | 'productTemplates'
+>;
+
+export type PriceModifierUpdateInput = Partial<PriceModifierInput>;

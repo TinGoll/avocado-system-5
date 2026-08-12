@@ -3,8 +3,10 @@ import { useMemo } from 'react';
 
 import type { CONDITION_SOURCE } from '@entities/price-modifiers';
 
-import { getLabelForKeyInContext } from '../model/fieldLabels';
-import { isSchemaLeaf, schemas } from '../model/pathSchema';
+import {
+  isSchemaLeaf,
+  type PriceModifierConditionPathSchemas,
+} from '../model/pathSchema';
 
 interface PathSelectorProps {
   source:
@@ -13,12 +15,14 @@ interface PathSelectorProps {
     | typeof CONDITION_SOURCE.ORDER_GROUP;
   value: string;
   onChange: (path: string) => void;
+  schemas: PriceModifierConditionPathSchemas;
 }
 
 export const PathSelector: React.FC<PathSelectorProps> = ({
   source,
   value,
   onChange,
+  schemas,
 }) => {
   const schema = schemas[source];
   const pathParts = useMemo(() => (value ? value.split('.') : []), [value]);
@@ -30,22 +34,15 @@ export const PathSelector: React.FC<PathSelectorProps> = ({
 
   const renderSelects = () => {
     const selects = [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let currentLevelSchema: any = schema;
-    // eslint-disable-next-line prefer-const
-    let currentPathContext: string[] = [];
+    let currentLevelSchema = schema;
 
     for (let i = 0; i <= pathParts.length; i++) {
-      if (isSchemaLeaf(currentLevelSchema)) {
-        break;
-      }
-
       if (!currentLevelSchema || typeof currentLevelSchema !== 'object') {
         break;
       }
 
-      const options = Object.keys(currentLevelSchema).map((key) => ({
-        label: getLabelForKeyInContext(source, currentPathContext, key),
+      const options = Object.entries(currentLevelSchema).map(([key, node]) => ({
+        label: node.label,
         value: key,
       }));
 
@@ -61,8 +58,9 @@ export const PathSelector: React.FC<PathSelectorProps> = ({
       );
 
       if (pathParts[i]) {
-        currentPathContext.push(pathParts[i]);
-        currentLevelSchema = currentLevelSchema[pathParts[i]];
+        const node = currentLevelSchema[pathParts[i]];
+        if (!node || isSchemaLeaf(node)) break;
+        currentLevelSchema = node.children;
       } else {
         break;
       }

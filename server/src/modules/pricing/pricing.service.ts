@@ -16,6 +16,11 @@ import {
 import { CalculationMethod } from '../production-operations/entities/production-operation.entity';
 import { get } from 'src/shared/utils/object-helpers';
 import { PriceModifierCondition } from '../price-modifiers/types/price-modifier-condition.type';
+import {
+  getPriceModifierConditionPathField,
+  isConditionOperatorAllowedForField,
+  isConditionValueValidForField,
+} from '../price-modifiers/condition-paths/price-modifier-condition-paths';
 
 @Injectable()
 export class PricingService {
@@ -25,14 +30,39 @@ export class PricingService {
   ) {}
 
   async calculateCustomerPrice(item: OrderItem, order: Order): Promise<number> {
-    const totalBasePrice = this.calculateTotalBasePrice(item);
+    const [price] = await this.calculateCustomerPrices([item], order);
+    return price;
+  }
+
+  async calculateCustomerPrices(
+    items: readonly OrderItem[],
+    order: Order,
+  ): Promise<number[]> {
+    if (items.length === 0) {
+      return [];
+    }
 
     const modifiers = await this.modifiersRepository.find({
       relations: {
         productTemplates: true,
       },
+      order: {
+        priority: 'ASC',
+        id: 'ASC',
+      },
     });
 
+    return items.map((item) =>
+      this.calculateCustomerPriceWithModifiers(item, order, modifiers),
+    );
+  }
+
+  private calculateCustomerPriceWithModifiers(
+    item: OrderItem,
+    order: Order,
+    modifiers: readonly PriceModifier[],
+  ): number {
+    const totalBasePrice = this.calculateTotalBasePrice(item);
     let finalPrice = totalBasePrice;
 
     for (const modifier of modifiers) {
@@ -51,9 +81,13 @@ export class PricingService {
 
       if (this.checkConditions(modifier.conditions, item, order)) {
         const modifierValue = Number(modifier.value);
+
+        // Business rule: modifiers are applied sequentially by ascending
+        // priority, then UUID. A percentage changes the current price, while
+        // a fixed amount changes it directly. Negative values are discounts.
         switch (modifier.type) {
           case ModifierType.PERCENTAGE:
-            finalPrice += finalPrice * (modifier.value / 100);
+            finalPrice += finalPrice * (modifierValue / 100);
             break;
           case ModifierType.FIXED_AMOUNT:
             finalPrice += modifierValue;
@@ -186,6 +220,15 @@ export class PricingService {
   ): boolean {
     const { source, path, operator, value } = leaf;
 
+    const field = getPriceModifierConditionPathField(source, path);
+    if (
+      !field ||
+      !isConditionOperatorAllowedForField(field, operator) ||
+      !isConditionValueValidForField(field, value)
+    ) {
+      return false;
+    }
+
     let dataSource: any;
 
     switch (source) {
@@ -212,15 +255,9 @@ export class PricingService {
       return false;
     }
 
-    const isComparableNumber =
-      typeof actualValue === 'number' && typeof value === 'number';
-    const isComparableString =
-      typeof actualValue === 'string' && typeof value === 'string';
-
     if (
-      operator !== ConditionOperator.EQ &&
-      !isComparableNumber &&
-      !isComparableString
+      (field.type === 'number' && typeof actualValue !== 'number') ||
+      (field.type !== 'number' && typeof actualValue !== 'string')
     ) {
       return false;
     }
@@ -230,7 +267,7 @@ export class PricingService {
         if (typeof actualValue === 'string' && typeof value === 'string') {
           return actualValue.toLowerCase() === value.toLowerCase();
         }
-        return actualValue == value;
+        return actualValue === value;
 
       case ConditionOperator.GT:
         return actualValue > (value as number | string);

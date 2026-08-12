@@ -1,141 +1,79 @@
-import { COLOR_TYPE } from '@entities/color';
-import { MATERIAL_TYPE } from '@entities/material';
-import { ORDER_STATUS } from '@entities/order';
-import { CUSTOMER_PRICING_METHOD } from '@entities/product';
+import {
+  CONDITION_OPERATOR,
+  type ConditionOperator,
+  type ConditionSource,
+} from '@entities/price-modifiers';
 
 export type SchemaField =
-  | 'string'
-  | 'number'
-  | { _type: 'enum'; options: readonly string[] };
+  | { readonly label: string; readonly type: 'string' }
+  | { readonly label: string; readonly type: 'number' }
+  | {
+      readonly label: string;
+      readonly type: 'enum';
+      readonly options: readonly string[];
+    };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const createSchema = <T extends Record<string, any>>(schema: T): T => schema;
+export type SchemaGroup = {
+  readonly label: string;
+  readonly children: PathSchema;
+};
+
+export type SchemaNode = SchemaField | SchemaGroup;
+
+export type PathSchema = {
+  readonly [key: string]: SchemaNode;
+};
+
+export type PriceModifierConditionPathSchemas = Record<
+  ConditionSource,
+  PathSchema
+>;
+
+export const isSchemaLeaf = (node: SchemaNode): node is SchemaField =>
+  Object.hasOwn(node, 'type');
 
 export const getFieldTypeFromPath = (
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  schema: Record<string, any>,
+  schema: PathSchema | undefined,
   path: string,
 ): SchemaField | undefined => {
-  if (!path) return undefined;
+  if (!schema || !path) return undefined;
+
   const parts = path.split('.');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let current: any = schema;
-  for (const part of parts) {
-    if (current && typeof current === 'object' && part in current) {
-      current = current[part];
-    } else {
-      return undefined;
+  let currentSchema = schema;
+  for (const [index, part] of parts.entries()) {
+    const node = currentSchema[part];
+    if (!node) return undefined;
+    if (index === parts.length - 1) {
+      return isSchemaLeaf(node) ? node : undefined;
     }
+    if (isSchemaLeaf(node)) return undefined;
+    currentSchema = node.children;
   }
-  return current;
+
+  return undefined;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const isSchemaLeaf = (field: any): field is SchemaField => {
-  if (typeof field === 'string') {
-    return true;
-  }
-  if (typeof field === 'object' && field !== null && '_type' in field) {
-    return true;
-  }
-  return false;
-};
+export const getSelectablePaths = (schema: PathSchema, prefix = ''): string[] =>
+  Object.entries(schema).flatMap(([key, node]) => {
+    const path = prefix ? `${prefix}.${key}` : key;
+    return isSchemaLeaf(node)
+      ? [path]
+      : getSelectablePaths(node.children, path);
+  });
 
-export const orderGroupSchema = createSchema({
-  id: 'number',
-  orderNumber: 'string',
-  customer: {
-    name: 'string',
-    level: { _type: 'enum', options: ['bronze', 'silver', 'gold'] as const },
-  },
-  status: {
-    _type: 'enum',
-    options: Object.values(ORDER_STATUS),
-  },
-  orderCount: 'number',
-});
+const comparisonOperators: readonly ConditionOperator[] = [
+  CONDITION_OPERATOR.EQ,
+  CONDITION_OPERATOR.GT,
+  CONDITION_OPERATOR.LT,
+  CONDITION_OPERATOR.GTE,
+  CONDITION_OPERATOR.LTE,
+];
 
-export const orderSchema = createSchema({
-  characteristics: {
-    color: {
-      name: 'string',
-      type: {
-        _type: 'enum',
-        options: Object.values(COLOR_TYPE),
-      },
-    },
-    material: {
-      name: 'string',
-      type: {
-        _type: 'enum',
-        options: Object.values(MATERIAL_TYPE),
-      },
-    },
-    patina: {
-      name: 'string',
-    },
-    panel: {
-      name: 'string',
-      characteristics: {
-        style: 'string',
-      },
-    },
-    varnish: {
-      name: 'string',
-    },
-    profile: {
-      name: 'string',
-      characteristics: {
-        width: 'number',
-        grooveDepth: 'number',
-        grooveWidth: 'number',
-        style: 'string',
-      },
-    },
-  },
-  totalPrice: 'number',
-});
+export const getAllowedOperators = (
+  field: SchemaField | undefined,
+): readonly ConditionOperator[] =>
+  field?.type === 'number' ? comparisonOperators : [CONDITION_OPERATOR.EQ];
 
-export const itemSchema = createSchema({
-  template: {
-    name: 'string',
-    defaultCharacteristics: {
-      width: 'number',
-      height: 'number',
-      thickness: 'number',
-    },
-    customerPricingMethod: {
-      _type: 'enum',
-      options: Object.values(CUSTOMER_PRICING_METHOD),
-    },
-    baseCustomerPrice: 'number',
-    group: 'string',
-  },
-  quantity: 'number',
-  snapshot: {
-    name: 'string',
-    baseCustomerPrice: 'number',
-    customerPricingMethod: {
-      _type: 'enum',
-      options: Object.values(CUSTOMER_PRICING_METHOD),
-    },
-    defaultCharacteristics: {
-      width: 'number',
-      height: 'number',
-      thickness: 'number',
-    },
-  },
-  characteristics: {
-    width: 'number',
-    height: 'number',
-    thickness: 'number',
-  },
-  calculatedProductionCost: 'number',
-  calculatedCustomerPrice: 'number',
-});
-
-export const schemas = {
-  order_group: orderGroupSchema,
-  order: orderSchema,
-  item: itemSchema,
-};
+export const getValueEditorType = (
+  field: SchemaField | undefined,
+): SchemaField['type'] | undefined => field?.type;

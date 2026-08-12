@@ -1,4 +1,5 @@
 import {
+  ArrayUnique,
   IsArray,
   IsEnum,
   IsNotEmpty,
@@ -40,4 +41,10 @@ export class CreateProductDto {
   @IsUUID('4', { each: true })
   @IsOptional()
   operationIds?: string[];
+
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  @IsOptional()
+  priceModifierIds?: string[];
 }
