@@ -1,8 +1,18 @@
 import {
+  AppstoreOutlined,
+  BgColorsOutlined,
+  BorderOutlined,
+  BuildOutlined,
+  DatabaseOutlined,
+  FormatPainterOutlined,
+  HighlightOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   PercentageOutlined,
+  ProfileOutlined,
+  SettingOutlined,
   ShoppingCartOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import { css } from '@emotion/css';
 import { Button, Menu } from 'antd';
@@ -43,15 +53,10 @@ export const Sidebar: FC = () => {
     <div className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
       <Menu
         className={styles.menu}
+        defaultOpenKeys={['catalogs']}
         inlineCollapsed={collapsed}
         mode="inline"
-        selectedKeys={
-          pathname === '/price-modifiers'
-            ? ['/price-modifiers']
-            : pathname === '/'
-              ? ['/']
-              : []
-        }
+        selectedKeys={[pathname]}
         items={[
           {
             key: '/',
@@ -62,6 +67,58 @@ export const Sidebar: FC = () => {
             key: '/price-modifiers',
             icon: <PercentageOutlined />,
             label: <Link to="/price-modifiers">Модификаторы цен</Link>,
+          },
+          {
+            key: 'catalogs',
+            icon: <DatabaseOutlined />,
+            label: 'Справочники',
+            children: [
+              {
+                key: '/customers',
+                icon: <TeamOutlined />,
+                label: <Link to="/customers">Клиенты</Link>,
+              },
+              {
+                key: '/products',
+                icon: <AppstoreOutlined />,
+                label: <Link to="/products">Номенклатура</Link>,
+              },
+              {
+                key: '/materials',
+                icon: <BuildOutlined />,
+                label: <Link to="/materials">Материалы</Link>,
+              },
+              {
+                key: '/colors',
+                icon: <BgColorsOutlined />,
+                label: <Link to="/colors">Красители</Link>,
+              },
+              {
+                key: '/facade-panels',
+                icon: <BorderOutlined />,
+                label: <Link to="/facade-panels">Филёнки</Link>,
+              },
+              {
+                key: '/facade-profiles',
+                icon: <ProfileOutlined />,
+                label: <Link to="/facade-profiles">Фасадные профили</Link>,
+              },
+              {
+                key: '/patinas',
+                icon: <HighlightOutlined />,
+                label: <Link to="/patinas">Патины</Link>,
+              },
+              {
+                key: '/varnishes',
+                icon: <FormatPainterOutlined />,
+                label: <Link to="/varnishes">Лаки</Link>,
+              },
+              {
+                key: '/production-operations',
+                icon: <SettingOutlined />,
+                label: <Link to="/production-operations">Работы</Link>,
+              },
+            ],
           },
         ]}
       />

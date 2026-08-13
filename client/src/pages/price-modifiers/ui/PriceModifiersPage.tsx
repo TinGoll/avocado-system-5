@@ -3,8 +3,10 @@ import { css } from '@emotion/css';
 import {
   Alert,
   Button,
+  Input,
   Modal,
   Popconfirm,
+  Select,
   Space,
   Table,
   Tag,
@@ -20,6 +22,7 @@ import {
   type PriceModifier,
 } from '@entities/price-modifiers';
 import { PriceModifierForm } from '@features/create-price-modifiers';
+import { Editable } from '@shared/ui';
 
 const pageStyles = css`
   padding: 24px;
@@ -46,7 +49,7 @@ const formatValue = (modifier: PriceModifier) =>
       }).format(modifier.value);
 
 export const PriceModifiersPage: FC = () => {
-  const { data, error, isLoading, remove } = usePriceModifiers();
+  const { data, error, isLoading, remove, update } = usePriceModifiers();
   const [editor, setEditor] = useState<EditorState>(null);
   const [messageApi, messageContext] = message.useMessage();
   const modifiers = data?.modifiers ?? [];
@@ -62,15 +65,96 @@ export const PriceModifiersPage: FC = () => {
     }
   };
 
+  const handleInlineSave = async (
+    modifier: PriceModifier,
+    field: 'name' | 'type' | 'value' | 'priority',
+    value: string | undefined,
+  ) => {
+    if (value === undefined) return;
+
+    const normalizedValue =
+      field === 'value' || field === 'priority' ? Number(value) : value;
+    try {
+      await update.trigger(modifier.id, { [field]: normalizedValue });
+      messageApi.success('Изменение сохранено');
+    } catch {
+      messageApi.error('Не удалось сохранить изменение');
+    }
+  };
+
   const columns: TableColumnsType<PriceModifier> = [
-    { title: 'Название', dataIndex: 'name' },
+    {
+      title: 'Название',
+      dataIndex: 'name',
+      render: (name: string, modifier) => (
+        <Editable<string>
+          name={`modifier-${modifier.id}-name`}
+          defaultValue={name}
+          control={<Input size="small" />}
+          onSave={(_name, value) =>
+            void handleInlineSave(modifier, 'name', value)
+          }
+        >
+          {name}
+        </Editable>
+      ),
+    },
     {
       title: 'Тип',
       dataIndex: 'type',
-      render: (type: PriceModifier['type']) => typeNames[type],
+      render: (type: PriceModifier['type'], modifier) => (
+        <Editable<string>
+          name={`modifier-${modifier.id}-type`}
+          defaultValue={type}
+          control={
+            <Select
+              size="small"
+              options={Object.entries(typeNames).map(([value, label]) => ({
+                value,
+                label,
+              }))}
+            />
+          }
+          onSave={(_name, value) =>
+            void handleInlineSave(modifier, 'type', value)
+          }
+        >
+          {typeNames[type]}
+        </Editable>
+      ),
     },
-    { title: 'Значение', render: (_value, modifier) => formatValue(modifier) },
-    { title: 'Приоритет', dataIndex: 'priority', align: 'right' },
+    {
+      title: 'Значение',
+      render: (_value, modifier) => (
+        <Editable<string>
+          name={`modifier-${modifier.id}-value`}
+          defaultValue={String(modifier.value)}
+          control={<Input size="small" type="number" />}
+          onSave={(_name, value) =>
+            void handleInlineSave(modifier, 'value', value)
+          }
+        >
+          {formatValue(modifier)}
+        </Editable>
+      ),
+    },
+    {
+      title: 'Приоритет',
+      dataIndex: 'priority',
+      align: 'right',
+      render: (priority: number, modifier) => (
+        <Editable<string>
+          name={`modifier-${modifier.id}-priority`}
+          defaultValue={String(priority)}
+          control={<Input size="small" type="number" step={1} />}
+          onSave={(_name, value) =>
+            void handleInlineSave(modifier, 'priority', value)
+          }
+        >
+          {priority}
+        </Editable>
+      ),
+    },
     {
       title: 'Область действия',
       dataIndex: 'productTemplates',
@@ -149,6 +233,7 @@ export const PriceModifiersPage: FC = () => {
           pagination={{ pageSize: 20, hideOnSinglePage: true }}
           rowKey="id"
           scroll={{ x: 900 }}
+          size="small"
         />
       )}
 
@@ -157,6 +242,21 @@ export const PriceModifiersPage: FC = () => {
         open={editor !== null}
         footer={null}
         width={900}
+        centered
+        styles={{
+          content: {
+            display: 'flex',
+            maxHeight: 'calc(100dvh - 48px)',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          },
+          body: {
+            display: 'flex',
+            flex: '1 1 auto',
+            minHeight: 0,
+            overflow: 'hidden',
+          },
+        }}
         onCancel={closeEditor}
       >
         {editor !== null && (

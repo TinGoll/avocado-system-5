@@ -5,6 +5,7 @@ import {
   ProductTemplate,
 } from 'src/modules/products/entities/product-template.entity';
 import { ColumnNumericTransformer } from 'src/shared/utils/column.transformer';
+import { DatabaseJsonColumn } from 'src/modules/database/database-json-column';
 
 type Snapshot = {
   name: string;
@@ -31,10 +32,10 @@ export class OrderItem {
   @Column({ type: 'int', default: 0 })
   position: number;
 
-  @Column({ type: 'jsonb' })
+  @DatabaseJsonColumn()
   snapshot: Snapshot;
 
-  @Column({ type: 'jsonb', default: {} })
+  @DatabaseJsonColumn({ defaultEmptyObject: true })
   characteristics: Record<string, string | number | boolean>;
 
   @Column({

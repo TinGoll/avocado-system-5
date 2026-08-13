@@ -34,7 +34,7 @@ export const useOptimisticAddItem = ({ orderID }: { orderID: string }) => {
   const { create } = useEntity<Order, unknown, AddItemDto>({
     endpoint: `${Endpoints.ORDERS}/${orderID}/items`,
     transform: (data) => data,
-    disabled: !orderID,
+    disabled: true,
   });
 
   const addItem = useCallback(

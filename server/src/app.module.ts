@@ -14,6 +14,7 @@ import { PanelsModule } from './modules/panels/panels.module';
 import { FacadeProfilesModule } from './modules/facade-profiles/facade-profiles.module';
 import { OrderGroupsModule } from './modules/order-groups/order-groups.module';
 import { CustomersModule } from './modules/customers/customers.module';
+import { ClientErrorsModule } from './modules/client-errors/client-errors.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { CustomersModule } from './modules/customers/customers.module';
     FacadeProfilesModule,
     OrderGroupsModule,
     CustomersModule,
+    ClientErrorsModule,
   ],
   controllers: [],
   providers: [],

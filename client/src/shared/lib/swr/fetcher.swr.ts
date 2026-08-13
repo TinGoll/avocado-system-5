@@ -2,8 +2,14 @@ import axios, { AxiosError, type AxiosRequestConfig, type Method } from 'axios';
 
 import { showErrorMessage } from '@shared/lib';
 
+export const resolveApiBaseUrl = (configuredBaseUrl?: string): string => {
+  const baseUrl = configuredBaseUrl?.trim().replace(/\/+$/, '') || '/api';
+
+  return /(?:^|\/)api$/.test(baseUrl) ? baseUrl : `${baseUrl}/api`;
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL),
   headers: { 'Content-Type': 'application/json' },
 });
 

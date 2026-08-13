@@ -23,7 +23,7 @@ export const AntdConfigProvider: FC<Props> = ({ children }) => {
         },
       }}
     >
-      <AntApp>
+      <AntApp notification={{ placement: 'top' }}>
         <AntErrorMessageProvider>{children}</AntErrorMessageProvider>
       </AntApp>
     </ConfigProvider>

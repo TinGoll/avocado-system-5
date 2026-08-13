@@ -10,6 +10,7 @@ import {
 import { OrderItem } from './order-item.entity';
 import { ColumnNumericTransformer } from 'src/shared/utils/column.transformer';
 import { OrderGroup } from 'src/modules/order-groups/entities/order-group.entity';
+import { DatabaseJsonColumn } from 'src/modules/database/database-json-column';
 
 export enum OrderStatus {
   DRAFT = 'draft',
@@ -26,7 +27,7 @@ export class Order {
   @Column({ type: 'text', nullable: true })
   name?: string;
 
-  @Column({ type: 'jsonb', default: {} })
+  @DatabaseJsonColumn({ defaultEmptyObject: true })
   characteristics: object;
 
   @Column({

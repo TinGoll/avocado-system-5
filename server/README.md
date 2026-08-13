@@ -31,6 +31,67 @@
 $ npm install
 ```
 
+## Database configuration
+
+The server selects one database driver before NestJS and the entities are loaded.
+`DB_TYPE` accepts `postgres` or `sqlite`. If it is omitted, `postgres` is used for
+backwards compatibility. Changing the value while the process is running is not
+supported.
+
+PostgreSQL:
+
+```env
+DB_TYPE=postgres
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=avocado
+```
+
+SQLite:
+
+```env
+DB_TYPE=sqlite
+DB_PATH=C:\absolute\path\to\avocado.sqlite
+```
+
+`DB_PATH` is required for SQLite and must be absolute. Both drivers run only their
+own migrations on startup and keep `synchronize` disabled. SQLite uses WAL mode.
+
+Migration commands:
+
+```bash
+npm run migration:run:postgres
+npm run migration:revert:postgres
+npm run migration:generate:postgres
+
+# Set DB_PATH to an absolute filename first.
+npm run migration:run:sqlite
+npm run migration:revert:sqlite
+npm run migration:generate:sqlite
+```
+
+### Electron startup contract
+
+The Electron main process must wait for `app.whenReady()`, create an application
+data subdirectory below `app.getPath('userData')`, and set the environment before
+dynamically importing the NestJS bootstrap:
+
+```ts
+const dataDirectory = join(app.getPath('userData'), 'avocado', 'data');
+await mkdir(dataDirectory, { recursive: true });
+
+process.env.DB_TYPE = 'sqlite';
+process.env.DB_PATH = join(dataDirectory, 'avocado.sqlite');
+await import('./backend/main');
+```
+
+Do not put the database in ASAR, the installation directory, or the renderer.
+`better-sqlite3` must be rebuilt for Electron's ABI (for example with
+`@electron/rebuild`) and its native `.node` binary must be unpacked from ASAR in
+the packaged application.
+
 ## Compile and run the project
 
 ```bash
@@ -52,6 +113,9 @@ $ npm run test
 
 # e2e tests
 $ npm run test:e2e
+
+# SQLite database integration tests (no PostgreSQL service required)
+$ npm run test:e2e:sqlite
 
 # test coverage
 $ npm run test:cov

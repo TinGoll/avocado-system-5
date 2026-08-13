@@ -1,9 +1,13 @@
 import { css } from '@emotion/css';
-import { Form, InputNumber, Modal, Select } from 'antd';
+import { Form, InputNumber, Modal, Radio, Select } from 'antd';
 import { useEffect, type FC } from 'react';
 
 import type { OrderItem } from '@entities/order';
-import type { ProductTemplate } from '@entities/product';
+import {
+  CUSTOMER_PRICING_METHOD,
+  type CustomerPricingMethod,
+  type ProductTemplate,
+} from '@entities/product';
 import {
   DynamicFields,
   dynamicFieldsToObject,
@@ -23,6 +27,7 @@ const styles = {
 type FormValues = {
   templateId: string;
   quantity: number;
+  customerPricingMethod: CustomerPricingMethod;
   attributes: DynamicField[];
   characteristics: DynamicField[];
 };
@@ -51,6 +56,7 @@ export const EditOrderItemModal: FC<Props> = ({
     form.setFieldsValue({
       templateId: item.template.id,
       quantity: item.quantity,
+      customerPricingMethod: item.snapshot.customerPricingMethod,
       attributes: objectToDynamicFields(item.snapshot?.attributes),
       characteristics: objectToDynamicFields(item.characteristics),
     });
@@ -61,6 +67,7 @@ export const EditOrderItemModal: FC<Props> = ({
     await onSave(item.id, {
       templateId: values.templateId,
       quantity: values.quantity,
+      customerPricingMethod: values.customerPricingMethod,
       attributes: dynamicFieldsToObject(values.attributes),
       characteristics: dynamicFieldsToObject(values.characteristics),
     });
@@ -71,6 +78,7 @@ export const EditOrderItemModal: FC<Props> = ({
     if (!template) return;
 
     form.setFieldsValue({
+      customerPricingMethod: template.customerPricingMethod,
       attributes: objectToDynamicFields(template.attributes),
       characteristics: objectToDynamicFields({
         ...template.defaultCharacteristics,
@@ -112,6 +120,26 @@ export const EditOrderItemModal: FC<Props> = ({
           rules={[{ required: true, message: 'Укажите количество' }]}
         >
           <InputNumber min={1} precision={0} style={{ width: '100%' }} />
+        </Form.Item>
+        <Form.Item
+          label="Способ расчета цены"
+          name="customerPricingMethod"
+          rules={[{ required: true, message: 'Выберите способ расчета' }]}
+        >
+          <Radio.Group block optionType="button" buttonStyle="solid">
+            <Radio.Button value={CUSTOMER_PRICING_METHOD.PER_ITEM}>
+              За штуку
+            </Radio.Button>
+            <Radio.Button value={CUSTOMER_PRICING_METHOD.LINEAR_METER}>
+              М. погонный
+            </Radio.Button>
+            <Radio.Button value={CUSTOMER_PRICING_METHOD.AREA}>
+              По площади
+            </Radio.Button>
+            <Radio.Button value={CUSTOMER_PRICING_METHOD.VOLUME}>
+              По объему
+            </Radio.Button>
+          </Radio.Group>
         </Form.Item>
 
         <div className={styles.sectionTitle}>Атрибуты</div>

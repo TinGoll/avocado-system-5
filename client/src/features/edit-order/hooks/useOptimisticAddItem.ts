@@ -39,6 +39,7 @@ export const useOptimisticAddItem = ({ orderID }: Props) => {
   const { create } = useEntity<Order, unknown, AddItemDTO>({
     endpoint: `${Endpoints.ORDERS}/${orderID}/items`,
     transform: (data) => data,
+    disabled: true,
   });
   const { trigger, isMutating } = create;
 

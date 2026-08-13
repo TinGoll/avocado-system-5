@@ -3,6 +3,7 @@ import { BrowserRouter } from 'react-router';
 
 import { AntdConfigProvider } from './providers/AntdConfigProvider.tsx';
 import { initializeDayjsConf } from './providers/dayjs.conf';
+import { GlobalErrorBoundary } from './providers/GlobalErrorBoundary';
 import { routesElements } from './routes/routesElements';
 
 initializeDayjsConf();
@@ -10,7 +11,9 @@ initializeDayjsConf();
 export const App: FC = () => {
   return (
     <AntdConfigProvider>
-      <BrowserRouter>{routesElements()}</BrowserRouter>
+      <GlobalErrorBoundary>
+        <BrowserRouter>{routesElements()}</BrowserRouter>
+      </GlobalErrorBoundary>
     </AntdConfigProvider>
   );
 };

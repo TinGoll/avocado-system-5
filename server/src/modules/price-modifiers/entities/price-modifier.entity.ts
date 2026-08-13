@@ -10,6 +10,7 @@ import {
 import type { PriceModifierCondition } from '../types/price-modifier-condition.type';
 import { ColumnNumericTransformer } from 'src/shared/utils/column.transformer';
 import { ProductTemplate } from 'src/modules/products/entities/product-template.entity';
+import { DatabaseJsonColumn } from 'src/modules/database/database-json-column';
 
 export enum ConditionSource {
   ORDER = 'order',
@@ -38,7 +39,11 @@ export class PriceModifier {
   @Column({ type: 'text', unique: true })
   name: string;
 
-  @Column({ type: 'enum', enum: ModifierType })
+  @Column({
+    type: 'simple-enum',
+    enum: ModifierType,
+    enumName: 'price_modifiers_type_enum',
+  })
   type: ModifierType;
 
   @Column({
@@ -52,7 +57,7 @@ export class PriceModifier {
   @Column({ type: 'integer', default: 0 })
   priority: number;
 
-  @Column({ type: 'jsonb' })
+  @DatabaseJsonColumn()
   conditions: PriceModifierCondition;
 
   @ManyToMany(() => ProductTemplate, { nullable: true })

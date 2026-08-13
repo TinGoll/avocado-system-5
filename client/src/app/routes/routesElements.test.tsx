@@ -9,6 +9,11 @@ vi.mock('@shared/layouts', () => ({ AppLayout: () => <Outlet /> }));
 vi.mock('@pages/price-modifiers', () => ({
   default: () => <div>Маршрут модификаторов</div>,
 }));
+vi.mock('@pages/catalogs', () => ({
+  CatalogPage: ({ catalog }: { catalog: string }) => (
+    <div>Маршрут справочника: {catalog}</div>
+  ),
+}));
 
 describe('routesElements', () => {
   let container: HTMLDivElement;
@@ -39,5 +44,18 @@ describe('routesElements', () => {
     });
 
     expect(container.textContent).toContain('Маршрут модификаторов');
+  });
+
+  it('renders a catalog page by its dedicated URL', async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={['/materials']}>
+          {routesElements()}
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain('Маршрут справочника: materials');
   });
 });

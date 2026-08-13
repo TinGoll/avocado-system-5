@@ -39,11 +39,16 @@ export class PriceModifiersService {
   }
 
   findAll() {
-    return this.modifiersRepository.find();
+    return this.modifiersRepository.find({
+      relations: { productTemplates: true },
+    });
   }
 
   async findOne(id: string) {
-    const modifier = await this.modifiersRepository.findOneBy({ id });
+    const modifier = await this.modifiersRepository.findOne({
+      where: { id },
+      relations: { productTemplates: true },
+    });
     if (!modifier) {
       throw new NotFoundException(`Modifier with ID "${id}" not found`);
     }

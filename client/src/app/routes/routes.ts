@@ -4,4 +4,13 @@ export const ROUTES = {
   orderPrint: '/order/:groupID/print',
   order: '/order/:groupID',
   priceModifiers: '/price-modifiers',
+  customers: '/customers',
+  materials: '/materials',
+  colors: '/colors',
+  facadePanels: '/facade-panels',
+  facadeProfiles: '/facade-profiles',
+  patinas: '/patinas',
+  varnishes: '/varnishes',
+  productionOperations: '/production-operations',
+  products: '/products',
 };

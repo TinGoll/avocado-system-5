@@ -95,7 +95,7 @@ export class OrdersService {
   ): Promise<Order> {
     const order = await this.ordersRepository.findOne({
       where: { id: orderId },
-      relations: { items: true, orderGroup: true },
+      relations: { items: { template: true }, orderGroup: true },
     });
 
     if (!order) {
@@ -118,6 +118,7 @@ export class OrdersService {
     const order = await this.ordersRepository.findOne({
       where: { id: orderId },
       relations: { items: { template: true }, orderGroup: true },
+      order: { items: { position: 'ASC' } },
     });
 
     if (!order) {
@@ -131,7 +132,8 @@ export class OrdersService {
       );
     }
 
-    const { templateId, attributes, ...itemUpdates } = updateItemDto;
+    const { templateId, attributes, customerPricingMethod, ...itemUpdates } =
+      updateItemDto;
 
     if (templateId && templateId !== itemToUpdate.template.id) {
       const template = await this.productsRepository.findOne({
@@ -163,6 +165,13 @@ export class OrdersService {
       itemToUpdate.snapshot = {
         ...itemToUpdate.snapshot,
         attributes,
+      };
+    }
+
+    if (customerPricingMethod) {
+      itemToUpdate.snapshot = {
+        ...itemToUpdate.snapshot,
+        customerPricingMethod,
       };
     }
 

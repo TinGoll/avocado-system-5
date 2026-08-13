@@ -14,6 +14,10 @@ export class Customer {
   @Column({ type: 'text', unique: true })
   name!: string;
 
-  @Column({ type: 'enum', enum: CustomerLevel })
+  @Column({
+    type: 'simple-enum',
+    enum: CustomerLevel,
+    enumName: 'customers_level_enum',
+  })
   level!: CustomerLevel;
 }

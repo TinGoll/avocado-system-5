@@ -5,6 +5,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { DatabaseJsonColumn } from 'src/modules/database/database-json-column';
 
 @Entity('panels')
 export class Panel {
@@ -14,7 +15,7 @@ export class Panel {
   @Column({ type: 'text', unique: true })
   name: string;
 
-  @Column({ type: 'jsonb', default: {} })
+  @DatabaseJsonColumn({ defaultEmptyObject: true })
   characteristics: Record<string, string | number | boolean>; // Уникальные характеристики (размеры и т.д.)
 
   @CreateDateColumn()

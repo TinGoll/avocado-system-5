@@ -1,6 +1,7 @@
 import { PriceModifier } from 'src/modules/price-modifiers/entities/price-modifier.entity';
 import { ProductionOperation } from 'src/modules/production-operations/entities/production-operation.entity';
 import { ColumnNumericTransformer } from 'src/shared/utils/column.transformer';
+import { DatabaseJsonColumn } from 'src/modules/database/database-json-column';
 import {
   Column,
   CreateDateColumn,
@@ -29,16 +30,16 @@ export class ProductTemplate {
   @Column({ type: 'text', nullable: true })
   group?: string;
 
-  @Column({
-    type: 'jsonb',
-    default: {},
+  @DatabaseJsonColumn({
+    defaultEmptyObject: true,
     comment: 'Характеристики по умолчанию для этого шаблона продукта',
   })
   defaultCharacteristics: Record<string, string | number | boolean>;
 
   @Column({
-    type: 'enum',
+    type: 'simple-enum',
     enum: CustomerPricingMethod,
+    enumName: 'product_templates_customerpricingmethod_enum',
     default: CustomerPricingMethod.PER_ITEM,
   })
   customerPricingMethod: CustomerPricingMethod;
@@ -52,7 +53,7 @@ export class ProductTemplate {
   })
   baseCustomerPrice: number;
 
-  @Column({ type: 'jsonb', default: {} })
+  @DatabaseJsonColumn({ defaultEmptyObject: true })
   attributes: object;
 
   @ManyToMany(() => ProductionOperation, { eager: true })

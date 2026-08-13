@@ -5,6 +5,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { DatabaseJsonColumn } from 'src/modules/database/database-json-column';
 
 @Entity('facade_profiles')
 export class FacadeProfile {
@@ -14,7 +15,7 @@ export class FacadeProfile {
   @Column({ type: 'text', unique: true })
   name: string;
 
-  @Column({ type: 'jsonb', default: {} })
+  @DatabaseJsonColumn({ defaultEmptyObject: true })
   characteristics: Record<string, string | number | boolean>;
 
   @CreateDateColumn()
