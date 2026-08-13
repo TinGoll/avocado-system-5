@@ -70,7 +70,12 @@ export const usePriceModifierStore = create<PriceModifierState>((set) => ({
   modifier: createDefaultInitialState(),
   actions: {
     setInitialState: (initialState) =>
-      set({ modifier: structuredClone(initialState) }),
+      set({
+        modifier: {
+          ...structuredClone(initialState),
+          productTemplates: initialState.productTemplates ?? [],
+        },
+      }),
 
     reset: () => set({ modifier: createDefaultInitialState() }),
 

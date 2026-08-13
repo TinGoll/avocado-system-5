@@ -55,7 +55,10 @@ export const usePriceModifiers = () =>
   >({
     endpoint: Endpoints.PRICE_MODIFIERS,
     transform: ({ items, ...data }) => {
-      const modifiers = items ?? [];
+      const modifiers = (items ?? []).map((modifier) => ({
+        ...modifier,
+        productTemplates: modifier.productTemplates ?? [],
+      }));
 
       return {
         modifiers,

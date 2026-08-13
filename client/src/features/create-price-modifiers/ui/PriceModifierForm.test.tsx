@@ -188,6 +188,22 @@ describe('PriceModifierForm', () => {
     expect(selector?.style.width).toBe('100%');
   });
 
+  it('supports editing legacy modifiers without product templates', () => {
+    const legacyModifier = {
+      ...savedModifier,
+      productTemplates: undefined,
+    } as unknown as PriceModifier;
+
+    expect(() => {
+      act(() =>
+        root.render(<PriceModifierForm initialModifier={legacyModifier} />),
+      );
+    }).not.toThrow();
+    expect(usePriceModifierStore.getState().modifier.productTemplates).toEqual(
+      [],
+    );
+  });
+
   it('initializes nested conditions for editing and sends the edited tree', async () => {
     const nestedModifier: PriceModifier = {
       ...savedModifier,
