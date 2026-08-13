@@ -3,7 +3,10 @@ import type { Repository } from 'typeorm';
 
 import { PricingService } from '../pricing/pricing.service';
 import { OrderGroup } from '../order-groups/entities/order-group.entity';
-import { ProductTemplate } from '../products/entities/product-template.entity';
+import {
+  CustomerPricingMethod,
+  ProductTemplate,
+} from '../products/entities/product-template.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { Order } from './entities/order.entity';
 import { OrdersService } from './orders.service';
@@ -127,5 +130,39 @@ describe('OrdersService price recalculation', () => {
     });
     expect(result.items[0].template).toBe(existingTemplate);
     expect(result.items[1].template).toBe(newTemplate);
+  });
+
+  it('updates the item pricing method snapshot and recalculates prices', async () => {
+    const item = {
+      id: 'item-1',
+      position: 0,
+      quantity: 1,
+      template: { id: 'template-1' },
+      snapshot: {
+        customerPricingMethod: CustomerPricingMethod.PER_ITEM,
+      },
+      calculatedProductionCost: 10,
+      calculatedCustomerPrice: 20,
+    } as OrderItem;
+    const order = {
+      id: 'order-1',
+      items: [item],
+      totalPrice: 20,
+    } as Order;
+
+    findOne.mockResolvedValue(order);
+    calculateCustomerPrices.mockResolvedValue([60]);
+    calculateProductionCost.mockReturnValue(10);
+    save.mockImplementation((entity: Order) => Promise.resolve(entity));
+
+    const result = await service.updateItemInOrder(order.id, item.id, {
+      customerPricingMethod: CustomerPricingMethod.AREA,
+    });
+
+    expect(item.snapshot.customerPricingMethod).toBe(
+      CustomerPricingMethod.AREA,
+    );
+    expect(calculateCustomerPrices).toHaveBeenCalledWith(order.items, order);
+    expect(result.totalPrice).toBe(60);
   });
 });

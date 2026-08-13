@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 
 import { useOrderStore, type Order } from '@entities/order';
+import type { CustomerPricingMethod } from '@entities/product';
 import { Endpoints, useEntity } from '@shared/lib/swr';
 
 type ReorderItemsDto = {
@@ -10,6 +11,7 @@ type ReorderItemsDto = {
 export type UpdateOrderItemDto = {
   templateId?: string;
   quantity?: number;
+  customerPricingMethod?: CustomerPricingMethod;
   attributes?: Record<string, string | number | boolean>;
   characteristics?: Order['items'][number]['characteristics'];
 };
@@ -133,9 +135,21 @@ export const useOrderItems = ({ orderID }: { orderID: string }) => {
                 quantity: updates.quantity ?? item.quantity,
                 characteristics:
                   updates.characteristics ?? item.characteristics,
-                snapshot: updates.attributes
-                  ? { ...item.snapshot, attributes: updates.attributes }
-                  : item.snapshot,
+                snapshot:
+                  updates.attributes || updates.customerPricingMethod
+                    ? {
+                        ...item.snapshot,
+                        ...(updates.attributes
+                          ? { attributes: updates.attributes }
+                          : {}),
+                        ...(updates.customerPricingMethod
+                          ? {
+                              customerPricingMethod:
+                                updates.customerPricingMethod,
+                            }
+                          : {}),
+                      }
+                    : item.snapshot,
               }
             : item,
         ),
