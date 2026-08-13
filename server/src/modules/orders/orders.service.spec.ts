@@ -132,6 +132,35 @@ describe('OrdersService price recalculation', () => {
     expect(result.items[1].template).toBe(newTemplate);
   });
 
+  it('keeps items ordered by position when updating an item', async () => {
+    const item = {
+      id: 'item-1',
+      position: 0,
+      quantity: 1,
+      template: { id: 'template-1' },
+      calculatedProductionCost: 10,
+      calculatedCustomerPrice: 20,
+    } as OrderItem;
+    const order = {
+      id: 'order-1',
+      items: [item],
+      totalPrice: 20,
+    } as Order;
+
+    findOne.mockResolvedValue(order);
+    calculateCustomerPrices.mockResolvedValue([40]);
+    calculateProductionCost.mockReturnValue(15);
+    save.mockImplementation((entity: Order) => Promise.resolve(entity));
+
+    await service.updateItemInOrder(order.id, item.id, { quantity: 2 });
+
+    expect(findOne).toHaveBeenCalledWith({
+      where: { id: order.id },
+      relations: { items: { template: true }, orderGroup: true },
+      order: { items: { position: 'ASC' } },
+    });
+  });
+
   it('updates the item pricing method snapshot and recalculates prices', async () => {
     const item = {
       id: 'item-1',
