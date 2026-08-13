@@ -1,10 +1,15 @@
 import {
   AppstoreOutlined,
   BgColorsOutlined,
+  BorderOutlined,
+  BuildOutlined,
   DatabaseOutlined,
+  FormatPainterOutlined,
+  HighlightOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   PercentageOutlined,
+  ProfileOutlined,
   SettingOutlined,
   ShoppingCartOutlined,
   TeamOutlined,
@@ -80,6 +85,7 @@ export const Sidebar: FC = () => {
               },
               {
                 key: '/materials',
+                icon: <BuildOutlined />,
                 label: <Link to="/materials">Материалы</Link>,
               },
               {
@@ -89,18 +95,22 @@ export const Sidebar: FC = () => {
               },
               {
                 key: '/facade-panels',
+                icon: <BorderOutlined />,
                 label: <Link to="/facade-panels">Филёнки</Link>,
               },
               {
                 key: '/facade-profiles',
+                icon: <ProfileOutlined />,
                 label: <Link to="/facade-profiles">Фасадные профили</Link>,
               },
               {
                 key: '/patinas',
+                icon: <HighlightOutlined />,
                 label: <Link to="/patinas">Патины</Link>,
               },
               {
                 key: '/varnishes',
+                icon: <FormatPainterOutlined />,
                 label: <Link to="/varnishes">Лаки</Link>,
               },
               {
