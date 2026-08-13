@@ -1,15 +1,15 @@
-import { css } from '@emotion/css';
-import { Descriptions, Empty, Table, Typography } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
-import type { FC } from 'react';
+import { css } from "@emotion/css";
+import { Descriptions, Empty, Table, Typography } from "antd";
+import type { ColumnsType } from "antd/es/table";
+import type { FC } from "react";
 
-import type { Order, OrderItem } from '@entities/order';
+import type { Order, OrderItem } from "@entities/order";
 
 import {
   formatCurrency,
   formatDimensions,
   pricingMethodLabels,
-} from '../model/orderInvoice';
+} from "../model/orderInvoice";
 
 const styles = {
   characteristics: css`
@@ -20,6 +20,7 @@ const styles = {
   table: css`
     border: 1px solid var(--app-devider-color);
     border-top: 0;
+    border-bottom: 0;
 
     & .ant-table-small .ant-table-thead > tr > th,
     & .ant-table-small .ant-table-tbody > tr > td {
@@ -32,34 +33,38 @@ const styles = {
     justify-content: flex-end;
     align-items: baseline;
     gap: 12px;
-    padding: 12px 16px;
+    padding: 8px;
     border: 1px solid var(--app-devider-color);
+    border-end-end-radius: 6px;
+    border-end-start-radius: 6px;
     border-top: 0;
   `,
 };
 
 const characteristicName = (value?: { name: string }): string =>
-  value?.name || '—';
+  value?.name || "—";
 
 const columns: ColumnsType<OrderItem> = [
   {
-    title: '№',
+    title: "№",
     width: 56,
-    align: 'center',
+    align: "center",
     render: (_, __, index) => index + 1,
   },
   {
-    title: 'Наименование',
-    render: (_, item) => item.snapshot?.name || item.template?.name || '—',
+    title: "Наименование",
+    render: (_, item) => item.snapshot?.name || item.template?.name || "—",
   },
   {
-    title: 'Группа',
-    dataIndex: ['template', 'group'],
-    render: (group?: string) => group || '—',
+    title: "Группа",
+    dataIndex: ["template", "group"],
+    align: "center",
+    render: (group?: string) => group || "—",
   },
   {
-    title: 'Размеры',
+    title: "Размеры",
     width: 180,
+    align: "center",
     render: (_, item) =>
       formatDimensions(
         item.characteristics.width,
@@ -67,24 +72,30 @@ const columns: ColumnsType<OrderItem> = [
         item.characteristics.thickness,
       ),
   },
-  { title: 'Количество', dataIndex: 'quantity', width: 120, align: 'right' },
   {
-    title: 'Единица',
+    title: "Количество",
+    align: "center",
+    dataIndex: "quantity",
+    width: 120,
+  },
+  {
+    title: "Единица",
     width: 100,
+    align: "center",
     render: (_, item) =>
       pricingMethodLabels[item.snapshot.customerPricingMethod],
   },
   {
-    title: 'Сумма',
-    dataIndex: 'calculatedCustomerPrice',
+    title: "Сумма",
+    dataIndex: "calculatedCustomerPrice",
     width: 140,
-    align: 'right',
+    align: "center",
     render: (price: number) => formatCurrency(price),
   },
   {
-    title: 'Комментарий',
-    dataIndex: ['characteristics', 'comment'],
-    render: (comment?: string) => comment || '—',
+    title: "Комментарий",
+    dataIndex: ["characteristics", "comment"],
+    render: (comment?: string) => comment || "—",
   },
 ];
 
@@ -98,33 +109,33 @@ export const OrderDocumentView: FC<Props> = ({ order }) => (
       size="small"
       items={[
         {
-          key: 'material',
-          label: 'Материал',
+          key: "material",
+          label: "Материал",
           children: characteristicName(order.characteristics.material),
         },
         {
-          key: 'color',
-          label: 'Цвет',
+          key: "color",
+          label: "Цвет",
           children: characteristicName(order.characteristics.color),
         },
         {
-          key: 'profile',
-          label: 'Профиль',
+          key: "profile",
+          label: "Профиль",
           children: characteristicName(order.characteristics.profile),
         },
         {
-          key: 'panel',
-          label: 'Филёнка',
+          key: "panel",
+          label: "Филёнка",
           children: characteristicName(order.characteristics.panel),
         },
         {
-          key: 'patina',
-          label: 'Патина',
+          key: "patina",
+          label: "Патина",
           children: characteristicName(order.characteristics.patina),
         },
         {
-          key: 'varnish',
-          label: 'Лак',
+          key: "varnish",
+          label: "Лак",
           children: characteristicName(order.characteristics.varnish),
         },
       ]}
@@ -144,7 +155,7 @@ export const OrderDocumentView: FC<Props> = ({ order }) => (
     </div>
     <div className={styles.documentTotal}>
       <Typography.Text type="secondary">Сумма документа</Typography.Text>
-      <Typography.Title level={4} style={{ margin: 0 }}>
+      <Typography.Title level={5} style={{ margin: 0 }}>
         {formatCurrency(order.totalPrice)}
       </Typography.Title>
     </div>

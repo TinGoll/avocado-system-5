@@ -1,11 +1,10 @@
-import { EditOutlined } from '@ant-design/icons';
+import { EditOutlined, PrinterOutlined } from '@ant-design/icons';
 import { css } from '@emotion/css';
 import {
   Alert,
   Breadcrumb,
   Button,
   Descriptions,
-  Divider,
   Empty,
   Skeleton,
   Tabs,
@@ -51,8 +50,8 @@ const styles = {
     }
   `,
   groupHeader: css`
-    margin-bottom: 12px;
-    padding: 8px;
+    margin-bottom: 16px;
+    padding: 12px 16px;
     background: var(--app-surface-1-background-color);
     border: 1px solid var(--app-devider-color);
     border-radius: 6px;
@@ -62,6 +61,7 @@ const styles = {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+    margin-bottom: 12px;
   `,
   groupTotal: css`
     white-space: nowrap;
@@ -81,7 +81,7 @@ const styles = {
     }
 
     .ant-tabs-content-holder {
-      padding-top: 0;
+      padding-top: 8px;
     }
   `,
   alert: css`
@@ -176,8 +176,11 @@ const OrderPage: FC = () => {
           ]}
         />
         <div className={styles.actions}>
+          <Button icon={<PrinterOutlined />} onClick={() => window.print()}>
+            Печать
+          </Button>
           <Link to={`/order/${group.id}/editing`}>
-            <Button size="small" icon={<EditOutlined />} type="text">
+            <Button icon={<EditOutlined />} type="primary">
               Редактировать
             </Button>
           </Link>
@@ -187,18 +190,22 @@ const OrderPage: FC = () => {
       <div className={styles.groupHeader}>
         <div className={styles.groupTitle}>
           <div>
+            <Typography.Title level={4} style={{ margin: 0 }}>
+              Заказ № {group.orderNumber}
+            </Typography.Title>
             <Tag color={statusColors[group.status]}>
               {orderStatusLabels[group.status]}
             </Tag>
           </div>
           <div className={styles.groupTotal}>
-            <Typography.Title level={5} style={{ margin: 0 }}>
+            <Typography.Text type="secondary">
+              Общая сумма заказа
+            </Typography.Text>
+            <Typography.Title level={3} style={{ margin: 0 }}>
               {formatCurrency(groupTotal)}
             </Typography.Title>
           </div>
-
         </div>
-        <Divider size='small' />
         <Descriptions
           column={{ xs: 1, sm: 2, lg: 3 }}
           size="small"
