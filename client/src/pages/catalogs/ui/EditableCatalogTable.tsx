@@ -12,6 +12,7 @@ import {
   Space,
   Table,
   Typography,
+  type FormInstance,
   type TableColumnType,
   type TableColumnsType,
 } from 'antd';
@@ -166,6 +167,13 @@ type Props<T extends CatalogRecord> = {
   error?: unknown;
   headerAction?: ReactNode;
   onUpdate: (id: T['id'], updates: Record<string, unknown>) => Promise<unknown>;
+  editForm?: {
+    render: (form: FormInstance, record: T) => ReactNode;
+    getInitialValues: (record: T) => Record<string, unknown>;
+    normalizeValues: (
+      values: Record<string, unknown>,
+    ) => Record<string, unknown>;
+  };
 };
 
 export const EditableCatalogTable = <T extends CatalogRecord>({
@@ -177,6 +185,7 @@ export const EditableCatalogTable = <T extends CatalogRecord>({
   error,
   headerAction,
   onUpdate,
+  editForm,
 }: Props<T>) => {
   const { message } = App.useApp();
   const [editingCell, setEditingCell] = useState<string>();
@@ -191,18 +200,22 @@ export const EditableCatalogTable = <T extends CatalogRecord>({
   useEffect(() => {
     if (!editingRecord) return;
 
-    const initialValues = cloneRecord(editingRecord);
-    formFields.forEach((field) => {
-      if (field.editor?.kind !== 'json') return;
-      const path = toCatalogPath(field.dataIndex);
-      setCatalogValue(
-        initialValues,
-        path,
-        JSON.stringify(getCatalogValue(editingRecord, path) ?? {}, null, 2),
-      );
-    });
+    const initialValues = editForm
+      ? editForm.getInitialValues(editingRecord)
+      : cloneRecord(editingRecord);
+    if (!editForm) {
+      formFields.forEach((field) => {
+        if (field.editor?.kind !== 'json') return;
+        const path = toCatalogPath(field.dataIndex);
+        setCatalogValue(
+          initialValues,
+          path,
+          JSON.stringify(getCatalogValue(editingRecord, path) ?? {}, null, 2),
+        );
+      });
+    }
     form.setFieldsValue(initialValues);
-  }, [editingRecord, form, formFields]);
+  }, [editForm, editingRecord, form, formFields]);
 
   const saveInline = async (
     record: T,
@@ -224,18 +237,22 @@ export const EditableCatalogTable = <T extends CatalogRecord>({
   const handleFormFinish = async (values: Record<string, unknown>) => {
     if (!editingRecord) return;
 
-    const updates = structuredClone(values);
+    const updates = editForm
+      ? editForm.normalizeValues(values)
+      : structuredClone(values);
     try {
-      formFields.forEach((field) => {
-        if (field.editor?.kind !== 'json') return;
-        const path = toCatalogPath(field.dataIndex);
-        const rawValue = getCatalogValue(updates, path);
-        setCatalogValue(
-          updates,
-          path,
-          typeof rawValue === 'string' ? JSON.parse(rawValue) : rawValue,
-        );
-      });
+      if (!editForm) {
+        formFields.forEach((field) => {
+          if (field.editor?.kind !== 'json') return;
+          const path = toCatalogPath(field.dataIndex);
+          const rawValue = getCatalogValue(updates, path);
+          setCatalogValue(
+            updates,
+            path,
+            typeof rawValue === 'string' ? JSON.parse(rawValue) : rawValue,
+          );
+        });
+      }
       await onUpdate(editingRecord.id, updates);
       setEditingRecord(undefined);
       message.success('Запись сохранена');
@@ -372,6 +389,7 @@ export const EditableCatalogTable = <T extends CatalogRecord>({
           },
           body: {
             minHeight: 0,
+            overflowX: 'hidden',
             overflowY: 'auto',
           },
         }}
@@ -384,40 +402,42 @@ export const EditableCatalogTable = <T extends CatalogRecord>({
           preserve={false}
           onFinish={handleFormFinish}
         >
-          {formFields.map((field) => {
-            const editor = field.editor;
-            if (!editor) return null;
-            const name = [...toCatalogPath(field.dataIndex)];
-            const rules = [
-              ...(field.required
-                ? [{ required: true, message: 'Обязательное поле' }]
-                : []),
-              ...(field.rules ?? []),
-            ];
+          {editForm && editingRecord
+            ? editForm.render(form, editingRecord)
+            : formFields.map((field) => {
+                const editor = field.editor;
+                if (!editor) return null;
+                const name = [...toCatalogPath(field.dataIndex)];
+                const rules = [
+                  ...(field.required
+                    ? [{ required: true, message: 'Обязательное поле' }]
+                    : []),
+                  ...(field.rules ?? []),
+                ];
 
-            return (
-              <Form.Item
-                key={name.join('.')}
-                label={field.title}
-                name={name}
-                rules={rules}
-              >
-                {editor.kind === 'number' ? (
-                  <InputNumber
-                    style={{ width: '100%' }}
-                    min={editor.min}
-                    precision={editor.precision}
-                  />
-                ) : editor.kind === 'select' ? (
-                  <Select options={editor.options} />
-                ) : editor.kind === 'json' ? (
-                  <Input.TextArea rows={editor.rows ?? 8} />
-                ) : (
-                  <Input placeholder={editor.placeholder} />
-                )}
-              </Form.Item>
-            );
-          })}
+                return (
+                  <Form.Item
+                    key={name.join('.')}
+                    label={field.title}
+                    name={name}
+                    rules={rules}
+                  >
+                    {editor.kind === 'number' ? (
+                      <InputNumber
+                        style={{ width: '100%' }}
+                        min={editor.min}
+                        precision={editor.precision}
+                      />
+                    ) : editor.kind === 'select' ? (
+                      <Select options={editor.options} />
+                    ) : editor.kind === 'json' ? (
+                      <Input.TextArea rows={editor.rows ?? 8} />
+                    ) : (
+                      <Input placeholder={editor.placeholder} />
+                    )}
+                  </Form.Item>
+                );
+              })}
         </Form>
       </Modal>
     </section>

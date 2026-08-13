@@ -43,8 +43,13 @@ import { CreateProductTemplatesButton } from '@features/create-production-templa
 import { CreateVarnishButton } from '@features/create-varnish';
 
 import type { CatalogField, CatalogKind } from '../model/catalog';
+import {
+  getProductTemplateEditValues,
+  normalizeProductTemplateEditValues,
+} from '../model/product-template-edit';
 
 import { EditableCatalogTable } from './EditableCatalogTable';
+import { ProductTemplateEditForm } from './ProductTemplateEditForm';
 
 const addButtonProps = {
   type: 'primary' as const,
@@ -474,11 +479,12 @@ const ProductionOperationsCatalog: FC = () => {
 
 const ProductsCatalog: FC = () => {
   const { data, update, isLoading, error } = useProductTemplates();
+  const products = data?.products ?? [];
   return (
     <EditableCatalogTable
       title="Номенклатура"
       emptyText="Номенклатуры пока нет"
-      items={data?.products ?? []}
+      items={products}
       fields={productFields}
       loading={isLoading}
       error={error}
@@ -488,6 +494,25 @@ const ProductsCatalog: FC = () => {
         </CreateProductTemplatesButton>
       }
       onUpdate={update.trigger}
+      editForm={{
+        render: (_form, record) => (
+          <ProductTemplateEditForm
+            products={products}
+            currentProduct={record}
+          />
+        ),
+        getInitialValues: (record) =>
+          getProductTemplateEditValues(record) as unknown as Record<
+            string,
+            unknown
+          >,
+        normalizeValues: (values) =>
+          normalizeProductTemplateEditValues(
+            values as unknown as Parameters<
+              typeof normalizeProductTemplateEditValues
+            >[0],
+          ),
+      }}
     />
   );
 };
