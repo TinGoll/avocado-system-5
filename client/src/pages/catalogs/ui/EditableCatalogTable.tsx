@@ -362,6 +362,19 @@ export const EditableCatalogTable = <T extends CatalogRecord>({
         confirmLoading={loading}
         destroyOnHidden
         width={720}
+        centered
+        styles={{
+          content: {
+            display: 'flex',
+            maxHeight: 'calc(100dvh - 48px)',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          },
+          body: {
+            minHeight: 0,
+            overflowY: 'auto',
+          },
+        }}
         onCancel={() => setEditingRecord(undefined)}
         onOk={() => form.submit()}
       >

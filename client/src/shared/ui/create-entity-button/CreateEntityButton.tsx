@@ -40,8 +40,23 @@ export const CreateEntityButton = <T,>({
         open={open}
         onCancel={handleCancel}
         destroyOnHidden
-        okButtonProps={{ hidden: true }}
-        cancelButtonProps={{ hidden: true }}
+        footer={null}
+        centered
+        styles={{
+          content: {
+            display: 'flex',
+            maxHeight: 'calc(100dvh - 48px)',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          },
+          body: {
+            display: 'flex',
+            flex: '1 1 auto',
+            minHeight: 0,
+            overflow: 'hidden',
+            width: '100%',
+          },
+        }}
       >
         <FormComponent onCreated={handleCreate} onCancel={handleCancel} />
       </Modal>
