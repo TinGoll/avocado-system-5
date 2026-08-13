@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:msw": "vite --mode msw",
     "build": "tsc -b && vite build",
     "analyze": "tsc -b && vite build --mode analyze",
     "lint": "eslint .",
