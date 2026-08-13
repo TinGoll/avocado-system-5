@@ -97,3 +97,18 @@ button:hover {
     background-color: #f9f9f9;
   }
 } */
+.global-error-page {
+  align-items: center;
+  display: flex;
+  min-height: 100vh;
+  justify-content: center;
+  padding: 24px;
+}
+
+.global-error-page .ant-result-title {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.global-error-page .ant-result-subtitle {
+  color: rgba(255, 255, 255, 0.65);
+}
