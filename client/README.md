@@ -22,5 +22,7 @@ npm run dev
 
 ```env
 VITE_ENABLE_MSW=false
-VITE_API_BASE_URL=http://localhost:3000
+VITE_API_BASE_URL=http://localhost:3000/api
 ```
+
+Префикс `/api` можно не указывать: клиент добавит его автоматически.
