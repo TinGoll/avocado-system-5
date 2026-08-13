@@ -22,8 +22,9 @@ export class ProductionOperation {
   name: string;
 
   @Column({
-    type: 'enum',
+    type: 'simple-enum',
     enum: CalculationMethod,
+    enumName: 'production_operations_calculationmethod_enum',
     default: CalculationMethod.PER_ITEM,
   })
   calculationMethod: CalculationMethod;

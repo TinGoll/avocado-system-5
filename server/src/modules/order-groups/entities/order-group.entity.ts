@@ -1,4 +1,5 @@
 import { Order } from 'src/modules/orders/entities/order.entity';
+import { DatabaseJsonColumn } from 'src/modules/database/database-json-column';
 import {
   Column,
   CreateDateColumn,
@@ -23,12 +24,13 @@ export class OrderGroup {
   @Column({ type: 'text', unique: true })
   orderNumber: string;
 
-  @Column({ type: 'jsonb', default: {} })
+  @DatabaseJsonColumn({ defaultEmptyObject: true })
   customer: Record<string, any>;
 
   @Column({
-    type: 'enum',
+    type: 'simple-enum',
     enum: OrderStatus,
+    enumName: 'order_groups_status_enum',
     default: OrderStatus.DRAFT,
   })
   status: OrderStatus;
