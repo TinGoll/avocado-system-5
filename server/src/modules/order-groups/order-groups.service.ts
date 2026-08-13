@@ -72,7 +72,9 @@ export class OrderGroupsService {
     };
   }
 
-  async findOrderIds(groupId: number): Promise<{ id: string }[]> {
+  async findOrderIds(
+    groupId: number,
+  ): Promise<{ id: string; name?: string; totalPrice: number }[]> {
     const groupExists = await this.repository.existsBy({ id: groupId });
     if (!groupExists) {
       throw new NotFoundException(`Order Group with ID "${groupId}" not found`);
@@ -81,12 +83,15 @@ export class OrderGroupsService {
     const orders = await this.orderRepository
       .createQueryBuilder('order')
       .select('order.id', 'id')
+      .addSelect('order.name', 'name')
+      .addSelect('order.totalPrice', 'totalPrice')
       .where('order.orderGroupId = :groupId', { groupId })
       .getRawMany<Order>();
 
     return orders.map((order) => ({
       id: order.id,
       name: order.name,
+      totalPrice: Number(order.totalPrice) || 0,
     }));
   }
 

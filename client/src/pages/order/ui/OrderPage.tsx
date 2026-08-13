@@ -1,19 +1,32 @@
 import { EditOutlined, PrinterOutlined } from '@ant-design/icons';
 import { css } from '@emotion/css';
-import { Alert, Breadcrumb, Button, Empty, Skeleton, Tabs } from 'antd';
+import {
+  Alert,
+  Breadcrumb,
+  Button,
+  Descriptions,
+  Empty,
+  Skeleton,
+  Tabs,
+  Tag,
+  Typography,
+} from 'antd';
+import dayjs from 'dayjs';
 import { type FC, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 
 import {
+  type OrderStatus,
   useOrderByIDWithItems,
   useOrderGroupByIDWithOrderIDs,
 } from '@entities/order';
-import { useCurrentOrderGroupID } from '@shared/lib';
+import { DATE_DEFAULT_FORMAT, useCurrentOrderGroupID } from '@shared/lib';
 import { NotFound, ServerError } from '@shared/ui';
 
 import { useOrderDocuments } from '../api/useOrderDocuments';
+import { formatCurrency, orderStatusLabels } from '../model/orderInvoice';
 
-import { OrderInvoice } from './OrderInvoice';
+import { OrderDocumentView } from './OrderDocumentView';
 
 const styles = {
   page: css`
@@ -35,6 +48,23 @@ const styles = {
       align-items: flex-start;
       flex-direction: column;
     }
+  `,
+  groupHeader: css`
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: var(--app-surface-1-background-color);
+    border: 1px solid var(--app-devider-color);
+    border-radius: 6px;
+  `,
+  groupTitle: css`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  `,
+  groupTotal: css`
+    white-space: nowrap;
   `,
   actions: css`
     display: flex;
@@ -67,6 +97,13 @@ const styles = {
   `,
 };
 
+const statusColors: Record<OrderStatus, string> = {
+  draft: 'default',
+  in_production: 'processing',
+  completed: 'success',
+  cancelled: 'error',
+};
+
 const hasHttpStatus = (error: Error, status: number): boolean =>
   'status' in error && error.status === status;
 
@@ -88,9 +125,18 @@ const OrderPage: FC = () => {
     return (group?.orderIds ?? []).map((id, index) => ({
       id,
       name: `Документ ${index + 1}`,
+      totalPrice: 0,
     }));
   }, [documentData?.items, group?.orderIds]);
   const [activeOrderID, setActiveOrderID] = useState<string>();
+  const groupTotal = useMemo(
+    () =>
+      documents.reduce(
+        (total, document) => total + (Number(document.totalPrice) || 0),
+        0,
+      ),
+    [documents],
+  );
 
   useEffect(() => {
     if (!documents.some(({ id }) => id === activeOrderID)) {
@@ -141,6 +187,50 @@ const OrderPage: FC = () => {
         </div>
       </div>
 
+      <div className={styles.groupHeader}>
+        <div className={styles.groupTitle}>
+          <div>
+            <Typography.Title level={4} style={{ margin: 0 }}>
+              Заказ № {group.orderNumber}
+            </Typography.Title>
+            <Tag color={statusColors[group.status]}>
+              {orderStatusLabels[group.status]}
+            </Tag>
+          </div>
+          <div className={styles.groupTotal}>
+            <Typography.Text type="secondary">
+              Общая сумма заказа
+            </Typography.Text>
+            <Typography.Title level={3} style={{ margin: 0 }}>
+              {formatCurrency(groupTotal)}
+            </Typography.Title>
+          </div>
+        </div>
+        <Descriptions
+          column={{ xs: 1, sm: 2, lg: 3 }}
+          size="small"
+          items={[
+            {
+              key: 'customer',
+              label: 'Заказчик',
+              children: group.customer?.name || '—',
+            },
+            {
+              key: 'startedAt',
+              label: 'Дата заказа',
+              children: group.startedAt
+                ? dayjs(group.startedAt).format(DATE_DEFAULT_FORMAT)
+                : '—',
+            },
+            {
+              key: 'documents',
+              label: 'Документов',
+              children: documents.length,
+            },
+          ]}
+        />
+      </div>
+
       {documentsError && documents.length > 0 && (
         <Alert
           className={styles.alert}
@@ -173,7 +263,7 @@ const OrderPage: FC = () => {
                   type="error"
                 />
               ) : (
-                <OrderInvoice group={group} order={order} />
+                <OrderDocumentView order={order} />
               ),
           }))}
           onChange={setActiveOrderID}

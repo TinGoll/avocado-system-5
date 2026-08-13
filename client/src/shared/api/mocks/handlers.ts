@@ -302,7 +302,7 @@ const orderHandlers = [
   http.get('*/order-groups/:id/order-ids', ({ params }) => {
     const items = getCollection('orders')
       .filter((order) => String(order.orderGroupId) === String(params.id))
-      .map(({ id, name }) => ({ id, name }));
+      .map(({ id, name, totalPrice }) => ({ id, name, totalPrice }));
     return HttpResponse.json({ items });
   }),
   http.get('*/order-groups/:id/with-order-ids', ({ params }) => {

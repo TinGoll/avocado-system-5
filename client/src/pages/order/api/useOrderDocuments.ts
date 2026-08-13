@@ -3,6 +3,7 @@ import { Endpoints, useEntityById } from '@shared/lib/swr';
 type OrderDocument = {
   id: string;
   name?: string;
+  totalPrice: number;
 };
 
 type OrderDocumentsResponse = {
