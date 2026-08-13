@@ -11,14 +11,17 @@ import { OrdersService } from './orders.service';
 describe('OrdersService price recalculation', () => {
   const findOne = jest.fn();
   const save = jest.fn();
+  const findProduct = jest.fn();
   const calculateCustomerPrices = jest.fn();
   const calculateProductionCost = jest.fn();
+  const calculateCustomerPrice = jest.fn();
 
   const service = new OrdersService(
     { findOne, save } as unknown as Repository<Order>,
-    {} as Repository<ProductTemplate>,
+    { findOne: findProduct } as unknown as Repository<ProductTemplate>,
     {
       calculateCustomerPrices,
+      calculateCustomerPrice,
       calculateProductionCost,
     } as unknown as PricingService,
     {} as Repository<OrderGroup>,
@@ -83,5 +86,46 @@ describe('OrdersService price recalculation', () => {
     );
     expect(calculateCustomerPrices).not.toHaveBeenCalled();
     expect(save).not.toHaveBeenCalled();
+  });
+
+  it('loads item templates when adding an item to an order', async () => {
+    const existingTemplate = { id: 'template-1' } as ProductTemplate;
+    const existingItem = {
+      id: 'item-1',
+      template: existingTemplate,
+      calculatedCustomerPrice: 10,
+    } as OrderItem;
+    const order = {
+      id: 'order-1',
+      items: [existingItem],
+      totalPrice: 10,
+    } as Order;
+    const newTemplate = {
+      id: 'template-2',
+      name: 'New template',
+      attributes: {},
+      defaultCharacteristics: {},
+      baseCustomerPrice: 100,
+      customerPricingMethod: 'per_item',
+    } as ProductTemplate;
+
+    findOne.mockResolvedValue(order);
+    findProduct.mockResolvedValue(newTemplate);
+    calculateProductionCost.mockReturnValue(20);
+    calculateCustomerPrice.mockResolvedValue(30);
+    save.mockImplementation((entity: Order) => Promise.resolve(entity));
+
+    const result = await service.addItemToOrder(order.id, {
+      templateId: newTemplate.id,
+      quantity: 1,
+      characteristics: {},
+    });
+
+    expect(findOne).toHaveBeenCalledWith({
+      where: { id: order.id },
+      relations: { items: { template: true }, orderGroup: true },
+    });
+    expect(result.items[0].template).toBe(existingTemplate);
+    expect(result.items[1].template).toBe(newTemplate);
   });
 });

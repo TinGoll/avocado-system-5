@@ -95,7 +95,7 @@ export class OrdersService {
   ): Promise<Order> {
     const order = await this.ordersRepository.findOne({
       where: { id: orderId },
-      relations: { items: true, orderGroup: true },
+      relations: { items: { template: true }, orderGroup: true },
     });
 
     if (!order) {
