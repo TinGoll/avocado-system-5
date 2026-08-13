@@ -46,7 +46,7 @@ export const useOrdersMutations = () => {
 export const useCopyOrderMutation = (orderID?: string) => {
   return useEntity<Order, unknown, { name?: string }>({
     endpoint: `${Endpoints.ORDERS}/${orderID}/copy`,
-    disabled: !orderID,
+    disabled: true,
   }).create;
 };
 

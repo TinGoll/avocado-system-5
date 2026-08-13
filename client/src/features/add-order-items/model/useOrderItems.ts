@@ -19,12 +19,12 @@ export const useOrderItems = ({ orderID }: { orderID: string }) => {
   const { remove } = useEntity<Order, unknown>({
     endpoint: `${Endpoints.ORDERS}/${orderID}/items`,
     transform: (data) => data,
-    disabled: !orderID,
+    disabled: true,
   });
   const { update } = useEntity<Order, unknown, never, ReorderItemsDto>({
     endpoint: `${Endpoints.ORDERS}/${orderID}/items`,
     transform: (data) => data,
-    disabled: !orderID,
+    disabled: true,
   });
   const { update: updateItemMutation } = useEntity<
     Order,
@@ -34,7 +34,7 @@ export const useOrderItems = ({ orderID }: { orderID: string }) => {
   >({
     endpoint: `${Endpoints.ORDERS}/${orderID}/items`,
     transform: (data) => data,
-    disabled: !orderID,
+    disabled: true,
   });
 
   const saveItemsOrder = useCallback(
