@@ -242,6 +242,21 @@ export const PriceModifiersPage: FC = () => {
         open={editor !== null}
         footer={null}
         width={900}
+        centered
+        styles={{
+          content: {
+            display: 'flex',
+            maxHeight: 'calc(100dvh - 48px)',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          },
+          body: {
+            display: 'flex',
+            flex: '1 1 auto',
+            minHeight: 0,
+            overflow: 'hidden',
+          },
+        }}
         onCancel={closeEditor}
       >
         {editor !== null && (
