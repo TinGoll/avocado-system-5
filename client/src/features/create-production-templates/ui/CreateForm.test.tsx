@@ -157,4 +157,32 @@ describe('CreateForm', () => {
       }),
     );
   });
+
+  it('renders when a modifier has no product templates in the response', () => {
+    mockedUseCreateProductTemplates.mockReturnValue({
+      isMutating: false,
+      trigger,
+      products: [],
+      priceModifiers: [
+        {
+          ...globalModifier,
+          productTemplates: undefined,
+        },
+      ],
+      priceModifiersError: undefined,
+      isLoading: false,
+    } as unknown as ReturnType<typeof useCreateProductTemplates>);
+
+    expect(() => {
+      act(() =>
+        root.render(
+          <AntdApp>
+            <CreateForm />
+          </AntdApp>,
+        ),
+      );
+    }).not.toThrow();
+
+    expect(container.querySelector('form')).not.toBeNull();
+  });
 });

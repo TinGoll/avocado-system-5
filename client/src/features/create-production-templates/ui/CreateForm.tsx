@@ -100,7 +100,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
   const priceModifierOptions = useMemo(
     () =>
       priceModifiers?.map((modifier) => {
-        const isGlobal = modifier.productTemplates.length === 0;
+        const isGlobal = (modifier.productTemplates?.length ?? 0) === 0;
 
         return {
           label: isGlobal ? `${modifier.name} (глобальный)` : modifier.name,
