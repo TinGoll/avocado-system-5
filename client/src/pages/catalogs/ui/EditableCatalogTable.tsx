@@ -1,4 +1,4 @@
-import { EditOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import { css } from '@emotion/css';
 import {
   Alert,
@@ -8,6 +8,7 @@ import {
   Input,
   InputNumber,
   Modal,
+  Popconfirm,
   Select,
   Space,
   Table,
@@ -167,6 +168,7 @@ type Props<T extends CatalogRecord> = {
   error?: unknown;
   headerAction?: ReactNode;
   onUpdate: (id: T['id'], updates: Record<string, unknown>) => Promise<unknown>;
+  onDelete: (id: T['id']) => Promise<unknown>;
   editForm?: {
     render: (form: FormInstance, record: T) => ReactNode;
     getInitialValues: (record: T) => Record<string, unknown>;
@@ -185,11 +187,13 @@ export const EditableCatalogTable = <T extends CatalogRecord>({
   error,
   headerAction,
   onUpdate,
+  onDelete,
   editForm,
 }: Props<T>) => {
   const { message } = App.useApp();
   const [editingCell, setEditingCell] = useState<string>();
   const [editingRecord, setEditingRecord] = useState<T>();
+  const [deletingId, setDeletingId] = useState<T['id']>();
   const [form] = Form.useForm();
 
   const formFields = useMemo(
@@ -265,6 +269,21 @@ export const EditableCatalogTable = <T extends CatalogRecord>({
     }
   };
 
+  const handleDelete = async (record: T) => {
+    setDeletingId(record.id);
+    try {
+      await onDelete(record.id);
+      if (editingRecord?.id === record.id) {
+        setEditingRecord(undefined);
+      }
+      message.success('Запись удалена');
+    } catch {
+      message.error('Не удалось удалить запись');
+    } finally {
+      setDeletingId(undefined);
+    }
+  };
+
   const columns: TableColumnsType<T> = [
     ...fields
       .filter((field) => field.table !== false)
@@ -318,20 +337,44 @@ export const EditableCatalogTable = <T extends CatalogRecord>({
     {
       title: 'Действия',
       key: 'actions',
-      width: 92,
+      width: 112,
       fixed: 'right',
-      render: (_value: unknown, record: T) => (
-        <Button
-          aria-label={`Открыть форму редактирования ${String(
-            getCatalogValue(record, ['name']) ?? record.id,
-          )}`}
-          icon={<EditOutlined />}
-          size="small"
-          title="Расширенное редактирование"
-          type="text"
-          onClick={() => setEditingRecord(record)}
-        />
-      ),
+      render: (_value: unknown, record: T) => {
+        const recordName = String(
+          getCatalogValue(record, ['name']) ?? record.id,
+        );
+
+        return (
+          <Space size={0}>
+            <Button
+              aria-label={`Открыть форму редактирования ${recordName}`}
+              icon={<EditOutlined />}
+              size="small"
+              title="Расширенное редактирование"
+              type="text"
+              onClick={() => setEditingRecord(record)}
+            />
+            <Popconfirm
+              title="Удалить запись?"
+              description={`Запись «${recordName}» будет удалена безвозвратно.`}
+              okText="Удалить"
+              cancelText="Отмена"
+              okButtonProps={{ danger: true }}
+              onConfirm={() => handleDelete(record)}
+            >
+              <Button
+                aria-label={`Удалить ${recordName}`}
+                danger
+                icon={<DeleteOutlined />}
+                loading={deletingId === record.id}
+                size="small"
+                title="Удалить"
+                type="text"
+              />
+            </Popconfirm>
+          </Space>
+        );
+      },
     },
   ];
 

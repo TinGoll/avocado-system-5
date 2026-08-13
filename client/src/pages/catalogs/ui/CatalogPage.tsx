@@ -322,7 +322,7 @@ const CustomerCreateButton: FC = () => {
 };
 
 const CustomersCatalog: FC = () => {
-  const { customers, update, isLoading, error } = useCustomers();
+  const { customers, update, remove, isLoading, error } = useCustomers();
   return (
     <EditableCatalogTable
       title="Клиенты"
@@ -333,12 +333,13 @@ const CustomersCatalog: FC = () => {
       error={error}
       headerAction={<CustomerCreateButton />}
       onUpdate={update.trigger}
+      onDelete={remove.trigger}
     />
   );
 };
 
 const MaterialsCatalog: FC = () => {
-  const { data, update, isLoading, error } = useMaterials();
+  const { data, update, remove, isLoading, error } = useMaterials();
   return (
     <EditableCatalogTable
       title="Материалы"
@@ -353,12 +354,13 @@ const MaterialsCatalog: FC = () => {
         </CreateMaterialButton>
       }
       onUpdate={update.trigger}
+      onDelete={remove.trigger}
     />
   );
 };
 
 const ColorsCatalog: FC = () => {
-  const { data, update, isLoading, error } = useColors();
+  const { data, update, remove, isLoading, error } = useColors();
   return (
     <EditableCatalogTable
       title="Красители"
@@ -373,12 +375,13 @@ const ColorsCatalog: FC = () => {
         </CreateColorButton>
       }
       onUpdate={update.trigger}
+      onDelete={remove.trigger}
     />
   );
 };
 
 const FacadePanelsCatalog: FC = () => {
-  const { data, update, isLoading, error } = useFacadePanels();
+  const { data, update, remove, isLoading, error } = useFacadePanels();
   return (
     <EditableCatalogTable
       title="Филёнки"
@@ -393,12 +396,13 @@ const FacadePanelsCatalog: FC = () => {
         </CreateFacadePanelButton>
       }
       onUpdate={update.trigger}
+      onDelete={remove.trigger}
     />
   );
 };
 
 const FacadeProfilesCatalog: FC = () => {
-  const { data, update, isLoading, error } = useFacadeProfiles();
+  const { data, update, remove, isLoading, error } = useFacadeProfiles();
   return (
     <EditableCatalogTable
       title="Фасадные профили"
@@ -413,12 +417,13 @@ const FacadeProfilesCatalog: FC = () => {
         </CreateFacadeProfileButton>
       }
       onUpdate={update.trigger}
+      onDelete={remove.trigger}
     />
   );
 };
 
 const PatinasCatalog: FC = () => {
-  const { data, update, isLoading, error } = usePatinas();
+  const { data, update, remove, isLoading, error } = usePatinas();
   return (
     <EditableCatalogTable
       title="Патины"
@@ -433,12 +438,13 @@ const PatinasCatalog: FC = () => {
         </CreatePatinaButton>
       }
       onUpdate={update.trigger}
+      onDelete={remove.trigger}
     />
   );
 };
 
 const VarnishesCatalog: FC = () => {
-  const { data, update, isLoading, error } = useVarnishes();
+  const { data, update, remove, isLoading, error } = useVarnishes();
   return (
     <EditableCatalogTable
       title="Лаки"
@@ -453,12 +459,13 @@ const VarnishesCatalog: FC = () => {
         </CreateVarnishButton>
       }
       onUpdate={update.trigger}
+      onDelete={remove.trigger}
     />
   );
 };
 
 const ProductionOperationsCatalog: FC = () => {
-  const { data, update, isLoading, error } = useProductionOperations();
+  const { data, update, remove, isLoading, error } = useProductionOperations();
   return (
     <EditableCatalogTable
       title="Производственные работы"
@@ -473,12 +480,13 @@ const ProductionOperationsCatalog: FC = () => {
         </CreateProductionOperationButton>
       }
       onUpdate={update.trigger}
+      onDelete={remove.trigger}
     />
   );
 };
 
 const ProductsCatalog: FC = () => {
-  const { data, update, isLoading, error } = useProductTemplates();
+  const { data, update, remove, isLoading, error } = useProductTemplates();
   const products = data?.products ?? [];
   return (
     <EditableCatalogTable
@@ -494,6 +502,7 @@ const ProductsCatalog: FC = () => {
         </CreateProductTemplatesButton>
       }
       onUpdate={update.trigger}
+      onDelete={remove.trigger}
       editForm={{
         render: (_form, record) => (
           <ProductTemplateEditForm
