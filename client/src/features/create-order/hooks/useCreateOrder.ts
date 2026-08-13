@@ -1,5 +1,4 @@
 import {
-  ORDER_STATUS,
   useOrderGroupMutations,
   useOrdersMutations,
   useOrderStore,
@@ -26,7 +25,6 @@ export const useCreateOrder = () => {
       const group = await createGroup.trigger({
         customer: formValues.customer,
         startedAt: formValues.startedAt,
-        status: ORDER_STATUS.DRAFT,
         orderNumber: formValues.orderNumber,
       });
 

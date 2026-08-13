@@ -5,7 +5,6 @@ import type { OrderGroup } from '../model/order';
 type OrderGroupCreateDTO = {
   orderNumber: string;
   customer: OrderGroup['customer'];
-  status: OrderGroup['status'];
   startedAt?: Date;
 };
 
