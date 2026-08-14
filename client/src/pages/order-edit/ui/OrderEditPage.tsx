@@ -1,4 +1,4 @@
-import { PlayCircleOutlined } from '@ant-design/icons';
+import { PlayCircleOutlined, PrinterOutlined } from '@ant-design/icons';
 import { css } from '@emotion/css';
 import { App, Breadcrumb, Button, Tag } from 'antd';
 import type { FC } from 'react';
@@ -33,6 +33,24 @@ const styles = {
     display: flex;
     align-items: center;
     gap: 8px;
+  `,
+  orderGroupPanel: css`
+    border: 1px solid var(--app-devider-color);
+    border-radius: 6px;
+    margin-bottom: 8px;
+  `,
+  orderGroupToolbar: css`
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 8px;
+    border-bottom: 1px solid var(--app-devider-color);
+    border-radius: 5px 5px 0 0;
+    background: var(--app-body-2-background-color);
+  `,
+  orderGroupFields: css`
+    padding: 8px 8px 0;
   `,
 };
 
@@ -74,19 +92,32 @@ const OrderEditPage: FC = () => {
               {orderStatusLabels[currentGroup.status]}
             </Tag>
           )}
+        </div>
+      </div>
+      <div className={styles.orderGroupPanel}>
+        <div className={styles.orderGroupToolbar}>
+          <Button
+            size="small"
+            icon={<PrinterOutlined />}
+            onClick={() => window.print()}
+          >
+            Печать
+          </Button>
           {currentGroup?.status === ORDER_STATUS.DRAFT && (
             <Button
+              size="small"
               icon={<PlayCircleOutlined />}
               loading={update.isMutating}
               onClick={startProduction}
-              type="primary"
             >
               В работу
             </Button>
           )}
         </div>
+        <div className={styles.orderGroupFields}>
+          <EditGroupFields />
+        </div>
       </div>
-      <EditGroupFields />
       <EditOrderWidget />
     </div>
   );
