@@ -39,7 +39,7 @@ export const CreateForm: FC<Props> = ({ onCreated, onCancel }) => {
     }).then((data) => {
       onCreated?.(data);
       notification.success({
-        message: 'Цвет успешно добавлен',
+        title: 'Цвет успешно добавлен',
       });
       form.resetFields();
     });

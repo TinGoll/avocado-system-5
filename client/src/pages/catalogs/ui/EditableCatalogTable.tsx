@@ -395,7 +395,7 @@ export const EditableCatalogTable = <T extends CatalogRecord>({
       {error ? (
         <Alert
           type="error"
-          message={`Не удалось загрузить справочник «${title}»`}
+          title={`Не удалось загрузить справочник «${title}»`}
           description="Обновите страницу или попробуйте позже."
           showIcon
         />
@@ -424,7 +424,7 @@ export const EditableCatalogTable = <T extends CatalogRecord>({
         width={720}
         centered
         styles={{
-          content: {
+          container: {
             display: 'flex',
             maxHeight: 'calc(100dvh - 48px)',
             flexDirection: 'column',

@@ -89,7 +89,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
     }).then((data) => {
       onCreated?.(data);
       notification.success({
-        message: 'Фасадный профиль успешно добавлен',
+        title: 'Фасадный профиль успешно добавлен',
       });
       form.resetFields();
     });

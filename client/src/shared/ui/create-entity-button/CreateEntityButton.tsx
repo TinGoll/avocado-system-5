@@ -43,7 +43,7 @@ export const CreateEntityButton = <T,>({
         footer={null}
         centered
         styles={{
-          content: {
+          container: {
             display: 'flex',
             maxHeight: 'calc(100dvh - 48px)',
             flexDirection: 'column',

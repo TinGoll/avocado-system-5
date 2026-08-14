@@ -69,7 +69,7 @@ export const EditOrderFields: FC<Props> = ({
     return (
       <Alert
         className={styles.alert}
-        message="Этот заказ пустой"
+        title="Этот заказ пустой"
         description="Ты можешь создать новый документ в панели заказа"
         type="info"
         showIcon

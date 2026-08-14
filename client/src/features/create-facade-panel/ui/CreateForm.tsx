@@ -78,7 +78,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
     }).then((data) => {
       onCreated?.(data);
       notification.success({
-        message: 'Филёнка успешно добавлена',
+        title: 'Филёнка успешно добавлена',
       });
       form.resetFields();
     });

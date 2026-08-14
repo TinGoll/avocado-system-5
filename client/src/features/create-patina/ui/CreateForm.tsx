@@ -51,7 +51,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
     }).then((data) => {
       onCreated?.(data);
       notification.success({
-        message: 'Патина успешно добавлена',
+        title: 'Патина успешно добавлена',
       });
       form.resetFields();
     });

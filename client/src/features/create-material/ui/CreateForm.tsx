@@ -56,7 +56,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
     }).then((data) => {
       onCreated?.(data);
       notification.success({
-        message: 'Материал успешно добавлен',
+        title: 'Материал успешно добавлен',
       });
       form.resetFields();
     });

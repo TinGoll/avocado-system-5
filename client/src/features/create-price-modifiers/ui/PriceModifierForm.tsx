@@ -120,9 +120,9 @@ export const PriceModifierForm: FC<Props> = ({
   return (
     <div className={styles.form}>
       <div className={styles.content}>
-        <Divider orientation="left">Основные параметры</Divider>
+        <Divider titlePlacement="left">Основные параметры</Divider>
 
-        <Space direction="vertical" style={{ width: '100%' }}>
+        <Space orientation="vertical" style={{ width: '100%' }}>
           <label>Название</label>
           <Input
             placeholder="Например: Скидка при сумме > 1000"
@@ -162,7 +162,7 @@ export const PriceModifierForm: FC<Props> = ({
           />
         </Space>
 
-        <Divider orientation="left">Условия применения</Divider>
+        <Divider titlePlacement="left">Условия применения</Divider>
 
         {(isSchemasLoading || isModifiersLoading) && (
           <Spin aria-label="Загрузка модификаторов" />
@@ -170,16 +170,16 @@ export const PriceModifierForm: FC<Props> = ({
         {schemasError && (
           <Alert
             type="error"
-            message="Не удалось загрузить разрешённые поля условий"
+            title="Не удалось загрузить разрешённые поля условий"
           />
         )}
         {schemas && (
           <ConditionBuilder name={['conditions']} schemas={schemas} />
         )}
 
-        <Divider orientation="left">Область действия</Divider>
+        <Divider titlePlacement="left">Область действия</Divider>
 
-        <Space direction="vertical" style={{ width: '100%' }}>
+        <Space orientation="vertical" style={{ width: '100%' }}>
           <label htmlFor="price-modifier-product-templates">
             Шаблоны продуктов
           </label>
@@ -214,15 +214,15 @@ export const PriceModifierForm: FC<Props> = ({
           {productTemplatesError && (
             <Alert
               type="error"
-              message="Не удалось загрузить шаблоны продуктов"
+              title="Не удалось загрузить шаблоны продуктов"
               showIcon
             />
           )}
         </Space>
 
-        {saveError && <Alert type="error" message={saveError} showIcon />}
+        {saveError && <Alert type="error" title={saveError} showIcon />}
         {isSaved && (
-          <Alert type="success" message="Модификатор сохранён" showIcon />
+          <Alert type="success" title="Модификатор сохранён" showIcon />
         )}
       </div>
 

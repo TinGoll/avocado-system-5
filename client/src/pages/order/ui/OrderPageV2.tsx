@@ -228,7 +228,7 @@ const OrderPage: FC = () => {
       {documentsError && documents.length > 0 && (
         <Alert
           className={styles.alert}
-          message="Названия документов временно недоступны"
+          title="Названия документов временно недоступны"
           description="Документы можно просматривать по порядковым номерам."
           showIcon
           type="warning"
@@ -251,7 +251,7 @@ const OrderPage: FC = () => {
                 </div>
               ) : orderError || !order ? (
                 <Alert
-                  message="Не удалось загрузить документ"
+                  title="Не удалось загрузить документ"
                   description="Обновите страницу или попробуйте выбрать документ ещё раз."
                   showIcon
                   type="error"

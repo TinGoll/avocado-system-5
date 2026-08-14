@@ -112,10 +112,9 @@ describe('CreateForm', () => {
     const nameInput = container.querySelector<HTMLInputElement>(
       '#create_product_template_form_name',
     );
-    const modifierSelector = container
-      .querySelector<HTMLElement>('[aria-label="Ценовые модификаторы"]')
-      ?.closest('.ant-select')
-      ?.querySelector<HTMLElement>('.ant-select-selector');
+    const modifierSelector = container.querySelector<HTMLElement>(
+      '[aria-label="Ценовые модификаторы"]',
+    );
     if (!nameInput || !modifierSelector) {
       throw new Error('Create product form controls not found');
     }

@@ -1,5 +1,3 @@
-import '@ant-design/v5-patch-for-react-19';
-
 import { ConfigProvider, theme } from 'antd';
 import { App as AntApp } from 'antd';
 import ruRU from 'antd/locale/ru_RU';

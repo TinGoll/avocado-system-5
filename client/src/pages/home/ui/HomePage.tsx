@@ -156,7 +156,7 @@ export const HomePage: FC = () => {
       </Typography.Title>
       {error ? (
         <Alert
-          message="Не удалось загрузить список заказов"
+          title="Не удалось загрузить список заказов"
           description="Обновите страницу или попробуйте позже."
           type="error"
           showIcon

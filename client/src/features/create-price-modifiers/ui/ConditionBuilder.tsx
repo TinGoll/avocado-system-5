@@ -164,7 +164,7 @@ export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({
       }
     >
       {isGroup && groupType && (
-        <Space direction="vertical" style={{ width: '100%' }}>
+        <Space orientation="vertical" style={{ width: '100%' }}>
           <Space align="center" style={{ marginBottom: 12 }}>
             <span style={{ marginRight: 8 }}>Логика группы:</span>
             <Segmented
@@ -212,7 +212,7 @@ export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({
       )}
 
       {!isGroup && (
-        <Space direction="vertical" style={{ width: '100%' }}>
+        <Space orientation="vertical" style={{ width: '100%' }}>
           <label>Источник</label>
           <Select
             value={(condition as LeafCondition).source}

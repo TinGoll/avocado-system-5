@@ -260,7 +260,7 @@ export const OrderItemsList: FC<Props> = ({ orderID }) => {
     try {
       await updateItem(itemID, updates);
     } catch {
-      notification.error({ message: 'Не удалось изменить элемент заказа' });
+      notification.error({ title: 'Не удалось изменить элемент заказа' });
     }
   };
 
@@ -272,7 +272,7 @@ export const OrderItemsList: FC<Props> = ({ orderID }) => {
       await updateItem(itemID, updates);
       setEditingItem(undefined);
     } catch {
-      notification.error({ message: 'Не удалось изменить элемент заказа' });
+      notification.error({ title: 'Не удалось изменить элемент заказа' });
     }
   };
 
@@ -280,7 +280,7 @@ export const OrderItemsList: FC<Props> = ({ orderID }) => {
     try {
       await removeItem(itemID);
     } catch {
-      notification.error({ message: 'Не удалось удалить элемент заказа' });
+      notification.error({ title: 'Не удалось удалить элемент заказа' });
     }
   };
 
@@ -288,7 +288,7 @@ export const OrderItemsList: FC<Props> = ({ orderID }) => {
     try {
       await moveItem(itemID, offset);
     } catch {
-      notification.error({ message: 'Не удалось изменить порядок элементов' });
+      notification.error({ title: 'Не удалось изменить порядок элементов' });
     }
   };
 
@@ -345,7 +345,7 @@ export const OrderItemsList: FC<Props> = ({ orderID }) => {
     try {
       await moveItemTo(itemID, targetItemID);
     } catch {
-      notification.error({ message: 'Не удалось изменить порядок элементов' });
+      notification.error({ title: 'Не удалось изменить порядок элементов' });
     }
   };
 

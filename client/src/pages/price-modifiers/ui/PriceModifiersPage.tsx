@@ -220,7 +220,7 @@ export const PriceModifiersPage: FC = () => {
       {error ? (
         <Alert
           type="error"
-          message="Не удалось загрузить ценовые модификаторы"
+          title="Не удалось загрузить ценовые модификаторы"
           description="Обновите страницу или попробуйте позже."
           showIcon
         />
@@ -244,7 +244,7 @@ export const PriceModifiersPage: FC = () => {
         width={900}
         centered
         styles={{
-          content: {
+          container: {
             display: 'flex',
             maxHeight: 'calc(100dvh - 48px)',
             flexDirection: 'column',

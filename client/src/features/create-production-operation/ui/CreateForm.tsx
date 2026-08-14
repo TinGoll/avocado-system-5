@@ -61,7 +61,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
     }).then((data) => {
       onCreated?.(data);
       notification.success({
-        message: 'Новая работа успешно добавлена',
+        title: 'Новая работа успешно добавлена',
       });
       form.resetFields();
     });

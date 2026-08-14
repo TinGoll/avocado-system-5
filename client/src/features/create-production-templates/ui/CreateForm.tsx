@@ -126,7 +126,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
       },
     }).then((template) => {
       onCreated?.(template);
-      notification.success({ message: 'Номенклатура успешно добавлена' });
+      notification.success({ title: 'Номенклатура успешно добавлена' });
       form.resetFields();
     });
   };
@@ -282,7 +282,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
           {priceModifiersError && (
             <Alert
               type="error"
-              message="Не удалось загрузить ценовые модификаторы"
+              title="Не удалось загрузить ценовые модификаторы"
               showIcon
             />
           )}

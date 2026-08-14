@@ -143,7 +143,7 @@ export const AddOrderItemForm: FC<Props> = ({
       });
       focusAndSelectNomenclature();
     } catch {
-      notification.error({ message: 'Не удалось добавить элемент заказа' });
+      notification.error({ title: 'Не удалось добавить элемент заказа' });
     }
   };
 

@@ -51,7 +51,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
     }).then((data) => {
       onCreated?.(data);
       notification.success({
-        message: 'Лак успешно добавлена',
+        title: 'Лак успешно добавлена',
       });
       form.resetFields();
     });
