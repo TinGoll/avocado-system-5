@@ -215,7 +215,11 @@ describe('MSW API mocks', () => {
     const body = (await response.json()) as { items: { id: string }[] };
 
     expect(body.items).toEqual([
-      { id: 'aa000000-0000-4000-8000-000000000001', name: 'Документ 1' },
+      {
+        id: 'aa000000-0000-4000-8000-000000000001',
+        name: 'Документ 1',
+        totalPrice: 8500,
+      },
     ]);
   });
 
