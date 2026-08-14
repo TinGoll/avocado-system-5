@@ -17,7 +17,8 @@ import { type FC, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 
 import {
-  type OrderStatus,
+  orderStatusColors,
+  orderStatusLabels,
   useOrderByIDWithItems,
   useOrderGroupByIDWithOrderIDs,
 } from '@entities/order';
@@ -25,7 +26,7 @@ import { DATE_DEFAULT_FORMAT, useCurrentOrderGroupID } from '@shared/lib';
 import { NotFound, ServerError } from '@shared/ui';
 
 import { useOrderDocuments } from '../api/useOrderDocuments';
-import { formatCurrency, orderStatusLabels } from '../model/orderInvoice';
+import { formatCurrency } from '../model/orderInvoice';
 
 import { OrderDocumentView } from './OrderDocumentView';
 
@@ -95,13 +96,6 @@ const styles = {
   empty: css`
     padding: 40px 16px;
   `,
-};
-
-const statusColors: Record<OrderStatus, string> = {
-  draft: 'default',
-  in_production: 'processing',
-  completed: 'success',
-  cancelled: 'error',
 };
 
 const hasHttpStatus = (error: Error, status: number): boolean =>
@@ -187,7 +181,7 @@ const OrderPage: FC = () => {
       <div className={styles.groupHeader}>
         <div className={styles.groupTitle}>
           <div>
-            <Tag color={statusColors[group.status]}>
+            <Tag color={orderStatusColors[group.status]}>
               {orderStatusLabels[group.status]}
             </Tag>
           </div>

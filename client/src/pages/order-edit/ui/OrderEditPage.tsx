@@ -1,11 +1,13 @@
 import { PlayCircleOutlined } from '@ant-design/icons';
 import { css } from '@emotion/css';
-import { App, Breadcrumb, Button } from 'antd';
+import { App, Breadcrumb, Button, Tag } from 'antd';
 import type { FC } from 'react';
 import { Link, useNavigate } from 'react-router';
 
 import {
   ORDER_STATUS,
+  orderStatusColors,
+  orderStatusLabels,
   useOrderGroupMutations,
   useOrderStore,
 } from '@entities/order';
@@ -26,6 +28,11 @@ const styles = {
     justify-content: space-between;
     gap: 12px;
     margin-bottom: 16px;
+  `,
+  actions: css`
+    display: flex;
+    align-items: center;
+    gap: 8px;
   `,
 };
 
@@ -61,16 +68,23 @@ const OrderEditPage: FC = () => {
             { title: `Заказ №${groupID}` },
           ]}
         />
-        {currentGroup?.status === ORDER_STATUS.DRAFT && (
-          <Button
-            icon={<PlayCircleOutlined />}
-            loading={update.isMutating}
-            onClick={startProduction}
-            type="primary"
-          >
-            В работу
-          </Button>
-        )}
+        <div className={styles.actions}>
+          {currentGroup && (
+            <Tag color={orderStatusColors[currentGroup.status]}>
+              {orderStatusLabels[currentGroup.status]}
+            </Tag>
+          )}
+          {currentGroup?.status === ORDER_STATUS.DRAFT && (
+            <Button
+              icon={<PlayCircleOutlined />}
+              loading={update.isMutating}
+              onClick={startProduction}
+              type="primary"
+            >
+              В работу
+            </Button>
+          )}
+        </div>
       </div>
       <EditGroupFields />
       <EditOrderWidget />

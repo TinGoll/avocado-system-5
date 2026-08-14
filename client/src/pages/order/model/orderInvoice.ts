@@ -3,13 +3,6 @@ import {
   type CustomerPricingMethod,
 } from '@shared/lib/swr';
 
-export const orderStatusLabels = {
-  draft: 'Черновик',
-  in_production: 'В производстве',
-  completed: 'Завершён',
-  cancelled: 'Отменён',
-} as const;
-
 export const pricingMethodLabels: Record<CustomerPricingMethod, string> = {
   [CUSTOMER_PRICING_METHOD.PER_ITEM]: 'шт.',
   [CUSTOMER_PRICING_METHOD.LINEAR_METER]: 'пог. м',
