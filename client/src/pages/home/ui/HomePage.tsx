@@ -4,7 +4,12 @@ import dayjs from 'dayjs';
 import type { FC } from 'react';
 import { Link, useNavigate } from 'react-router';
 
-import { useOrderGroups, type Order, type OrderGroup } from '@entities/order';
+import {
+  ORDER_STATUS,
+  useOrderGroups,
+  type Order,
+  type OrderGroup,
+} from '@entities/order';
 import { DATE_DEFAULT_FORMAT } from '@shared/lib';
 
 const pageStyles = css`
@@ -33,7 +38,10 @@ const formatPrice = (price: number): string =>
 const formatDate = (date?: Date): string =>
   date ? dayjs(date).format(DATE_DEFAULT_FORMAT) : '—';
 
-const getOrderPath = (groupId: number): string => `/order/${groupId}`;
+const getOrderPath = (group: OrderGroup): string =>
+  group.status === ORDER_STATUS.DRAFT
+    ? `/order/${group.id}/editing`
+    : `/order/${group.id}`;
 
 const documentColumns: TableColumnsType<Order> = [
   {
@@ -98,7 +106,7 @@ const orderColumns: TableColumnsType<OrderGroup> = [
     title: 'Номер заказа',
     dataIndex: 'orderNumber',
     render: (orderNumber: string, group) => (
-      <Link to={getOrderPath(group.id)}>{orderNumber}</Link>
+      <Link to={getOrderPath(group)}>{orderNumber}</Link>
     ),
   },
   {
@@ -166,7 +174,7 @@ export const HomePage: FC = () => {
               const target = event.target as HTMLElement;
               if (target.closest('a, button')) return;
 
-              navigate(getOrderPath(group.id));
+              navigate(getOrderPath(group));
             },
             style: { cursor: 'pointer' },
           })}
