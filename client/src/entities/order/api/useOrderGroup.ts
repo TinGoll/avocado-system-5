@@ -8,6 +8,10 @@ type OrderGroupCreateDTO = {
   startedAt?: Date;
 };
 
+type OrderGroupUpdateDTO = Partial<OrderGroupCreateDTO> & {
+  status?: OrderGroup['status'];
+};
+
 type Responce = {
   groups: OrderGroup[];
   meta?: Record<string, unknown>;
@@ -25,7 +29,12 @@ export const useOrderGroups = () => {
 };
 
 export const useOrderGroupMutations = () => {
-  return useEntity<OrderGroup, Responce, OrderGroupCreateDTO>({
+  return useEntity<
+    OrderGroup,
+    Responce,
+    OrderGroupCreateDTO,
+    OrderGroupUpdateDTO
+  >({
     endpoint: Endpoints.ORDER_GROUPS,
     disabled: true,
     extraKeysToRevalidate: ['with-order-ids'],
