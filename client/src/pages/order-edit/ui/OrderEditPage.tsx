@@ -88,7 +88,7 @@ const OrderEditPage: FC = () => {
         />
         <div className={styles.actions}>
           {currentGroup && (
-            <Tag color={orderStatusColors[currentGroup.status]}>
+            <Tag variant='outlined' color={orderStatusColors[currentGroup.status]}>
               {orderStatusLabels[currentGroup.status]}
             </Tag>
           )}

@@ -181,7 +181,7 @@ const OrderPage: FC = () => {
       <div className={styles.groupHeader}>
         <div className={styles.groupTitle}>
           <div>
-            <Tag color={orderStatusColors[group.status]}>
+            <Tag variant='outlined' color={orderStatusColors[group.status]}>
               {orderStatusLabels[group.status]}
             </Tag>
           </div>
