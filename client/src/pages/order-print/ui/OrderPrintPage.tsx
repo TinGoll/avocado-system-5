@@ -16,6 +16,8 @@ import { useCurrentOrderGroupID } from '@shared/lib';
 import { fetcher } from '@shared/lib/swr';
 import { NotFound, ServerError } from '@shared/ui';
 
+import { CustomerOrderPrintForm } from './CustomerOrderPrintForm';
+
 const styles = {
   page: css`
     min-height: 100%;
@@ -188,10 +190,7 @@ const OrderPrintPage: FC = () => {
       key: 'customer',
       label: 'Бланк для заказчика',
       children: (
-        <PrintDocument
-          title="Бланк для заказчика"
-          data={{ order: group, documents: orders ?? [] }}
-        />
+        <CustomerOrderPrintForm order={group} documents={orders ?? []} />
       ),
     },
     ...operations.map((operation) => ({
