@@ -9,6 +9,7 @@ import {
 type OrderGroupCreateDTO = {
   orderNumber: string;
   customer: OrderGroup['customer'];
+  comment?: OrderGroup['comment'];
   startedAt?: Date;
   characteristics: Order['characteristics'];
 };
@@ -26,6 +27,7 @@ export const useCreateOrder = () => {
         customer: formValues.customer,
         startedAt: formValues.startedAt,
         orderNumber: formValues.orderNumber,
+        comment: formValues.comment,
       });
 
       const order = await createOrder.trigger({

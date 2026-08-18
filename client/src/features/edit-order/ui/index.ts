@@ -1,4 +1,5 @@
 export * from './ColorField';
+export * from './CommentField';
 export * from './FacadePanelField';
 export * from './FacadeProfileField';
 export * from './MaterialField';

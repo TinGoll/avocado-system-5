@@ -18,4 +18,8 @@ export class CreateOrderGroupDto {
   @IsObject()
   @IsOptional()
   customer?: object;
+
+  @IsString()
+  @IsOptional()
+  comment?: string;
 }

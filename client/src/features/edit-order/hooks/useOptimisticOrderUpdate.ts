@@ -25,8 +25,15 @@ export const useOptimisticOrderUpdate = () => {
 
       try {
         const updatedOrder = await trigger(currentOrder.id, updates);
-        setCurrentOrder(updatedOrder);
-        return updatedOrder;
+        const mergedOrder = {
+          ...optimisticOrder,
+          ...updatedOrder,
+          characteristics:
+            updatedOrder.characteristics ?? optimisticOrder.characteristics,
+          items: updatedOrder.items ?? optimisticOrder.items,
+        };
+        setCurrentOrder(mergedOrder);
+        return mergedOrder;
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error('Ошибка при обновлении заказа', err);

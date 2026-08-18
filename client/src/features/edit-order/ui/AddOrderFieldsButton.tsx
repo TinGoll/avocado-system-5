@@ -21,7 +21,7 @@ export const AddOrderFieldsButton: FC = () => {
 
   const missingFields = Object.entries(fieldLabels).filter(
     ([key]) =>
-      currentOrder?.characteristics[key as keyof OrderCharacteristics] ===
+      currentOrder?.characteristics?.[key as keyof OrderCharacteristics] ===
       undefined,
   );
 

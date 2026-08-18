@@ -17,6 +17,7 @@ import {
   FacadePanelField,
   VarnishField,
   PatinaField,
+  CommentField,
 } from './ui';
 
 const styles = {
@@ -89,6 +90,7 @@ export const EditOrderFields: FC<Props> = ({
       <FacadePanelField renderCreateAction={renderCreateFacadePanel} />
       <VarnishField renderCreateAction={renderCreateVarnish} />
       <PatinaField renderCreateAction={renderCreatePatina} />
+      <CommentField />
     </div>
   );
 };

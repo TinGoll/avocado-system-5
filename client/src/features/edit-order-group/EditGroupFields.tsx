@@ -6,7 +6,12 @@ import { useLoadOrderGroup, useOrderStore } from '@entities/order';
 import { useCopyToClipboard, useCurrentOrderGroupID } from '@shared/lib';
 import { Field, NotFound, ServerError } from '@shared/ui';
 
-import { CustomerField, GroupNameField, StartDateField } from './ui';
+import {
+  CommentField,
+  CustomerField,
+  GroupNameField,
+  StartDateField,
+} from './ui';
 
 const styles = {
   fields: css`
@@ -84,6 +89,7 @@ export const EditGroupFields: FC = () => {
       <GroupNameField />
       <CustomerField />
       <StartDateField />
+      <CommentField />
     </div>
   );
 };

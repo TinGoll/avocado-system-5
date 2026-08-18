@@ -27,6 +27,9 @@ export class Order {
   @Column({ type: 'text', nullable: true })
   name?: string;
 
+  @Column({ type: 'text', nullable: true })
+  comment?: string;
+
   @DatabaseJsonColumn({ defaultEmptyObject: true })
   characteristics: object;
 

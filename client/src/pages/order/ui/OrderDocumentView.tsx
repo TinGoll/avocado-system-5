@@ -36,6 +36,9 @@ const styles = {
   fieldText: css`
     font-size: 14px;
   `,
+  fullWidthField: css`
+    grid-column: 1 / -1;
+  `,
   table: css`
     border: 1px solid var(--app-devider-color);
     border-top: 0;
@@ -180,6 +183,16 @@ export const OrderDocumentView: FC<Props> = ({ order }) => (
         <Field.Value className={styles.fieldValue}>
           <Typography.Text className={styles.fieldText} type="success">
             {characteristicName(order.characteristics.varnish)}
+          </Typography.Text>
+        </Field.Value>
+      </Field>
+      <Field className={styles.fullWidthField}>
+        <Field.Label>
+          <Typography.Text type="secondary">Комментарий</Typography.Text>
+        </Field.Label>
+        <Field.Value className={styles.fieldValue}>
+          <Typography.Text className={styles.fieldText}>
+            {order.comment || '—'}
           </Typography.Text>
         </Field.Value>
       </Field>

@@ -126,6 +126,12 @@ export const CreateOrderForm: FC<Props> = ({ onCancel, onCreated }) => {
       >
         <DatePicker format={{ format: DATE_DEFAULT_FORMAT }} />
       </Form.Item>
+      <Form.Item<FieldType> name="comment" label="Комментарий">
+        <Input.TextArea
+          placeholder="Комментарий к заказу"
+          autoSize={{ minRows: 3, maxRows: 6 }}
+        />
+      </Form.Item>
       <div className={styles.templates}>
         <Form.Item
           name="templateId"

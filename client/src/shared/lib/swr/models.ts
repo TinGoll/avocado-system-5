@@ -189,6 +189,7 @@ export interface OrderGroup {
   id: number;
   orderNumber: string;
   customer: Customer;
+  comment?: string;
   status: OrderStatus;
   startedAt?: Date;
   orderCount: number;
@@ -200,6 +201,7 @@ export interface OrderGroup {
 export interface Order {
   id: string;
   name?: string;
+  comment?: string;
   characteristics: OrderCharacteristics;
   totalPrice: number;
   items: OrderItem[];

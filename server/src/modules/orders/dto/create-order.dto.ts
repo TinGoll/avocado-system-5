@@ -16,6 +16,10 @@ export class CreateOrderDto {
   @IsOptional()
   name?: string;
 
+  @IsString()
+  @IsOptional()
+  comment?: string;
+
   @IsObject()
   @IsOptional()
   characteristics?: object;

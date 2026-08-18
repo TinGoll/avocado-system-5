@@ -27,6 +27,9 @@ export class OrderGroup {
   @DatabaseJsonColumn({ defaultEmptyObject: true })
   customer: Record<string, any>;
 
+  @Column({ type: 'text', nullable: true })
+  comment?: string;
+
   @Column({
     type: 'simple-enum',
     enum: OrderStatus,

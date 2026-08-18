@@ -70,6 +70,7 @@ export class OrdersService {
 
     const copy = this.ordersRepository.create({
       name: name ?? `Копия ${source.name ?? 'документа'}`,
+      comment: source.comment,
       characteristics: structuredClone(source.characteristics),
       totalPrice: source.totalPrice,
       orderGroup: source.orderGroup,

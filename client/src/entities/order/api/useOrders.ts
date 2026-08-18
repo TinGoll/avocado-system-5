@@ -11,6 +11,7 @@ import type { Order } from '../model/order';
 
 type CreateOrderDTO = {
   name?: string;
+  comment?: string;
   characteristics: Order['characteristics'];
   orderGroupId: number;
   items: Array<{

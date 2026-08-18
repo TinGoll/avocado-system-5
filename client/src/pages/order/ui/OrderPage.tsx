@@ -74,6 +74,9 @@ const styles = {
       grid-template-columns: minmax(0, 1fr);
     }
   `,
+  fullWidthField: css`
+    grid-column: 1 / -1;
+  `,
   fieldValue: css`
     cursor: default;
 
@@ -273,6 +276,16 @@ const OrderPage: FC = () => {
             <Field.Value className={styles.fieldValue}>
               <Typography.Text className={styles.fieldText} strong>
                 {formatCurrency(groupTotal)}
+              </Typography.Text>
+            </Field.Value>
+          </Field>
+          <Field className={styles.fullWidthField}>
+            <Field.Label>
+              <Typography.Text type="secondary">Комментарий</Typography.Text>
+            </Field.Label>
+            <Field.Value className={styles.fieldValue}>
+              <Typography.Text className={styles.fieldText}>
+                {group.comment || '—'}
               </Typography.Text>
             </Field.Value>
           </Field>

@@ -9,6 +9,7 @@ import {
 type OrderGroupUpdateDTO = {
   orderNumber?: string;
   customer?: OrderGroup['customer'];
+  comment?: OrderGroup['comment'];
   status?: OrderGroup['status'];
   startedAt?: Date;
 };

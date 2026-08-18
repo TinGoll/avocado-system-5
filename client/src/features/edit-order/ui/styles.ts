@@ -23,4 +23,7 @@ export const styles = {
   title: css`
     font-size: 14px;
   `,
+  fullWidth: css`
+    grid-column: 1 / -1;
+  `,
 };
