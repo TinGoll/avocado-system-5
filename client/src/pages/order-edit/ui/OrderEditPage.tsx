@@ -1,4 +1,8 @@
-import { PlayCircleOutlined, PrinterOutlined } from '@ant-design/icons';
+import {
+  CheckOutlined,
+  PlayCircleOutlined,
+  PrinterOutlined,
+} from '@ant-design/icons';
 import { css } from '@emotion/css';
 import { App, Breadcrumb, Button, Tag } from 'antd';
 import type { FC } from 'react';
@@ -88,7 +92,10 @@ const OrderEditPage: FC = () => {
         />
         <div className={styles.actions}>
           {currentGroup && (
-            <Tag variant='outlined' color={orderStatusColors[currentGroup.status]}>
+            <Tag
+              variant="outlined"
+              color={orderStatusColors[currentGroup.status]}
+            >
               {orderStatusLabels[currentGroup.status]}
             </Tag>
           )}
@@ -111,6 +118,15 @@ const OrderEditPage: FC = () => {
               onClick={startProduction}
             >
               В работу
+            </Button>
+          )}
+          {currentGroup && currentGroup.status !== ORDER_STATUS.DRAFT && (
+            <Button
+              size="small"
+              icon={<CheckOutlined />}
+              onClick={() => navigate(`/order/${currentGroup.id}`)}
+            >
+              Завершить редактирование
             </Button>
           )}
         </div>
