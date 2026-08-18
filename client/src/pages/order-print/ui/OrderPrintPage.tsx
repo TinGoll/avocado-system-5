@@ -21,6 +21,25 @@ const styles = {
     gap: 12px;
     margin-bottom: 16px;
   `,
+  tabs: css`
+    margin-top: 16px;
+
+    && .ant-tabs-nav {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      margin-bottom: 0;
+      background-color: var(--app-body-background-color);
+    }
+
+    && .ant-tabs-body-holder {
+      box-sizing: border-box;
+      padding: 12px;
+      border: 1px solid var(--app-devider-color);
+      border-top: 0;
+      border-radius: 0 0 6px 6px;
+    }
+  `,
   preview: css`
     box-sizing: border-box;
     width: min(210mm, 100%);
@@ -163,9 +182,7 @@ const OrderPrintPage: FC = () => {
           type="info"
         />
       )}
-      <Tabs className={css`
-        margin-top: 16px;
-      `} items={tabs} type="card" />
+      <Tabs className={styles.tabs} items={tabs} type="card" />
     </section>
   );
 };
