@@ -1,4 +1,4 @@
-import { EditOutlined } from '@ant-design/icons';
+import { EditOutlined, PrinterOutlined } from '@ant-design/icons';
 import { css } from '@emotion/css';
 import {
   Alert,
@@ -53,15 +53,27 @@ const styles = {
   `,
   groupHeader: css`
     margin-bottom: 12px;
-    padding: 8px;
     background: var(--app-surface-1-background-color);
     border: 1px solid var(--app-devider-color);
     border-radius: 6px;
   `,
+  groupToolbar: css`
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 8px;
+    border-bottom: 1px solid var(--app-devider-color);
+    border-radius: 5px 5px 0 0;
+    background: var(--app-body-2-background-color);
+  `,
+  groupDetails: css`
+    padding: 8px;
+  `,
   groupTitle: css`
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 12px;
   `,
   groupTotal: css`
@@ -170,51 +182,60 @@ const OrderPage: FC = () => {
           ]}
         />
         <div className={styles.actions}>
-          <Link to={`/order/${group.id}/editing`}>
-            <Button size="small" icon={<EditOutlined />} type="text">
-              Редактировать
-            </Button>
-          </Link>
+          <Tag variant="outlined" color={orderStatusColors[group.status]}>
+            {orderStatusLabels[group.status]}
+          </Tag>
         </div>
       </div>
 
       <div className={styles.groupHeader}>
-        <div className={styles.groupTitle}>
-          <div>
-            <Tag variant='outlined' color={orderStatusColors[group.status]}>
-              {orderStatusLabels[group.status]}
-            </Tag>
-          </div>
-          <div className={styles.groupTotal}>
-            <Typography.Title level={5} style={{ margin: 0 }}>
-              {formatCurrency(groupTotal)}
-            </Typography.Title>
-          </div>
+        <div className={styles.groupToolbar}>
+          <Button
+            size="small"
+            icon={<PrinterOutlined />}
+            onClick={() => window.print()}
+          >
+            Печать
+          </Button>
+          <Link to={`/order/${group.id}/editing`}>
+            <Button size="small" icon={<EditOutlined />}>
+              Редактировать
+            </Button>
+          </Link>
         </div>
-        <Divider size="small" />
-        <Descriptions
-          column={{ xs: 1, sm: 2, lg: 3 }}
-          size="small"
-          items={[
-            {
-              key: 'customer',
-              label: 'Заказчик',
-              children: group.customer?.name || '—',
-            },
-            {
-              key: 'startedAt',
-              label: 'Дата заказа',
-              children: group.startedAt
-                ? dayjs(group.startedAt).format(DATE_DEFAULT_FORMAT)
-                : '—',
-            },
-            {
-              key: 'documents',
-              label: 'Документов',
-              children: documents.length,
-            },
-          ]}
-        />
+        <div className={styles.groupDetails}>
+          <div className={styles.groupTitle}>
+            <div className={styles.groupTotal}>
+              <Typography.Title level={5} style={{ margin: 0 }}>
+                {formatCurrency(groupTotal)}
+              </Typography.Title>
+            </div>
+          </div>
+          <Divider size="small" />
+          <Descriptions
+            column={{ xs: 1, sm: 2, lg: 3 }}
+            size="small"
+            items={[
+              {
+                key: 'customer',
+                label: 'Заказчик',
+                children: group.customer?.name || '—',
+              },
+              {
+                key: 'startedAt',
+                label: 'Дата заказа',
+                children: group.startedAt
+                  ? dayjs(group.startedAt).format(DATE_DEFAULT_FORMAT)
+                  : '—',
+              },
+              {
+                key: 'documents',
+                label: 'Документов',
+                children: documents.length,
+              },
+            ]}
+          />
+        </div>
       </div>
 
       {documentsError && documents.length > 0 && (
