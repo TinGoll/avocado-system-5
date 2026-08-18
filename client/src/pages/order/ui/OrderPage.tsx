@@ -214,19 +214,10 @@ const OrderPage: FC = () => {
         <div className={styles.groupToolbar}>
           {isGroupHeaderCollapsed && (
             <Typography.Text className={styles.groupSummary} strong>
-              Заказ № {group.orderNumber} — {group.customer?.name || '—'}
+              Заказ № {group.orderNumber} — {group.customer?.name || '-'}
             </Typography.Text>
           )}
           <div className={styles.actions}>
-            <Button
-              size="small"
-              icon={isGroupHeaderCollapsed ? <DownOutlined /> : <UpOutlined />}
-              onClick={() =>
-                setIsGroupHeaderCollapsed((isCollapsed) => !isCollapsed)
-              }
-            >
-              {isGroupHeaderCollapsed ? 'Развернуть' : 'Свернуть'}
-            </Button>
             <Button
               size="small"
               icon={<PrinterOutlined />}
@@ -239,6 +230,13 @@ const OrderPage: FC = () => {
                 Редактировать
               </Button>
             </Link>
+            <Button
+              size="small"
+              icon={isGroupHeaderCollapsed ? <DownOutlined /> : <UpOutlined />}
+              onClick={() =>
+                setIsGroupHeaderCollapsed((isCollapsed) => !isCollapsed)
+              }
+            />
           </div>
         </div>
         {!isGroupHeaderCollapsed && (
