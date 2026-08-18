@@ -66,7 +66,7 @@ const styles = {
   `,
   groupDetails: css`
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
     gap: 0 16px;
     padding: 8px 8px 0;
 

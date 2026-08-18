@@ -18,6 +18,7 @@ const styles = {
     grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
     gap: 0 16px;
     padding: 8px;
+    padding-bottom: 0;
     border: 1px solid var(--app-devider-color);
     border-top: 0;
 
