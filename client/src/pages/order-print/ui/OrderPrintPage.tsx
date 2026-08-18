@@ -1,7 +1,13 @@
-import { ArrowLeftOutlined, PrinterOutlined } from '@ant-design/icons';
+import {
+  ArrowLeftOutlined,
+  FilePdfOutlined,
+  PrinterOutlined,
+} from '@ant-design/icons';
 import { css } from '@emotion/css';
-import { Alert, Button, Skeleton, Tabs, Typography } from 'antd';
-import { type FC, useMemo } from 'react';
+import { Alert, Button, message, Skeleton, Tabs } from 'antd';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+import { type FC, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import useSWR from 'swr';
 
@@ -20,6 +26,10 @@ const styles = {
     justify-content: space-between;
     gap: 12px;
     margin-bottom: 16px;
+  `,
+  actions: css`
+    display: flex;
+    gap: 8px;
   `,
   tabs: css`
     margin-top: 16px;
@@ -76,6 +86,8 @@ const PrintDocument: FC<PrintDocumentProps> = ({ title, data }) => (
 
 const OrderPrintPage: FC = () => {
   const navigate = useNavigate();
+  const [messageApi, messageContextHolder] = message.useMessage();
+  const [isExporting, setIsExporting] = useState(false);
   const { groupID } = useCurrentOrderGroupID();
   const {
     data: group,
@@ -128,6 +140,49 @@ const OrderPrintPage: FC = () => {
 
   if (!group || groupError || ordersError) return <ServerError />;
 
+  const exportToPdf = async () => {
+    const documentElement = document.querySelector<HTMLElement>(
+      '[role="tabpanel"][aria-hidden="false"] .order-print-document',
+    );
+
+    if (!documentElement) {
+      messageApi.error('Не удалось найти документ для экспорта');
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      const canvas = await html2canvas(documentElement, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+      });
+      const pdf = new jsPDF({ format: 'a4', unit: 'mm' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imageHeight = (canvas.height * pageWidth) / canvas.width;
+      const image = canvas.toDataURL('image/jpeg', 0.95);
+      const pageCount = Math.max(
+        1,
+        Math.ceil((imageHeight - 0.5) / pageHeight),
+      );
+
+      for (let page = 0; page < pageCount; page += 1) {
+        const offset = page * pageHeight;
+
+        if (page > 0) pdf.addPage();
+        pdf.addImage(image, 'JPEG', 0, -offset, pageWidth, imageHeight);
+      }
+
+      pdf.save(`order-${group.id}.pdf`);
+    } catch {
+      messageApi.error('Не удалось экспортировать документ в PDF');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const tabs = [
     {
       key: 'customer',
@@ -162,17 +217,27 @@ const OrderPrintPage: FC = () => {
 
   return (
     <section className={`${styles.page} order-print-page`}>
+      {messageContextHolder}
       <div className={`${styles.toolbar} order-print-controls`}>
         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
           Вернуться назад
         </Button>
-        <Button
-          icon={<PrinterOutlined />}
-          type="primary"
-          onClick={() => window.print()}
-        >
-          Печать
-        </Button>
+        <div className={styles.actions}>
+          <Button
+            icon={<FilePdfOutlined />}
+            loading={isExporting}
+            onClick={exportToPdf}
+          >
+            Экспорт в PDF
+          </Button>
+          <Button
+            icon={<PrinterOutlined />}
+            type="primary"
+            onClick={() => window.print()}
+          >
+            Печать
+          </Button>
+        </div>
       </div>
       {operations.length === 0 && (
         <Alert
