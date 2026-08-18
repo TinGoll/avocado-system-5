@@ -54,6 +54,51 @@ button:hover {
 }
 
 @media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  body:has(.order-print-document) {
+    width: 210mm;
+    min-width: 0;
+    overflow: visible;
+    background: #ffffff;
+  }
+
+  body:has(.order-print-document) * {
+    visibility: hidden !important;
+    transform: none !important;
+  }
+
+  body:has(.order-print-document) .order-print-document,
+  body:has(.order-print-document) .order-print-document * {
+    visibility: visible !important;
+  }
+
+  body:has(.order-print-document) .ant-tabs,
+  body:has(.order-print-document) .ant-tabs-content-holder,
+  body:has(.order-print-document) .ant-tabs-content,
+  body:has(.order-print-document) .ant-tabs-tabpane {
+    position: static !important;
+    width: auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    transform: none !important;
+  }
+
+  body:has(.order-print-document) .order-print-document {
+    position: fixed;
+    inset: 0;
+    box-sizing: border-box;
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0;
+    overflow: visible;
+    box-shadow: none;
+  }
+
   body:has(.order-invoice-print-area) {
     background: #ffffff;
   }

@@ -106,7 +106,7 @@ const OrderEditPage: FC = () => {
           <Button
             size="small"
             icon={<PrinterOutlined />}
-            onClick={() => window.print()}
+            onClick={() => navigate(`/order/${groupID}/print`)}
           >
             Печать
           </Button>

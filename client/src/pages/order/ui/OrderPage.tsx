@@ -12,7 +12,7 @@ import {
 } from 'antd';
 import dayjs from 'dayjs';
 import { type FC, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 
 import {
   orderStatusColors,
@@ -119,6 +119,7 @@ const hasHttpStatus = (error: Error, status: number): boolean =>
   'status' in error && error.status === status;
 
 const OrderPage: FC = () => {
+  const navigate = useNavigate();
   const { groupID } = useCurrentOrderGroupID();
   const {
     data: group,
@@ -198,7 +199,7 @@ const OrderPage: FC = () => {
           <Button
             size="small"
             icon={<PrinterOutlined />}
-            onClick={() => window.print()}
+            onClick={() => navigate(`/order/${group.id}/print`)}
           >
             Печать
           </Button>

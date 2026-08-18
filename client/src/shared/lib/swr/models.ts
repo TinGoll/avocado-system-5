@@ -95,6 +95,7 @@ export type ProductTemplate = {
   baseCustomerPrice: number;
   attributes: Record<string, string | number | boolean>;
   group?: string;
+  operations?: ProductionOperation[];
 };
 
 export const CALCULATION_METHOD = {
