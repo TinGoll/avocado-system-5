@@ -4,8 +4,6 @@ import {
   Alert,
   Breadcrumb,
   Button,
-  Descriptions,
-  Divider,
   Empty,
   Skeleton,
   Tabs,
@@ -23,7 +21,7 @@ import {
   useOrderGroupByIDWithOrderIDs,
 } from '@entities/order';
 import { DATE_DEFAULT_FORMAT, useCurrentOrderGroupID } from '@shared/lib';
-import { NotFound, ServerError } from '@shared/ui';
+import { Field, NotFound, ServerError } from '@shared/ui';
 
 import { useOrderDocuments } from '../api/useOrderDocuments';
 import { formatCurrency } from '../model/orderInvoice';
@@ -53,7 +51,6 @@ const styles = {
   `,
   groupHeader: css`
     margin-bottom: 12px;
-    background: var(--app-surface-1-background-color);
     border: 1px solid var(--app-devider-color);
     border-radius: 6px;
   `,
@@ -68,16 +65,24 @@ const styles = {
     background: var(--app-body-2-background-color);
   `,
   groupDetails: css`
-    padding: 8px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+    gap: 0 16px;
+    padding: 8px 8px 0;
+
+    @media (max-width: 640px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
   `,
-  groupTitle: css`
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 12px;
+  fieldValue: css`
+    cursor: default;
+
+    &:hover {
+      box-shadow: none;
+    }
   `,
-  groupTotal: css`
-    white-space: nowrap;
+  fieldText: css`
+    font-size: 14px;
   `,
   actions: css`
     display: flex;
@@ -204,37 +209,72 @@ const OrderPage: FC = () => {
           </Link>
         </div>
         <div className={styles.groupDetails}>
-          <div className={styles.groupTitle}>
-            <div className={styles.groupTotal}>
-              <Typography.Title level={5} style={{ margin: 0 }}>
-                {formatCurrency(groupTotal)}
-              </Typography.Title>
-            </div>
-          </div>
-          <Divider size="small" />
-          <Descriptions
-            column={{ xs: 1, sm: 2, lg: 3 }}
-            size="small"
-            items={[
-              {
-                key: 'customer',
-                label: 'Заказчик',
-                children: group.customer?.name || '—',
-              },
-              {
-                key: 'startedAt',
-                label: 'Дата заказа',
-                children: group.startedAt
+          <Field>
+            <Field.Label>
+              <Typography.Text type="secondary">Заказ №</Typography.Text>
+            </Field.Label>
+            <Field.Value className={styles.fieldValue}>
+              <Typography.Text className={styles.fieldText} type="warning">
+                {group.id}
+              </Typography.Text>
+            </Field.Value>
+          </Field>
+          <Field>
+            <Field.Label>
+              <Typography.Text type="secondary">
+                Название заказа
+              </Typography.Text>
+            </Field.Label>
+            <Field.Value className={styles.fieldValue}>
+              <Typography.Text className={styles.fieldText} type="success">
+                {group.orderNumber || '—'}
+              </Typography.Text>
+            </Field.Value>
+          </Field>
+          <Field>
+            <Field.Label>
+              <Typography.Text type="secondary">Заказчик</Typography.Text>
+            </Field.Label>
+            <Field.Value className={styles.fieldValue}>
+              <Typography.Text className={styles.fieldText} type="success">
+                {group.customer?.name || '—'}
+              </Typography.Text>
+            </Field.Value>
+          </Field>
+          <Field>
+            <Field.Label>
+              <Typography.Text type="secondary">
+                Начало производства
+              </Typography.Text>
+            </Field.Label>
+            <Field.Value className={styles.fieldValue}>
+              <Typography.Text className={styles.fieldText} type="success">
+                {group.startedAt
                   ? dayjs(group.startedAt).format(DATE_DEFAULT_FORMAT)
-                  : '—',
-              },
-              {
-                key: 'documents',
-                label: 'Документов',
-                children: documents.length,
-              },
-            ]}
-          />
+                  : '—'}
+              </Typography.Text>
+            </Field.Value>
+          </Field>
+          <Field>
+            <Field.Label>
+              <Typography.Text type="secondary">Документов</Typography.Text>
+            </Field.Label>
+            <Field.Value className={styles.fieldValue}>
+              <Typography.Text className={styles.fieldText}>
+                {documents.length}
+              </Typography.Text>
+            </Field.Value>
+          </Field>
+          <Field>
+            <Field.Label>
+              <Typography.Text type="secondary">Сумма</Typography.Text>
+            </Field.Label>
+            <Field.Value className={styles.fieldValue}>
+              <Typography.Text className={styles.fieldText} strong>
+                {formatCurrency(groupTotal)}
+              </Typography.Text>
+            </Field.Value>
+          </Field>
         </div>
       </div>
 

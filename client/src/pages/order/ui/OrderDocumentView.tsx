@@ -1,21 +1,39 @@
-import { css } from "@emotion/css";
-import { Descriptions, Empty, Table, Typography } from "antd";
-import type { ColumnsType } from "antd/es/table";
-import type { FC } from "react";
+import { css } from '@emotion/css';
+import { Empty, Table, Typography } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import type { FC } from 'react';
 
-import type { Order, OrderItem } from "@entities/order";
+import type { Order, OrderItem } from '@entities/order';
+import { Field } from '@shared/ui';
 
 import {
   formatCurrency,
   formatDimensions,
   pricingMethodLabels,
-} from "../model/orderInvoice";
+} from '../model/orderInvoice';
 
 const styles = {
   characteristics: css`
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: 0 16px;
     padding: 8px;
     border: 1px solid var(--app-devider-color);
     border-top: 0;
+
+    @media (max-width: 640px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  `,
+  fieldValue: css`
+    cursor: default;
+
+    &:hover {
+      box-shadow: none;
+    }
+  `,
+  fieldText: css`
+    font-size: 14px;
   `,
   table: css`
     border: 1px solid var(--app-devider-color);
@@ -42,29 +60,29 @@ const styles = {
 };
 
 const characteristicName = (value?: { name: string }): string =>
-  value?.name || "—";
+  value?.name || '—';
 
 const columns: ColumnsType<OrderItem> = [
   {
-    title: "№",
+    title: '№',
     width: 56,
-    align: "center",
+    align: 'center',
     render: (_, __, index) => index + 1,
   },
   {
-    title: "Наименование",
-    render: (_, item) => item.snapshot?.name || item.template?.name || "—",
+    title: 'Наименование',
+    render: (_, item) => item.snapshot?.name || item.template?.name || '—',
   },
   {
-    title: "Группа",
-    dataIndex: ["template", "group"],
-    align: "center",
-    render: (group?: string) => group || "—",
+    title: 'Группа',
+    dataIndex: ['template', 'group'],
+    align: 'center',
+    render: (group?: string) => group || '—',
   },
   {
-    title: "Размеры",
+    title: 'Размеры',
     width: 180,
-    align: "center",
+    align: 'center',
     render: (_, item) =>
       formatDimensions(
         item.characteristics.width,
@@ -73,29 +91,29 @@ const columns: ColumnsType<OrderItem> = [
       ),
   },
   {
-    title: "Количество",
-    align: "center",
-    dataIndex: "quantity",
+    title: 'Количество',
+    align: 'center',
+    dataIndex: 'quantity',
     width: 120,
   },
   {
-    title: "Единица",
+    title: 'Единица',
     width: 100,
-    align: "center",
+    align: 'center',
     render: (_, item) =>
       pricingMethodLabels[item.snapshot.customerPricingMethod],
   },
   {
-    title: "Сумма",
-    dataIndex: "calculatedCustomerPrice",
+    title: 'Сумма',
+    dataIndex: 'calculatedCustomerPrice',
     width: 140,
-    align: "center",
+    align: 'center',
     render: (price: number) => formatCurrency(price),
   },
   {
-    title: "Комментарий",
-    dataIndex: ["characteristics", "comment"],
-    render: (comment?: string) => comment || "—",
+    title: 'Комментарий',
+    dataIndex: ['characteristics', 'comment'],
+    render: (comment?: string) => comment || '—',
   },
 ];
 
@@ -103,43 +121,68 @@ type Props = { order: Order };
 
 export const OrderDocumentView: FC<Props> = ({ order }) => (
   <div className="order-invoice-print-area">
-    <Descriptions
-      className={styles.characteristics}
-      column={{ xs: 1, sm: 2, lg: 3 }}
-      size="small"
-      items={[
-        {
-          key: "material",
-          label: "Материал",
-          children: characteristicName(order.characteristics.material),
-        },
-        {
-          key: "color",
-          label: "Цвет",
-          children: characteristicName(order.characteristics.color),
-        },
-        {
-          key: "profile",
-          label: "Профиль",
-          children: characteristicName(order.characteristics.profile),
-        },
-        {
-          key: "panel",
-          label: "Филёнка",
-          children: characteristicName(order.characteristics.panel),
-        },
-        {
-          key: "patina",
-          label: "Патина",
-          children: characteristicName(order.characteristics.patina),
-        },
-        {
-          key: "varnish",
-          label: "Лак",
-          children: characteristicName(order.characteristics.varnish),
-        },
-      ]}
-    />
+    <div className={styles.characteristics}>
+      <Field>
+        <Field.Label>
+          <Typography.Text type="secondary">Материал</Typography.Text>
+        </Field.Label>
+        <Field.Value className={styles.fieldValue}>
+          <Typography.Text className={styles.fieldText} type="success">
+            {characteristicName(order.characteristics.material)}
+          </Typography.Text>
+        </Field.Value>
+      </Field>
+      <Field>
+        <Field.Label>
+          <Typography.Text type="secondary">Цвет</Typography.Text>
+        </Field.Label>
+        <Field.Value className={styles.fieldValue}>
+          <Typography.Text className={styles.fieldText} type="success">
+            {characteristicName(order.characteristics.color)}
+          </Typography.Text>
+        </Field.Value>
+      </Field>
+      <Field>
+        <Field.Label>
+          <Typography.Text type="secondary">Профиль</Typography.Text>
+        </Field.Label>
+        <Field.Value className={styles.fieldValue}>
+          <Typography.Text className={styles.fieldText} type="success">
+            {characteristicName(order.characteristics.profile)}
+          </Typography.Text>
+        </Field.Value>
+      </Field>
+      <Field>
+        <Field.Label>
+          <Typography.Text type="secondary">Филёнка</Typography.Text>
+        </Field.Label>
+        <Field.Value className={styles.fieldValue}>
+          <Typography.Text className={styles.fieldText} type="success">
+            {characteristicName(order.characteristics.panel)}
+          </Typography.Text>
+        </Field.Value>
+      </Field>
+      <Field>
+        <Field.Label>
+          <Typography.Text type="secondary">Патина</Typography.Text>
+        </Field.Label>
+        <Field.Value className={styles.fieldValue}>
+          <Typography.Text className={styles.fieldText} type="success">
+            {characteristicName(order.characteristics.patina)}
+          </Typography.Text>
+        </Field.Value>
+      </Field>
+      <Field>
+        <Field.Label>
+          <Typography.Text type="secondary">Лак</Typography.Text>
+        </Field.Label>
+        <Field.Value className={styles.fieldValue}>
+          <Typography.Text className={styles.fieldText} type="success">
+            {characteristicName(order.characteristics.varnish)}
+          </Typography.Text>
+        </Field.Value>
+      </Field>
+    </div>
     <div className={styles.table}>
       <Table
         rowKey="id"
