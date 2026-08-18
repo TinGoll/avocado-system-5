@@ -45,7 +45,7 @@ const styles = {
     width: min(210mm, 100%);
     min-height: 297mm;
     margin: 0 auto;
-    padding: 20mm;
+    padding: 10mm;
     overflow: auto;
     color: #111;
     background: #fff;
@@ -69,7 +69,7 @@ type PrintDocumentProps = {
 
 const PrintDocument: FC<PrintDocumentProps> = ({ title, data }) => (
   <article className={`${styles.preview} order-print-document`}>
-    <Typography.Title level={2}>{title}</Typography.Title>
+    <h3>{title}</h3>
     <pre className={styles.data}>{JSON.stringify(data, null, 2)}</pre>
   </article>
 );
