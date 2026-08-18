@@ -89,10 +89,10 @@ const styles = {
     }
   `,
   draggingRow: css`
-    opacity: 0.65;
+    opacity: 0.9;
 
     & > td {
-      background: var(--order-items-bg) !important;
+      background: var(--order-items-drag-bg) !important;
     }
   `,
   dropTargetRow: css`
@@ -561,7 +561,7 @@ export const OrderItemsList: FC<Props> = ({ orderID }) => {
       className={styles.container}
       style={
         {
-          '--order-items-bg': token.colorBgContainer,
+          '--order-items-drag-bg': token.colorPrimaryBgHover,
           '--order-items-drag-color': token.colorTextSecondary,
           '--order-items-drop-bg': token.colorPrimaryBg,
           '--order-items-edit-bg': token.colorFillTertiary,
