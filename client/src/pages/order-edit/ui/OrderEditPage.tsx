@@ -1,11 +1,13 @@
 import {
   CheckOutlined,
+  DownOutlined,
   PlayCircleOutlined,
   PrinterOutlined,
+  UpOutlined,
 } from '@ant-design/icons';
 import { css } from '@emotion/css';
-import { App, Breadcrumb, Button, Tag } from 'antd';
-import type { FC } from 'react';
+import { App, Breadcrumb, Button, Tag, Typography } from 'antd';
+import { type FC, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 
 import {
@@ -46,12 +48,43 @@ const styles = {
   orderGroupToolbar: css`
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
     gap: 12px;
     padding: 8px;
     border-bottom: 1px solid var(--app-devider-color);
     border-radius: 5px 5px 0 0;
     background: var(--app-body-2-background-color);
+  `,
+  orderGroupSummary: css`
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  `,
+  orderGroupActions: css`
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+  `,
+  orderGroupFieldsTransition: css`
+    display: grid;
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition:
+      grid-template-rows 200ms ease,
+      opacity 200ms ease;
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  `,
+  orderGroupFieldsCollapsed: css`
+    grid-template-rows: 0fr;
+    opacity: 0;
+  `,
+  orderGroupFieldsContainer: css`
+    min-height: 0;
+    overflow: hidden;
   `,
   orderGroupFields: css`
     padding: 8px 8px 0;
@@ -64,7 +97,7 @@ const OrderEditPage: FC = () => {
   const { groupID } = useCurrentOrderGroupID();
   const { currentGroup, setCurrentGroup } = useOrderStore();
   const { update } = useOrderGroupMutations();
-
+  const [isOrderGroupCollapsed, setIsOrderGroupCollapsed] = useState(false);
   const startProduction = async () => {
     if (!currentGroup || currentGroup.status !== ORDER_STATUS.DRAFT) return;
 
@@ -103,35 +136,64 @@ const OrderEditPage: FC = () => {
       </div>
       <div className={styles.orderGroupPanel}>
         <div className={styles.orderGroupToolbar}>
-          <Button
-            size="small"
-            icon={<PrinterOutlined />}
-            onClick={() => navigate(`/order/${groupID}/print`)}
-          >
-            Печать
-          </Button>
-          {currentGroup?.status === ORDER_STATUS.DRAFT && (
+          {isOrderGroupCollapsed && currentGroup && (
+            <Typography.Text className={styles.orderGroupSummary} strong>
+              Заказ № {currentGroup.orderNumber} -{' '}
+              {currentGroup.customer?.name || '-'}
+            </Typography.Text>
+          )}
+          <div className={styles.orderGroupActions}>
             <Button
               size="small"
-              icon={<PlayCircleOutlined />}
-              loading={update.isMutating}
-              onClick={startProduction}
+              icon={<PrinterOutlined />}
+              onClick={() => navigate(`/order/${groupID}/print`)}
             >
-              В работу
+              Печать
             </Button>
-          )}
-          {currentGroup && currentGroup.status !== ORDER_STATUS.DRAFT && (
+            {currentGroup?.status === ORDER_STATUS.DRAFT && (
+              <Button
+                size="small"
+                icon={<PlayCircleOutlined />}
+                loading={update.isMutating}
+                onClick={startProduction}
+              >
+                В работу
+              </Button>
+            )}
+            {currentGroup && currentGroup.status !== ORDER_STATUS.DRAFT && (
+              <Button
+                size="small"
+                icon={<CheckOutlined />}
+                onClick={() => navigate(`/order/${currentGroup.id}`)}
+              >
+                Завершить редактирование
+              </Button>
+            )}
             <Button
+              aria-expanded={!isOrderGroupCollapsed}
+              aria-label={
+                isOrderGroupCollapsed
+                  ? 'Развернуть шапку заказа'
+                  : 'Свернуть шапку заказа'
+              }
               size="small"
-              icon={<CheckOutlined />}
-              onClick={() => navigate(`/order/${currentGroup.id}`)}
-            >
-              Завершить редактирование
-            </Button>
-          )}
+              icon={isOrderGroupCollapsed ? <DownOutlined /> : <UpOutlined />}
+              onClick={() =>
+                setIsOrderGroupCollapsed((isCollapsed) => !isCollapsed)
+              }
+            />
+          </div>
         </div>
-        <div className={styles.orderGroupFields}>
-          <EditGroupFields />
+        <div
+          className={`${styles.orderGroupFieldsTransition} ${
+            isOrderGroupCollapsed ? styles.orderGroupFieldsCollapsed : ''
+          }`}
+        >
+          <div className={styles.orderGroupFieldsContainer}>
+            <div className={styles.orderGroupFields}>
+              <EditGroupFields />
+            </div>
+          </div>
         </div>
       </div>
       <EditOrderWidget />

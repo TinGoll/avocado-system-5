@@ -3,6 +3,22 @@ import {
   EditOutlined,
   HolderOutlined,
 } from '@ant-design/icons';
+import {
+  closestCenter,
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DraggableAttributes,
+  type DraggableSyntheticListeners,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { css } from '@emotion/css';
 import {
   App,
@@ -17,11 +33,15 @@ import {
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
+  createContext,
+  use,
+  useMemo,
   useState,
   type CSSProperties,
-  type DragEvent,
   type FC,
+  type HTMLAttributes,
   type KeyboardEvent,
+  type KeyboardEventHandler,
 } from 'react';
 
 import type { OrderItem } from '@entities/order';
@@ -69,10 +89,10 @@ const styles = {
     }
   `,
   draggingRow: css`
-    opacity: 0.65;
+    opacity: 0.9;
 
     & > td {
-      background: var(--order-items-bg) !important;
+      background: var(--order-items-drag-bg) !important;
     }
   `,
   dropTargetRow: css`
@@ -88,6 +108,76 @@ const styles = {
       background: var(--order-items-edit-bg);
     }
   `,
+};
+
+type DragHandleContextValue = {
+  attributes: DraggableAttributes;
+  listeners: DraggableSyntheticListeners;
+  setActivatorNodeRef: (element: HTMLElement | null) => void;
+};
+
+const DragHandleContext = createContext<DragHandleContextValue | null>(null);
+const DragDisabledContext = createContext(false);
+
+const SortableHandle: FC<{
+  onKeyDown: KeyboardEventHandler<HTMLSpanElement>;
+}> = ({ onKeyDown }) => {
+  const dragHandle = use(DragHandleContext);
+
+  return (
+    <span
+      ref={dragHandle?.setActivatorNodeRef}
+      {...dragHandle?.attributes}
+      {...dragHandle?.listeners}
+      aria-label="Изменить позицию элемента"
+      className={styles.dragHandle}
+      role="button"
+      tabIndex={0}
+      onKeyDown={onKeyDown}
+    >
+      <HolderOutlined />
+    </span>
+  );
+};
+
+type SortableRowProps = HTMLAttributes<HTMLTableRowElement> & {
+  'data-row-key': string;
+};
+
+const SortableRow: FC<SortableRowProps> = (props) => {
+  const disabled = use(DragDisabledContext);
+  const {
+    attributes,
+    isDragging,
+    listeners,
+    setActivatorNodeRef,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: props['data-row-key'], disabled });
+  const dragHandle = useMemo(
+    () => ({ attributes, listeners, setActivatorNodeRef }),
+    [attributes, listeners, setActivatorNodeRef],
+  );
+
+  return (
+    <DragHandleContext value={dragHandle}>
+      <tr
+        {...props}
+        ref={setNodeRef}
+        style={{
+          ...props.style,
+          transform: CSS.Translate.toString(transform),
+          transition,
+          ...(isDragging ? { position: 'relative', zIndex: 1 } : {}),
+        }}
+      />
+    </DragHandleContext>
+  );
+};
+
+const sortableTableComponents = {
+  body: { row: SortableRow },
 };
 
 type EditableCellProps = {
@@ -243,6 +333,9 @@ const EditableTemplateCell: FC<EditableTemplateCellProps> = ({
 
 export const OrderItemsList: FC<Props> = ({ orderID }) => {
   const { token } = theme.useToken();
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+  );
   const [draggedItemID, setDraggedItemID] = useState<string>();
   const [dropTargetItemID, setDropTargetItemID] = useState<string>();
   const [editingItem, setEditingItem] = useState<OrderItem>();
@@ -292,55 +385,12 @@ export const OrderItemsList: FC<Props> = ({ orderID }) => {
     }
   };
 
-  const handleDragStart = (event: DragEvent, itemID: string) => {
-    event.dataTransfer.effectAllowed = 'move';
-    event.dataTransfer.setData('text/plain', itemID);
-
-    const row = event.currentTarget.closest('tr');
-    const table = row?.closest('table');
-    if (row && table) {
-      const rowRect = row.getBoundingClientRect();
-      const previewContainer = document.createElement('div');
-      const previewTable = table.cloneNode(true) as HTMLTableElement;
-      const previewRow = row.cloneNode(true);
-      const previewBody = previewTable.tBodies.item(0);
-
-      previewTable.tHead?.remove();
-      previewTable.querySelector('tfoot')?.remove();
-      previewBody?.replaceChildren(previewRow);
-
-      Object.assign(previewContainer.style, {
-        position: 'fixed',
-        top: '-10000px',
-        left: '-10000px',
-        width: `${rowRect.width}px`,
-        overflow: 'hidden',
-        background: token.colorBgContainer,
-        border: `2px solid ${token.colorPrimary}`,
-        borderRadius: `${token.borderRadius}px`,
-        boxShadow: token.boxShadowSecondary,
-        pointerEvents: 'none',
-      });
-      previewTable.style.width = `${rowRect.width}px`;
-      previewContainer.append(previewTable);
-      document.body.append(previewContainer);
-
-      event.dataTransfer.setDragImage(
-        previewContainer,
-        event.clientX - rowRect.left + 2,
-        event.clientY - rowRect.top + 2,
-      );
-      setTimeout(() => previewContainer.remove());
-    }
-
-    setDraggedItemID(itemID);
-  };
-
-  const handleDrop = async (targetItemID: string) => {
-    const itemID = draggedItemID;
+  const handleDragEnd = async ({ active, over }: DragEndEvent) => {
+    const itemID = String(active.id);
+    const targetItemID = over ? String(over.id) : undefined;
     setDraggedItemID(undefined);
     setDropTargetItemID(undefined);
-    if (!itemID || itemID === targetItemID) return;
+    if (!targetItemID || itemID === targetItemID) return;
 
     try {
       await moveItemTo(itemID, targetItemID);
@@ -372,21 +422,9 @@ export const OrderItemsList: FC<Props> = ({ orderID }) => {
       width: 36,
       align: 'center',
       render: (_, item) => (
-        <span
-          aria-label="Изменить позицию элемента"
-          className={styles.dragHandle}
-          draggable={!isMutating}
-          role="button"
-          tabIndex={0}
-          onDragEnd={() => {
-            setDraggedItemID(undefined);
-            setDropTargetItemID(undefined);
-          }}
-          onDragStart={(event) => handleDragStart(event, item.id)}
+        <SortableHandle
           onKeyDown={(event) => handleHandleKeyDown(event, item.id)}
-        >
-          <HolderOutlined />
-        </span>
+        />
       ),
     },
     { title: '№', width: 56, align: 'center', render: (_, __, i) => i + 1 },
@@ -523,42 +561,56 @@ export const OrderItemsList: FC<Props> = ({ orderID }) => {
       className={styles.container}
       style={
         {
-          '--order-items-bg': token.colorBgContainer,
+          '--order-items-drag-bg': token.colorPrimaryBgHover,
           '--order-items-drag-color': token.colorTextSecondary,
           '--order-items-drop-bg': token.colorPrimaryBg,
           '--order-items-edit-bg': token.colorFillTertiary,
         } as CSSProperties
       }
     >
-      <Table
-        rowKey="id"
-        columns={columns}
-        dataSource={items}
-        onRow={(item) => ({
-          className:
-            item.id === draggedItemID
-              ? styles.draggingRow
-              : item.id === dropTargetItemID
-                ? styles.dropTargetRow
-                : undefined,
-          onDragOver: (event) => {
-            if (!draggedItemID || draggedItemID === item.id) return;
-            event.preventDefault();
-            event.dataTransfer.dropEffect = 'move';
-            setDropTargetItemID(item.id);
-          },
-          onDrop: (event) => {
-            event.preventDefault();
-            void handleDrop(item.id);
-          },
-        })}
-        pagination={false}
-        locale={{
-          emptyText: <Empty description="Элементы ещё не добавлены" />,
-        }}
-        scroll={{ x: 900 }}
-        size="small"
-      />
+      <DragDisabledContext value={isMutating}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={({ active }) => setDraggedItemID(String(active.id))}
+          onDragOver={({ active, over }) =>
+            setDropTargetItemID(
+              over && over.id !== active.id ? String(over.id) : undefined,
+            )
+          }
+          onDragCancel={() => {
+            setDraggedItemID(undefined);
+            setDropTargetItemID(undefined);
+          }}
+          onDragEnd={(event) => void handleDragEnd(event)}
+        >
+          <SortableContext
+            items={items.map(({ id }) => id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <Table
+              rowKey="id"
+              components={sortableTableComponents}
+              columns={columns}
+              dataSource={items}
+              onRow={(item) => ({
+                className:
+                  item.id === draggedItemID
+                    ? styles.draggingRow
+                    : item.id === dropTargetItemID
+                      ? styles.dropTargetRow
+                      : undefined,
+              })}
+              pagination={false}
+              locale={{
+                emptyText: <Empty description="Элементы ещё не добавлены" />,
+              }}
+              scroll={{ x: 900 }}
+              size="small"
+            />
+          </SortableContext>
+        </DndContext>
+      </DragDisabledContext>
       <EditOrderItemModal
         item={editingItem}
         open={Boolean(editingItem)}

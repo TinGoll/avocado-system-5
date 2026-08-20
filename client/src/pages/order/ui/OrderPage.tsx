@@ -1,4 +1,9 @@
-import { EditOutlined, PrinterOutlined } from '@ant-design/icons';
+import {
+  DownOutlined,
+  EditOutlined,
+  PrinterOutlined,
+  UpOutlined,
+} from '@ant-design/icons';
 import { css } from '@emotion/css';
 import {
   Alert,
@@ -22,6 +27,7 @@ import {
 } from '@entities/order';
 import { DATE_DEFAULT_FORMAT, useCurrentOrderGroupID } from '@shared/lib';
 import { Field, NotFound, ServerError } from '@shared/ui';
+import { MarkdownPreview } from '@shared/ui/markdown';
 
 import { useOrderDocuments } from '../api/useOrderDocuments';
 import { formatCurrency } from '../model/orderInvoice';
@@ -57,12 +63,38 @@ const styles = {
   groupToolbar: css`
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
     gap: 12px;
     padding: 8px;
     border-bottom: 1px solid var(--app-devider-color);
     border-radius: 5px 5px 0 0;
     background: var(--app-body-2-background-color);
+  `,
+  groupSummary: css`
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  `,
+  groupDetailsTransition: css`
+    display: grid;
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition:
+      grid-template-rows 200ms ease,
+      opacity 200ms ease;
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  `,
+  groupDetailsCollapsed: css`
+    grid-template-rows: 0fr;
+    opacity: 0;
+  `,
+  groupDetailsContainer: css`
+    min-height: 0;
+    overflow: hidden;
   `,
   groupDetails: css`
     display: grid;
@@ -90,6 +122,7 @@ const styles = {
   actions: css`
     display: flex;
     gap: 8px;
+    margin-left: auto;
   `,
   tabs: css`
     .ant-tabs-nav {
@@ -144,6 +177,7 @@ const OrderPage: FC = () => {
     }));
   }, [documentData?.items, group?.orderIds]);
   const [activeOrderID, setActiveOrderID] = useState<string>();
+  const [isGroupHeaderCollapsed, setIsGroupHeaderCollapsed] = useState(false);
   const groupTotal = useMemo(
     () =>
       documents.reduce(
@@ -199,96 +233,127 @@ const OrderPage: FC = () => {
 
       <div className={styles.groupHeader}>
         <div className={styles.groupToolbar}>
-          <Button
-            size="small"
-            icon={<PrinterOutlined />}
-            onClick={() => navigate(`/order/${group.id}/print`)}
-          >
-            Печать
-          </Button>
-          <Link to={`/order/${group.id}/editing`}>
-            <Button size="small" icon={<EditOutlined />}>
-              Редактировать
+          {isGroupHeaderCollapsed && (
+            <Typography.Text className={styles.groupSummary} strong>
+              Заказ № {group.orderNumber} — {group.customer?.name || '-'}
+            </Typography.Text>
+          )}
+          <div className={styles.actions}>
+            <Button
+              size="small"
+              icon={<PrinterOutlined />}
+              onClick={() => navigate(`/order/${group.id}/print`)}
+            >
+              Печать
             </Button>
-          </Link>
+            <Link to={`/order/${group.id}/editing`}>
+              <Button size="small" icon={<EditOutlined />}>
+                Редактировать
+              </Button>
+            </Link>
+            <Button
+              aria-expanded={!isGroupHeaderCollapsed}
+              aria-label={
+                isGroupHeaderCollapsed
+                  ? 'Развернуть шапку заказа'
+                  : 'Свернуть шапку заказа'
+              }
+              size="small"
+              icon={isGroupHeaderCollapsed ? <DownOutlined /> : <UpOutlined />}
+              onClick={() =>
+                setIsGroupHeaderCollapsed((isCollapsed) => !isCollapsed)
+              }
+            />
+          </div>
         </div>
-        <div className={styles.groupDetails}>
-          <Field>
-            <Field.Label>
-              <Typography.Text type="secondary">Заказ №</Typography.Text>
-            </Field.Label>
-            <Field.Value className={styles.fieldValue}>
-              <Typography.Text className={styles.fieldText} type="warning">
-                {group.id}
-              </Typography.Text>
-            </Field.Value>
-          </Field>
-          <Field>
-            <Field.Label>
-              <Typography.Text type="secondary">
-                Название заказа
-              </Typography.Text>
-            </Field.Label>
-            <Field.Value className={styles.fieldValue}>
-              <Typography.Text className={styles.fieldText} type="success">
-                {group.orderNumber || '—'}
-              </Typography.Text>
-            </Field.Value>
-          </Field>
-          <Field>
-            <Field.Label>
-              <Typography.Text type="secondary">Заказчик</Typography.Text>
-            </Field.Label>
-            <Field.Value className={styles.fieldValue}>
-              <Typography.Text className={styles.fieldText} type="success">
-                {group.customer?.name || '—'}
-              </Typography.Text>
-            </Field.Value>
-          </Field>
-          <Field>
-            <Field.Label>
-              <Typography.Text type="secondary">
-                Начало производства
-              </Typography.Text>
-            </Field.Label>
-            <Field.Value className={styles.fieldValue}>
-              <Typography.Text className={styles.fieldText} type="success">
-                {group.startedAt
-                  ? dayjs(group.startedAt).format(DATE_DEFAULT_FORMAT)
-                  : '—'}
-              </Typography.Text>
-            </Field.Value>
-          </Field>
-          <Field>
-            <Field.Label>
-              <Typography.Text type="secondary">Документов</Typography.Text>
-            </Field.Label>
-            <Field.Value className={styles.fieldValue}>
-              <Typography.Text className={styles.fieldText}>
-                {documents.length}
-              </Typography.Text>
-            </Field.Value>
-          </Field>
-          <Field>
-            <Field.Label>
-              <Typography.Text type="secondary">Сумма</Typography.Text>
-            </Field.Label>
-            <Field.Value className={styles.fieldValue}>
-              <Typography.Text className={styles.fieldText} strong>
-                {formatCurrency(groupTotal)}
-              </Typography.Text>
-            </Field.Value>
-          </Field>
-          <Field className={styles.fullWidthField}>
-            <Field.Label>
-              <Typography.Text type="secondary">Комментарий</Typography.Text>
-            </Field.Label>
-            <Field.Value className={styles.fieldValue}>
-              <Typography.Text className={styles.fieldText}>
-                {group.comment || '—'}
-              </Typography.Text>
-            </Field.Value>
-          </Field>
+        <div
+          className={`${styles.groupDetailsTransition} ${
+            isGroupHeaderCollapsed ? styles.groupDetailsCollapsed : ''
+          }`}
+        >
+          <div className={styles.groupDetailsContainer}>
+            <div className={styles.groupDetails}>
+              <Field>
+                <Field.Label>
+                  <Typography.Text type="secondary">Заказ №</Typography.Text>
+                </Field.Label>
+                <Field.Value className={styles.fieldValue}>
+                  <Typography.Text className={styles.fieldText} type="warning">
+                    {group.id}
+                  </Typography.Text>
+                </Field.Value>
+              </Field>
+              <Field>
+                <Field.Label>
+                  <Typography.Text type="secondary">
+                    Название заказа
+                  </Typography.Text>
+                </Field.Label>
+                <Field.Value className={styles.fieldValue}>
+                  <Typography.Text className={styles.fieldText} type="success">
+                    {group.orderNumber || '—'}
+                  </Typography.Text>
+                </Field.Value>
+              </Field>
+              <Field>
+                <Field.Label>
+                  <Typography.Text type="secondary">Заказчик</Typography.Text>
+                </Field.Label>
+                <Field.Value className={styles.fieldValue}>
+                  <Typography.Text className={styles.fieldText} type="success">
+                    {group.customer?.name || '—'}
+                  </Typography.Text>
+                </Field.Value>
+              </Field>
+              <Field>
+                <Field.Label>
+                  <Typography.Text type="secondary">
+                    Начало производства
+                  </Typography.Text>
+                </Field.Label>
+                <Field.Value className={styles.fieldValue}>
+                  <Typography.Text className={styles.fieldText} type="success">
+                    {group.startedAt
+                      ? dayjs(group.startedAt).format(DATE_DEFAULT_FORMAT)
+                      : '—'}
+                  </Typography.Text>
+                </Field.Value>
+              </Field>
+              <Field>
+                <Field.Label>
+                  <Typography.Text type="secondary">Документов</Typography.Text>
+                </Field.Label>
+                <Field.Value className={styles.fieldValue}>
+                  <Typography.Text className={styles.fieldText}>
+                    {documents.length}
+                  </Typography.Text>
+                </Field.Value>
+              </Field>
+              <Field>
+                <Field.Label>
+                  <Typography.Text type="secondary">Сумма</Typography.Text>
+                </Field.Label>
+                <Field.Value className={styles.fieldValue}>
+                  <Typography.Text className={styles.fieldText} strong>
+                    {formatCurrency(groupTotal)}
+                  </Typography.Text>
+                </Field.Value>
+              </Field>
+              <Field className={styles.fullWidthField}>
+                <Field.Label>
+                  <Typography.Text type="secondary">
+                    Комментарий
+                  </Typography.Text>
+                </Field.Label>
+                <Field.Value className={styles.fieldValue}>
+                  <MarkdownPreview
+                    className={styles.fieldText}
+                    value={group.comment}
+                  />
+                </Field.Value>
+              </Field>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 import { PlusOutlined } from '@ant-design/icons';
-import { App } from 'antd';
+import { css } from '@emotion/css';
+import { App, Typography } from 'antd';
 import { type FC, useState } from 'react';
 
 import {
@@ -23,6 +24,29 @@ import {
 import { OrderTabs, orderTabsStore, Toolbar } from '@features/order-tabs';
 import { useCurrentOrderGroupID } from '@shared/lib';
 
+const styles = {
+  documentFieldsTransition: css`
+    display: grid;
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition:
+      grid-template-rows 200ms ease,
+      opacity 200ms ease;
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  `,
+  documentFieldsCollapsed: css`
+    grid-template-rows: 0fr;
+    opacity: 0;
+  `,
+  documentFieldsContainer: css`
+    min-height: 0;
+    overflow: hidden;
+  `,
+};
+
 export const EditOrderWidget: FC = () => {
   const { message } = App.useApp();
   const { groupID } = useCurrentOrderGroupID();
@@ -31,6 +55,24 @@ export const EditOrderWidget: FC = () => {
   const { addTab, currentTabKey: orderID, tabs } = orderTabsStore();
   const copyOrder = useCopyOrderMutation(orderID);
   const [creationMode, setCreationMode] = useState<'empty' | 'copy'>();
+  const [isDocumentHeaderCollapsed, setIsDocumentHeaderCollapsed] =
+    useState(false);
+  const documentSummary =
+    currentOrder && currentOrder.id === orderID
+      ? [
+          ['Материал', currentOrder.characteristics.material?.name],
+          ['Цвет', currentOrder.characteristics.color?.name],
+          ['Профиль', currentOrder.characteristics.profile?.name],
+          ['Филёнка', currentOrder.characteristics.panel?.name],
+          ['Патина', currentOrder.characteristics.patina?.name],
+          ['Лак', currentOrder.characteristics.varnish?.name],
+        ]
+          .filter((characteristic): characteristic is [string, string] =>
+            Boolean(characteristic[1]),
+          )
+          .map(([label, value]) => `${label}: ${value}`)
+          .join(', ')
+      : '';
 
   const createDocument = async (copy = false) => {
     if (!groupID || creationMode) return;
@@ -73,68 +115,85 @@ export const EditOrderWidget: FC = () => {
         onCreate={() => void createDocument()}
       />
       <Toolbar
+        summary={
+          isDocumentHeaderCollapsed && documentSummary ? (
+            <Typography.Text strong>{documentSummary}</Typography.Text>
+          ) : undefined
+        }
         addFieldsAction={<AddOrderFieldsButton />}
         recalculatePricesAction={
           <RecalculateOrderPricesButton orderID={orderID} />
         }
         isCopyingOrder={creationMode === 'copy'}
+        isFieldsCollapsed={isDocumentHeaderCollapsed}
         onCopyOrder={
           currentOrder?.id === orderID
             ? () => void createDocument(true)
             : undefined
         }
+        onToggleFields={() =>
+          setIsDocumentHeaderCollapsed((isCollapsed) => !isCollapsed)
+        }
       />
-      <EditOrderFields
-        orderID={orderID}
-        renderCreateColor={(onCreated) => (
-          <CreateColorButton
-            onCreated={onCreated}
-            type="text"
-            size="small"
-            icon={<PlusOutlined />}
+      <div
+        className={`${styles.documentFieldsTransition} ${
+          isDocumentHeaderCollapsed ? styles.documentFieldsCollapsed : ''
+        }`}
+      >
+        <div className={styles.documentFieldsContainer}>
+          <EditOrderFields
+            orderID={orderID}
+            renderCreateColor={(onCreated) => (
+              <CreateColorButton
+                onCreated={onCreated}
+                type="text"
+                size="small"
+                icon={<PlusOutlined />}
+              />
+            )}
+            renderCreateMaterial={(onCreated) => (
+              <CreateMaterialButton
+                onCreated={onCreated}
+                type="text"
+                size="small"
+                icon={<PlusOutlined />}
+              />
+            )}
+            renderCreatePatina={(onCreated) => (
+              <CreatePatinaButton
+                onCreated={onCreated}
+                type="text"
+                size="small"
+                icon={<PlusOutlined />}
+              />
+            )}
+            renderCreateVarnish={(onCreated) => (
+              <CreateVarnishButton
+                onCreated={onCreated}
+                type="text"
+                size="small"
+                icon={<PlusOutlined />}
+              />
+            )}
+            renderCreateFacadeProfile={(onCreated) => (
+              <CreateFacadeProfileButton
+                onCreated={onCreated}
+                type="text"
+                size="small"
+                icon={<PlusOutlined />}
+              />
+            )}
+            renderCreateFacadePanel={(onCreated) => (
+              <CreateFacadePanelButton
+                onCreated={onCreated}
+                type="text"
+                size="small"
+                icon={<PlusOutlined />}
+              />
+            )}
           />
-        )}
-        renderCreateMaterial={(onCreated) => (
-          <CreateMaterialButton
-            onCreated={onCreated}
-            type="text"
-            size="small"
-            icon={<PlusOutlined />}
-          />
-        )}
-        renderCreatePatina={(onCreated) => (
-          <CreatePatinaButton
-            onCreated={onCreated}
-            type="text"
-            size="small"
-            icon={<PlusOutlined />}
-          />
-        )}
-        renderCreateVarnish={(onCreated) => (
-          <CreateVarnishButton
-            onCreated={onCreated}
-            type="text"
-            size="small"
-            icon={<PlusOutlined />}
-          />
-        )}
-        renderCreateFacadeProfile={(onCreated) => (
-          <CreateFacadeProfileButton
-            onCreated={onCreated}
-            type="text"
-            size="small"
-            icon={<PlusOutlined />}
-          />
-        )}
-        renderCreateFacadePanel={(onCreated) => (
-          <CreateFacadePanelButton
-            onCreated={onCreated}
-            type="text"
-            size="small"
-            icon={<PlusOutlined />}
-          />
-        )}
-      />
+        </div>
+      </div>
       <AddOrderItemForm
         orderID={orderID ?? ''}
         createProductTemplateButton={

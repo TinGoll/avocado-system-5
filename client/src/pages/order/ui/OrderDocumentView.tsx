@@ -5,6 +5,7 @@ import type { FC } from 'react';
 
 import type { Order, OrderItem } from '@entities/order';
 import { Field } from '@shared/ui';
+import { MarkdownPreview } from '@shared/ui/markdown';
 
 import {
   formatCurrency,
@@ -191,9 +192,7 @@ export const OrderDocumentView: FC<Props> = ({ order }) => (
           <Typography.Text type="secondary">Комментарий</Typography.Text>
         </Field.Label>
         <Field.Value className={styles.fieldValue}>
-          <Typography.Text className={styles.fieldText}>
-            {order.comment || '—'}
-          </Typography.Text>
+          <MarkdownPreview className={styles.fieldText} value={order.comment} />
         </Field.Value>
       </Field>
     </div>
