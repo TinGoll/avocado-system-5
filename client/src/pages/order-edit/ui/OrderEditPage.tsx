@@ -66,6 +66,26 @@ const styles = {
     gap: 8px;
     margin-left: auto;
   `,
+  orderGroupFieldsTransition: css`
+    display: grid;
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition:
+      grid-template-rows 200ms ease,
+      opacity 200ms ease;
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  `,
+  orderGroupFieldsCollapsed: css`
+    grid-template-rows: 0fr;
+    opacity: 0;
+  `,
+  orderGroupFieldsContainer: css`
+    min-height: 0;
+    overflow: hidden;
+  `,
   orderGroupFields: css`
     padding: 8px 8px 0;
   `,
@@ -78,7 +98,6 @@ const OrderEditPage: FC = () => {
   const { currentGroup, setCurrentGroup } = useOrderStore();
   const { update } = useOrderGroupMutations();
   const [isOrderGroupCollapsed, setIsOrderGroupCollapsed] = useState(false);
-
   const startProduction = async () => {
     if (!currentGroup || currentGroup.status !== ORDER_STATUS.DRAFT) return;
 
@@ -119,8 +138,8 @@ const OrderEditPage: FC = () => {
         <div className={styles.orderGroupToolbar}>
           {isOrderGroupCollapsed && currentGroup && (
             <Typography.Text className={styles.orderGroupSummary} strong>
-              Заказ № {currentGroup.orderNumber} —{' '}
-              {currentGroup.customer?.name || '—'}
+              Заказ № {currentGroup.orderNumber} -{' '}
+              {currentGroup.customer?.name || '-'}
             </Typography.Text>
           )}
           <div className={styles.orderGroupActions}>
@@ -151,6 +170,12 @@ const OrderEditPage: FC = () => {
               </Button>
             )}
             <Button
+              aria-expanded={!isOrderGroupCollapsed}
+              aria-label={
+                isOrderGroupCollapsed
+                  ? 'Развернуть шапку заказа'
+                  : 'Свернуть шапку заказа'
+              }
               size="small"
               icon={isOrderGroupCollapsed ? <DownOutlined /> : <UpOutlined />}
               onClick={() =>
@@ -159,11 +184,17 @@ const OrderEditPage: FC = () => {
             />
           </div>
         </div>
-        {!isOrderGroupCollapsed && (
-          <div className={styles.orderGroupFields}>
-            <EditGroupFields />
+        <div
+          className={`${styles.orderGroupFieldsTransition} ${
+            isOrderGroupCollapsed ? styles.orderGroupFieldsCollapsed : ''
+          }`}
+        >
+          <div className={styles.orderGroupFieldsContainer}>
+            <div className={styles.orderGroupFields}>
+              <EditGroupFields />
+            </div>
           </div>
-        )}
+        </div>
       </div>
       <EditOrderWidget />
     </div>

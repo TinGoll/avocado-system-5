@@ -75,6 +75,26 @@ const styles = {
     text-overflow: ellipsis;
     white-space: nowrap;
   `,
+  groupDetailsTransition: css`
+    display: grid;
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition:
+      grid-template-rows 200ms ease,
+      opacity 200ms ease;
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  `,
+  groupDetailsCollapsed: css`
+    grid-template-rows: 0fr;
+    opacity: 0;
+  `,
+  groupDetailsContainer: css`
+    min-height: 0;
+    overflow: hidden;
+  `,
   groupDetails: css`
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
@@ -231,6 +251,12 @@ const OrderPage: FC = () => {
               </Button>
             </Link>
             <Button
+              aria-expanded={!isGroupHeaderCollapsed}
+              aria-label={
+                isGroupHeaderCollapsed
+                  ? 'Развернуть шапку заказа'
+                  : 'Свернуть шапку заказа'
+              }
               size="small"
               icon={isGroupHeaderCollapsed ? <DownOutlined /> : <UpOutlined />}
               onClick={() =>
@@ -239,86 +265,94 @@ const OrderPage: FC = () => {
             />
           </div>
         </div>
-        {!isGroupHeaderCollapsed && (
-          <div className={styles.groupDetails}>
-            <Field>
-              <Field.Label>
-                <Typography.Text type="secondary">Заказ №</Typography.Text>
-              </Field.Label>
-              <Field.Value className={styles.fieldValue}>
-                <Typography.Text className={styles.fieldText} type="warning">
-                  {group.id}
-                </Typography.Text>
-              </Field.Value>
-            </Field>
-            <Field>
-              <Field.Label>
-                <Typography.Text type="secondary">
-                  Название заказа
-                </Typography.Text>
-              </Field.Label>
-              <Field.Value className={styles.fieldValue}>
-                <Typography.Text className={styles.fieldText} type="success">
-                  {group.orderNumber || '—'}
-                </Typography.Text>
-              </Field.Value>
-            </Field>
-            <Field>
-              <Field.Label>
-                <Typography.Text type="secondary">Заказчик</Typography.Text>
-              </Field.Label>
-              <Field.Value className={styles.fieldValue}>
-                <Typography.Text className={styles.fieldText} type="success">
-                  {group.customer?.name || '—'}
-                </Typography.Text>
-              </Field.Value>
-            </Field>
-            <Field>
-              <Field.Label>
-                <Typography.Text type="secondary">
-                  Начало производства
-                </Typography.Text>
-              </Field.Label>
-              <Field.Value className={styles.fieldValue}>
-                <Typography.Text className={styles.fieldText} type="success">
-                  {group.startedAt
-                    ? dayjs(group.startedAt).format(DATE_DEFAULT_FORMAT)
-                    : '—'}
-                </Typography.Text>
-              </Field.Value>
-            </Field>
-            <Field>
-              <Field.Label>
-                <Typography.Text type="secondary">Документов</Typography.Text>
-              </Field.Label>
-              <Field.Value className={styles.fieldValue}>
-                <Typography.Text className={styles.fieldText}>
-                  {documents.length}
-                </Typography.Text>
-              </Field.Value>
-            </Field>
-            <Field>
-              <Field.Label>
-                <Typography.Text type="secondary">Сумма</Typography.Text>
-              </Field.Label>
-              <Field.Value className={styles.fieldValue}>
-                <Typography.Text className={styles.fieldText} strong>
-                  {formatCurrency(groupTotal)}
-                </Typography.Text>
-              </Field.Value>
-            </Field>
-            <Field className={styles.fullWidthField}>
-              <Field.Label>
-                <Typography.Text type="secondary">Комментарий</Typography.Text>
-              </Field.Label>
-              <Field.Value className={styles.fieldValue}>
-                <Typography.Text className={styles.fieldText}>
-                  {group.comment || '—'}
-                </Typography.Text>
-              </Field.Value>
-            </Field>
+        <div
+          className={`${styles.groupDetailsTransition} ${
+            isGroupHeaderCollapsed ? styles.groupDetailsCollapsed : ''
+          }`}
+        >
+          <div className={styles.groupDetailsContainer}>
+            <div className={styles.groupDetails}>
+              <Field>
+                <Field.Label>
+                  <Typography.Text type="secondary">Заказ №</Typography.Text>
+                </Field.Label>
+                <Field.Value className={styles.fieldValue}>
+                  <Typography.Text className={styles.fieldText} type="warning">
+                    {group.id}
+                  </Typography.Text>
+                </Field.Value>
+              </Field>
+              <Field>
+                <Field.Label>
+                  <Typography.Text type="secondary">
+                    Название заказа
+                  </Typography.Text>
+                </Field.Label>
+                <Field.Value className={styles.fieldValue}>
+                  <Typography.Text className={styles.fieldText} type="success">
+                    {group.orderNumber || '—'}
+                  </Typography.Text>
+                </Field.Value>
+              </Field>
+              <Field>
+                <Field.Label>
+                  <Typography.Text type="secondary">Заказчик</Typography.Text>
+                </Field.Label>
+                <Field.Value className={styles.fieldValue}>
+                  <Typography.Text className={styles.fieldText} type="success">
+                    {group.customer?.name || '—'}
+                  </Typography.Text>
+                </Field.Value>
+              </Field>
+              <Field>
+                <Field.Label>
+                  <Typography.Text type="secondary">
+                    Начало производства
+                  </Typography.Text>
+                </Field.Label>
+                <Field.Value className={styles.fieldValue}>
+                  <Typography.Text className={styles.fieldText} type="success">
+                    {group.startedAt
+                      ? dayjs(group.startedAt).format(DATE_DEFAULT_FORMAT)
+                      : '—'}
+                  </Typography.Text>
+                </Field.Value>
+              </Field>
+              <Field>
+                <Field.Label>
+                  <Typography.Text type="secondary">Документов</Typography.Text>
+                </Field.Label>
+                <Field.Value className={styles.fieldValue}>
+                  <Typography.Text className={styles.fieldText}>
+                    {documents.length}
+                  </Typography.Text>
+                </Field.Value>
+              </Field>
+              <Field>
+                <Field.Label>
+                  <Typography.Text type="secondary">Сумма</Typography.Text>
+                </Field.Label>
+                <Field.Value className={styles.fieldValue}>
+                  <Typography.Text className={styles.fieldText} strong>
+                    {formatCurrency(groupTotal)}
+                  </Typography.Text>
+                </Field.Value>
+              </Field>
+              <Field className={styles.fullWidthField}>
+                <Field.Label>
+                  <Typography.Text type="secondary">
+                    Комментарий
+                  </Typography.Text>
+                </Field.Label>
+                <Field.Value className={styles.fieldValue}>
+                  <Typography.Text className={styles.fieldText}>
+                    {group.comment || '—'}
+                  </Typography.Text>
+                </Field.Value>
+              </Field>
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
       {documentsError && documents.length > 0 && (
