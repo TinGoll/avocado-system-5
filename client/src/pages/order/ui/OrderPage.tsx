@@ -27,6 +27,7 @@ import {
 } from '@entities/order';
 import { DATE_DEFAULT_FORMAT, useCurrentOrderGroupID } from '@shared/lib';
 import { Field, NotFound, ServerError } from '@shared/ui';
+import { MarkdownPreview } from '@shared/ui/markdown';
 
 import { useOrderDocuments } from '../api/useOrderDocuments';
 import { formatCurrency } from '../model/orderInvoice';
@@ -345,9 +346,10 @@ const OrderPage: FC = () => {
                   </Typography.Text>
                 </Field.Label>
                 <Field.Value className={styles.fieldValue}>
-                  <Typography.Text className={styles.fieldText}>
-                    {group.comment || '—'}
-                  </Typography.Text>
+                  <MarkdownPreview
+                    className={styles.fieldText}
+                    value={group.comment}
+                  />
                 </Field.Value>
               </Field>
             </div>

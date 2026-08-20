@@ -1,8 +1,9 @@
-import { Input, Typography } from 'antd';
+import { Typography } from 'antd';
 import type { FC } from 'react';
 
 import { useOrderStore } from '@entities/order';
 import { Editable, Field } from '@shared/ui';
+import { MarkdownEditor, MarkdownPreview } from '@shared/ui/markdown';
 
 import { useOptimisticOrderUpdate } from '../hooks/useOptimisticOrderUpdate';
 
@@ -26,20 +27,20 @@ export const CommentField: FC = () => {
           onSave={(_, value) => updateOrder({ comment: value ?? '' })}
           defaultValue={currentOrder?.comment}
           block
-          confirmOnBlur
           name="comment"
           control={(props) => (
-            <Input.TextArea
-              {...props}
+            <MarkdownEditor
               className={styles.input}
-              autoSize={{ minRows: 2, maxRows: 6 }}
-              variant="borderless"
+              value={props.value}
+              onChange={props.onChange}
             />
           )}
         >
-          <Text className={styles.title}>
-            {currentOrder?.comment || 'Укажите комментарий'}
-          </Text>
+          <MarkdownPreview
+            className={styles.title}
+            emptyText="Укажите комментарий"
+            value={currentOrder?.comment}
+          />
         </Editable>
       </Field.Value>
     </Field>
