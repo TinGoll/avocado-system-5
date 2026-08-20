@@ -12,6 +12,7 @@ const HomePage = lazy(() =>
 const OrderEditPage = lazy(() => import('@pages/order-edit'));
 const OrderPage = lazy(() => import('@pages/order'));
 const OrderPrintPage = lazy(() => import('@pages/order-print'));
+const OrderSearchPage = lazy(() => import('@pages/order-search'));
 const PriceModifiersPage = lazy(() => import('@pages/price-modifiers'));
 const CatalogPage = lazy(() =>
   import('@pages/catalogs').then(({ CatalogPage }) => ({
@@ -47,6 +48,10 @@ export const routesElements = (): JSX.Element => (
         <Route
           path={ROUTES.order}
           element={withPageLoadingFallback(<OrderPage />)}
+        />
+        <Route
+          path={ROUTES.orderSearch}
+          element={withPageLoadingFallback(<OrderSearchPage />)}
         />
         <Route
           path={ROUTES.priceModifiers}

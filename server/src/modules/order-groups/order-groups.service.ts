@@ -41,6 +41,40 @@ export class OrderGroupsService {
     }));
   }
 
+  async search(query: string, limit: number) {
+    const term = query.trim().toLocaleLowerCase('ru-RU');
+    const isPostgres =
+      this.repository.manager.connection.options.type === 'postgres';
+    const matchOperator = isPostgres ? 'ILIKE' : 'LIKE';
+    const normalize = isPostgres ? 'lower' : 'unicode_lower';
+    const groupText = isPostgres
+      ? `coalesce(group_entity."orderNumber", '') || ' ' || coalesce(group_entity.customer::text, '') || ' ' || coalesce(group_entity.comment, '')`
+      : `coalesce(group_entity."orderNumber", '') || ' ' || coalesce(group_entity.customer, '') || ' ' || coalesce(group_entity.comment, '')`;
+    const orderText = isPostgres
+      ? `coalesce(order_entity.name, '') || ' ' || coalesce(order_entity.comment, '') || ' ' || coalesce(order_entity.characteristics::text, '') || ' ' || coalesce(order_entity."totalPrice"::text, '')`
+      : `coalesce(order_entity.name, '') || ' ' || coalesce(order_entity.comment, '') || ' ' || coalesce(order_entity.characteristics, '') || ' ' || cast(order_entity."totalPrice" as text)`;
+    const itemText = isPostgres
+      ? `coalesce(item.snapshot::text, '') || ' ' || coalesce(item.characteristics::text, '') || ' ' || coalesce(item.quantity::text, '')`
+      : `coalesce(item.snapshot, '') || ' ' || coalesce(item.characteristics, '') || ' ' || cast(item.quantity as text)`;
+
+    return this.repository
+      .createQueryBuilder('group_entity')
+      .leftJoinAndSelect('group_entity.orders', 'orders')
+      .leftJoinAndSelect('orders.items', 'items')
+      .where(`${normalize}(${groupText}) ${matchOperator} :term`, {
+        term: `%${term}%`,
+      })
+      .orWhere(
+        `EXISTS (SELECT 1 FROM orders order_entity WHERE order_entity."orderGroupId" = group_entity.id AND ${normalize}(${orderText}) ${matchOperator} :term)`,
+      )
+      .orWhere(
+        `EXISTS (SELECT 1 FROM orders order_entity JOIN order_items item ON item."orderId" = order_entity.id WHERE order_entity."orderGroupId" = group_entity.id AND ${normalize}(${itemText}) ${matchOperator} :term)`,
+      )
+      .orderBy('group_entity.updatedAt', 'DESC')
+      .take(limit)
+      .getMany();
+  }
+
   async findOne(id: number) {
     const item = await this.repository.findOneBy({ id });
     if (!item) {

@@ -13,4 +13,5 @@ export const ROUTES = {
   varnishes: '/varnishes',
   productionOperations: '/production-operations',
   products: '/products',
+  orderSearch: '/search',
 };

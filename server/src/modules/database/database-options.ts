@@ -32,6 +32,13 @@ export function createDatabaseOptions(
       type: 'better-sqlite3',
       database,
       enableWAL: true,
+      prepareDatabase: (sqliteDatabase) => {
+        sqliteDatabase.function(
+          'unicode_lower',
+          { deterministic: true },
+          (value: unknown) => String(value).toLocaleLowerCase('ru-RU'),
+        );
+      },
       migrations: [__dirname + '/migrations/sqlite/*{.ts,.js}'],
     };
   }

@@ -27,6 +27,33 @@ describe('createDatabaseOptions', () => {
     });
   });
 
+  it('registers Unicode-aware lowercase conversion for SQLite search', () => {
+    process.env.DB_TYPE = 'sqlite';
+    process.env.DB_PATH = 'C:\\avocado-data\\avocado.sqlite';
+    const { createDatabaseOptions } =
+      require('./database-options') as typeof import('./database-options');
+    const options = createDatabaseOptions();
+    const registerFunction = jest.fn();
+
+    if (options.type !== 'better-sqlite3') {
+      throw new Error('Expected SQLite database options');
+    }
+
+    options.prepareDatabase?.({
+      function: registerFunction,
+    } as never);
+
+    const unicodeLower = registerFunction.mock.calls[0][2] as (
+      value: string,
+    ) => string;
+    expect(registerFunction).toHaveBeenCalledWith(
+      'unicode_lower',
+      { deterministic: true },
+      expect.any(Function),
+    );
+    expect(unicodeLower('Аркадий СТЕПАНОВ')).toBe('аркадий степанов');
+  });
+
   it('requires an absolute SQLite path', () => {
     process.env.DB_TYPE = 'sqlite';
     process.env.DB_PATH = 'relative/avocado.sqlite';
