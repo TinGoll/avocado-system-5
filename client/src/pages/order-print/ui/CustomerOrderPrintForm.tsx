@@ -23,7 +23,7 @@ const styles = {
   `,
   title: css`
     color: red;
-  `
+  `,
 };
 
 type CustomerOrderPrintFormProps = {
