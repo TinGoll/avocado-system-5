@@ -30,6 +30,7 @@ const createTempItem = (props: AddItemProps): OrderItem => ({
   snapshot: props.template,
   quantity: props.quantity,
   characteristics: props.characteristics,
+  productionOperationResults: [],
   calculatedProductionCost: 0,
   calculatedCustomerPrice: 0,
 });

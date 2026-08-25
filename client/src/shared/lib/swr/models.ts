@@ -218,6 +218,19 @@ export interface OrderItem {
   quantity: number;
   snapshot: Snapshot;
   characteristics: OrderItemCharacteristics;
+  productionOperationResults: OrderItemProductionOperationResult[];
   calculatedProductionCost: number;
   calculatedCustomerPrice: number;
+}
+
+export interface OrderItemProductionOperationResult {
+  operationId: string;
+  originalName: string;
+  calculationFormula: string;
+  displayNameTemplate: string;
+  calculationMethod: ProductionOperation['calculationMethod'];
+  costPerUnit: number;
+  calculatedQuantity: number;
+  renderedName: string;
+  totalCost: number;
 }
