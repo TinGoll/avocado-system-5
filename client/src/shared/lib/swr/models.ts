@@ -214,7 +214,7 @@ export interface Order {
 export interface OrderItem {
   id: string;
   position: number;
-  template: ProductTemplate;
+  template: ProductTemplate | null;
   quantity: number;
   snapshot: Snapshot;
   characteristics: OrderItemCharacteristics;

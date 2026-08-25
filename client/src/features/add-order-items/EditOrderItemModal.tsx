@@ -54,7 +54,7 @@ export const EditOrderItemModal: FC<Props> = ({
   useEffect(() => {
     if (!open || !item) return;
     form.setFieldsValue({
-      templateId: item.template.id,
+      templateId: item.template?.id,
       quantity: item.quantity,
       customerPricingMethod: item.snapshot.customerPricingMethod,
       attributes: objectToDynamicFields(item.snapshot?.attributes),

@@ -110,7 +110,7 @@ export const ProductionOperationEditorFields: FC<Props> = ({ form }) => {
   }, [form, values]);
 
   return (
-    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+    <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
       <Form.Item<FieldType>
         label="Формула расчёта"
         name="calculationFormula"

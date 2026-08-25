@@ -261,10 +261,17 @@ export class ProductionOperationCalculatorService {
       value === undefined ||
       (typeof value === 'number' && !Number.isFinite(value))
     ) {
+      const isMissingPanelProfile =
+        (variable === 'panelWidth' || variable === 'panelHeight') &&
+        (context.profile?.width === undefined ||
+          context.profile.grooveDepth === undefined);
+
       this.fail(
         'MISSING_VALUE',
         field,
-        variable === 'item.name'
+        isMissingPanelProfile
+          ? 'Выберите профиль заказа для расчёта размера филёнки.'
+          : variable === 'item.name'
           ? `Отсутствует значение: ${variable}.`
           : `Отсутствует числовое значение: ${variable}.`,
         variable,

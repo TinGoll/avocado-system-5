@@ -68,7 +68,22 @@ describe('ProductionOperationCalculatorService', () => {
     expect(error).toEqual({
       code: 'MISSING_VALUE',
       field: 'displayNameTemplate',
-      message: 'Отсутствует числовое значение: panelWidth.',
+      message: 'Выберите профиль заказа для расчёта размера филёнки.',
+      variable: 'panelWidth',
+    });
+  });
+
+  it('asks to select an order profile when panel geometry is required', () => {
+    const error = getCalculationError(() =>
+      service.calculate('panelWidth * item.quantity', 'Работа', {
+        item: { width: 500, quantity: 1 },
+      }),
+    );
+
+    expect(error).toEqual({
+      code: 'MISSING_VALUE',
+      field: 'calculationFormula',
+      message: 'Выберите профиль заказа для расчёта размера филёнки.',
       variable: 'panelWidth',
     });
   });
