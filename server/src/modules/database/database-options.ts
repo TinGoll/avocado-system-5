@@ -1,5 +1,6 @@
 import { isAbsolute } from 'node:path';
 import type { TypeOrmModuleOptions } from '@nestjs/typeorm';
+import type Database from 'better-sqlite3';
 import { getDatabaseKind } from './database-kind';
 
 export interface DatabaseOptionsFactoryOptions {
@@ -32,7 +33,7 @@ export function createDatabaseOptions(
       type: 'better-sqlite3',
       database,
       enableWAL: true,
-      prepareDatabase: (sqliteDatabase) => {
+      prepareDatabase: (sqliteDatabase: Database.Database) => {
         sqliteDatabase.function(
           'unicode_lower',
           { deterministic: true },
