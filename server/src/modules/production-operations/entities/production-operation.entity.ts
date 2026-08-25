@@ -1,5 +1,9 @@
 import { ColumnNumericTransformer } from 'src/shared/utils/column.transformer';
 import {
+  PRODUCTION_OPERATION_FORMULA_MAX_LENGTH,
+  PRODUCTION_OPERATION_TEMPLATE_MAX_LENGTH,
+} from '../types/production-operation-formula-contract';
+import {
   Column,
   CreateDateColumn,
   Entity,
@@ -28,6 +32,12 @@ export class ProductionOperation {
     default: CalculationMethod.PER_ITEM,
   })
   calculationMethod: CalculationMethod;
+
+  @Column({ type: 'varchar', length: PRODUCTION_OPERATION_FORMULA_MAX_LENGTH })
+  calculationFormula: string;
+
+  @Column({ type: 'varchar', length: PRODUCTION_OPERATION_TEMPLATE_MAX_LENGTH })
+  displayNameTemplate: string;
 
   @Column({
     type: 'decimal',

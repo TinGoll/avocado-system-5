@@ -111,6 +111,8 @@ export type ProductionOperation = {
   id: string;
   name: string;
   calculationMethod: CalculationMethod;
+  calculationFormula: string;
+  displayNameTemplate: string;
   costPerUnit: number;
   createdAt: Date;
   updatedAt: Date;

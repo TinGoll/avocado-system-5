@@ -45,6 +45,17 @@ const styles = {
   `,
 };
 
+const defaultFormulaByCalculationMethod: Record<
+  ProductionOperation['calculationMethod'],
+  string
+> = {
+  [CALCULATION_METHOD.PER_ITEM]: 'item.quantity',
+  [CALCULATION_METHOD.AREA]:
+    'item.width / 1000 * item.height / 1000 * item.quantity',
+  [CALCULATION_METHOD.VOLUME]:
+    'item.width / 1000 * item.height / 1000 * item.thickness / 1000 * item.quantity',
+};
+
 type Props = {
   onCreated?: (operation: ProductionOperation) => void;
   onCancel?: () => void;
@@ -58,6 +69,9 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
   const handleFinish: FormProps<FieldType>['onFinish'] = (values) => {
     trigger({
       ...values,
+      calculationFormula:
+        defaultFormulaByCalculationMethod[values.calculationMethod],
+      displayNameTemplate: values.name,
     }).then((data) => {
       onCreated?.(data);
       notification.success({
