@@ -7,8 +7,16 @@ import {
   ModifierType,
   PriceModifier,
 } from '../price-modifiers/entities/price-modifier.entity';
-import { CustomerPricingMethod } from '../products/entities/product-template.entity';
+import {
+  CustomerPricingMethod,
+  ProductTemplate,
+} from '../products/entities/product-template.entity';
 import { PricingService } from './pricing.service';
+import { ProductionOperationCalculatorService } from '../production-operations/production-operation-calculator.service';
+import {
+  CalculationMethod,
+  ProductionOperation,
+} from '../production-operations/entities/production-operation.entity';
 
 const alwaysApplicableCondition = {
   source: ConditionSource.ITEM,
@@ -55,7 +63,10 @@ const createService = (modifiers: PriceModifier[]) => {
   } as unknown as jest.Mocked<Repository<PriceModifier>>;
 
   return {
-    service: new PricingService(modifiersRepository),
+    service: new PricingService(
+      modifiersRepository,
+      new ProductionOperationCalculatorService(),
+    ),
     findMock,
   };
 };
@@ -257,5 +268,46 @@ describe('PricingService', () => {
     await expect(service.calculateCustomerPrice(item, order)).resolves.toBe(
       100,
     );
+  });
+
+  it('calculates and snapshots each production operation', () => {
+    const { service } = createService([]);
+    const item = {
+      quantity: 2,
+      characteristics: { width: 500, height: 800 },
+    } as OrderItem;
+    const operation = {
+      id: 'operation-1',
+      name: 'Филёнка',
+      calculationMethod: CalculationMethod.AREA,
+      calculationFormula:
+        'panelWidth / 1000 * panelHeight / 1000 * item.quantity',
+      displayNameTemplate:
+        'Филёнка: {{ panelHeight }}х{{ panelWidth }} — {{ item.quantity }} шт.',
+      costPerUnit: 100,
+    } as ProductionOperation;
+    const template = new ProductTemplate();
+    template.operations = [operation];
+
+    const result = service.calculateProductionCost(item, template, {
+      profile: { characteristics: { width: 50, grooveDepth: 10 } },
+    });
+
+    expect(result).toEqual({
+      results: [
+        {
+          operationId: operation.id,
+          originalName: operation.name,
+          calculationFormula: operation.calculationFormula,
+          displayNameTemplate: operation.displayNameTemplate,
+          calculationMethod: operation.calculationMethod,
+          costPerUnit: 100,
+          calculatedQuantity: 0.6048,
+          renderedName: 'Филёнка: 720х420 — 2 шт.',
+          totalCost: 60.48,
+        },
+      ],
+      totalCost: 60.48,
+    });
   });
 });

@@ -2,9 +2,13 @@ import { Module } from '@nestjs/common';
 import { PricingService } from './pricing.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PriceModifier } from '../price-modifiers/entities/price-modifier.entity';
+import { ProductionOperationsModule } from '../production-operations/production-operations.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([PriceModifier])],
+  imports: [
+    TypeOrmModule.forFeature([PriceModifier]),
+    ProductionOperationsModule,
+  ],
   providers: [PricingService],
   exports: [PricingService],
 })

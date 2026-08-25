@@ -59,7 +59,12 @@ describe('OrdersService price recalculation', () => {
 
     findOne.mockResolvedValue(order);
     calculateCustomerPrices.mockResolvedValue([125, 275]);
-    calculateProductionCost.mockReturnValueOnce(15).mockReturnValueOnce(20);
+    calculateProductionCost
+      .mockReturnValueOnce({ results: [{ operationId: 'one' }], totalCost: 30 })
+      .mockReturnValueOnce({
+        results: [{ operationId: 'two' }],
+        totalCost: 60,
+      });
     save.mockImplementation((entity: Order) => Promise.resolve(entity));
 
     const result = await service.recalculatePrices(order.id);
@@ -75,6 +80,9 @@ describe('OrdersService price recalculation', () => {
     expect(calculateCustomerPrices).toHaveBeenCalledWith(order.items, order);
     expect(firstItem.calculatedProductionCost).toBe(30);
     expect(secondItem.calculatedProductionCost).toBe(60);
+    expect(firstItem.productionOperationResults).toEqual([
+      { operationId: 'one' },
+    ]);
     expect(firstItem.calculatedCustomerPrice).toBe(125);
     expect(secondItem.calculatedCustomerPrice).toBe(275);
     expect(result.totalPrice).toBe(400);
@@ -114,7 +122,7 @@ describe('OrdersService price recalculation', () => {
 
     findOne.mockResolvedValue(order);
     findProduct.mockResolvedValue(newTemplate);
-    calculateProductionCost.mockReturnValue(20);
+    calculateProductionCost.mockReturnValue({ results: [], totalCost: 20 });
     calculateCustomerPrice.mockResolvedValue(30);
     save.mockImplementation((entity: Order) => Promise.resolve(entity));
 
@@ -149,7 +157,7 @@ describe('OrdersService price recalculation', () => {
 
     findOne.mockResolvedValue(order);
     calculateCustomerPrices.mockResolvedValue([40]);
-    calculateProductionCost.mockReturnValue(15);
+    calculateProductionCost.mockReturnValue({ results: [], totalCost: 15 });
     save.mockImplementation((entity: Order) => Promise.resolve(entity));
 
     await service.updateItemInOrder(order.id, item.id, { quantity: 2 });
@@ -181,7 +189,7 @@ describe('OrdersService price recalculation', () => {
 
     findOne.mockResolvedValue(order);
     calculateCustomerPrices.mockResolvedValue([60]);
-    calculateProductionCost.mockReturnValue(10);
+    calculateProductionCost.mockReturnValue({ results: [], totalCost: 10 });
     save.mockImplementation((entity: Order) => Promise.resolve(entity));
 
     const result = await service.updateItemInOrder(order.id, item.id, {

@@ -7,13 +7,15 @@ import {
   PriceModifier,
 } from '../price-modifiers/entities/price-modifier.entity';
 import { Repository } from 'typeorm';
-import { OrderItem } from '../orders/entities/order-item.entity';
+import {
+  OrderItem,
+  OrderItemProductionOperationResult,
+} from '../orders/entities/order-item.entity';
 import { Order } from '../orders/entities/order.entity';
 import {
   CustomerPricingMethod,
   ProductTemplate,
 } from '../products/entities/product-template.entity';
-import { CalculationMethod } from '../production-operations/entities/production-operation.entity';
 import { get } from 'src/shared/utils/object-helpers';
 import { PriceModifierCondition } from '../price-modifiers/types/price-modifier-condition.type';
 import {
@@ -21,12 +23,19 @@ import {
   isConditionOperatorAllowedForField,
   isConditionValueValidForField,
 } from '../price-modifiers/condition-paths/price-modifier-condition-paths';
+import { ProductionOperationCalculatorService } from '../production-operations/production-operation-calculator.service';
+
+export interface ProductionCostCalculation {
+  results: OrderItemProductionOperationResult[];
+  totalCost: number;
+}
 
 @Injectable()
 export class PricingService {
   constructor(
     @InjectRepository(PriceModifier)
     private readonly modifiersRepository: Repository<PriceModifier>,
+    private readonly operationCalculator: ProductionOperationCalculatorService,
   ) {}
 
   async calculateCustomerPrice(item: OrderItem, order: Order): Promise<number> {
@@ -137,35 +146,60 @@ export class PricingService {
     }
   }
 
-  calculateProductionCost(item: OrderItem, template: ProductTemplate): number {
-    let totalCost = 0;
-    if (!template.operations) return 0;
+  calculateProductionCost(
+    item: OrderItem,
+    template: ProductTemplate,
+    orderCharacteristics: unknown,
+  ): ProductionCostCalculation {
+    const context = this.operationCalculator.contextFromSnapshot(
+      {
+        width: this.readOptionalNumber(item.characteristics?.width),
+        height: this.readOptionalNumber(item.characteristics?.height),
+        thickness: this.readOptionalNumber(item.characteristics?.thickness),
+        quantity: item.quantity,
+      },
+      orderCharacteristics,
+    );
+    const results = (template.operations ?? []).map((operation) => {
+      const calculation = this.operationCalculator.calculate(
+        operation.calculationFormula,
+        operation.displayNameTemplate,
+        context,
+      );
+      const totalCost = this.roundMoney(
+        Number(operation.costPerUnit) * calculation.calculatedQuantity,
+      );
 
-    for (const operation of template.operations) {
-      let cost = 0;
-      const width = Number(get(item, 'characteristics.width', 0)) / 1000;
-      const height = Number(get(item, 'characteristics.height', 0)) / 1000;
-      switch (operation.calculationMethod) {
-        case CalculationMethod.PER_ITEM:
-          cost = operation.costPerUnit;
-          break;
+      return {
+        operationId: operation.id,
+        originalName: operation.name,
+        calculationFormula: operation.calculationFormula,
+        displayNameTemplate: operation.displayNameTemplate,
+        calculationMethod: operation.calculationMethod,
+        costPerUnit: Number(operation.costPerUnit),
+        calculatedQuantity: calculation.calculatedQuantity,
+        renderedName: calculation.renderedName,
+        totalCost,
+      };
+    });
 
-        case CalculationMethod.AREA:
-          cost = operation.costPerUnit * width * height;
-          break;
+    return {
+      results,
+      totalCost: this.roundMoney(
+        results.reduce((sum, result) => sum + result.totalCost, 0),
+      ),
+    };
+  }
 
-        case CalculationMethod.VOLUME: {
-          const thickness =
-            Number(get(item, 'characteristics.thickness', 0)) / 1000;
-          cost = operation.costPerUnit * width * height * thickness;
-          break;
-        }
-      }
+  private readOptionalNumber(value: unknown): number | undefined {
+    const number = Number(value);
+    return value === undefined || value === null || value === ''
+      ? undefined
+      : number;
+  }
 
-      totalCost += cost;
-    }
-
-    return totalCost;
+  private roundMoney(value: number): number {
+    return Math.round((value + Number.EPSILON) * 100) / 100;
   }
 
   private checkConditions(

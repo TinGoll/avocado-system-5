@@ -81,6 +81,9 @@ export class OrdersService {
           position: item.position,
           snapshot: structuredClone(item.snapshot),
           characteristics: structuredClone(item.characteristics),
+          productionOperationResults: structuredClone(
+            item.productionOperationResults,
+          ),
           calculatedProductionCost: item.calculatedProductionCost,
           calculatedCustomerPrice: item.calculatedCustomerPrice,
         }),
@@ -257,11 +260,13 @@ export class OrdersService {
     );
 
     order.items.forEach((item, index) => {
-      const productionCostPerUnit = this.pricingService.calculateProductionCost(
+      const productionCost = this.pricingService.calculateProductionCost(
         item,
         item.template,
+        order.characteristics,
       );
-      item.calculatedProductionCost = productionCostPerUnit * item.quantity;
+      item.productionOperationResults = productionCost.results;
+      item.calculatedProductionCost = productionCost.totalCost;
       item.calculatedCustomerPrice = customerPrices[index];
     });
 
@@ -299,12 +304,13 @@ export class OrdersService {
       defaultCharacteristics: template.defaultCharacteristics,
     };
 
-    const productionCostPerUnit = this.pricingService.calculateProductionCost(
+    const productionCost = this.pricingService.calculateProductionCost(
       orderItem,
       template,
+      order.characteristics,
     );
-    orderItem.calculatedProductionCost =
-      productionCostPerUnit * orderItem.quantity;
+    orderItem.productionOperationResults = productionCost.results;
+    orderItem.calculatedProductionCost = productionCost.totalCost;
 
     orderItem.calculatedCustomerPrice =
       await this.pricingService.calculateCustomerPrice(orderItem, order);

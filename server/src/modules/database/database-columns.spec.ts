@@ -25,7 +25,7 @@ describe('PostgreSQL column metadata', () => {
       )
       .filter(({ options }) => options.type === 'jsonb');
 
-    expect(jsonColumns).toHaveLength(9);
+    expect(jsonColumns).toHaveLength(10);
   });
 
   it('uses simple-enum with stable legacy-compatible PostgreSQL names', () => {
