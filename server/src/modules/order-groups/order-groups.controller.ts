@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { OrderGroupsService } from './order-groups.service';
 import { CreateOrderGroupDto } from './dto/create-order-group.dto';
@@ -43,6 +44,11 @@ export class OrderGroupsController {
     @Body() updateOrderGroupDto: UpdateOrderGroupDto,
   ) {
     return this.orderGroupsService.update(+id, updateOrderGroupDto);
+  }
+
+  @Post(':id/recalculate-production')
+  recalculateProduction(@Param('id', ParseIntPipe) id: number) {
+    return this.orderGroupsService.recalculateProduction(id);
   }
 
   @Delete(':id')

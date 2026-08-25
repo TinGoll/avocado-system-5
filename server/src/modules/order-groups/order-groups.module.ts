@@ -4,9 +4,15 @@ import { OrderGroupsController } from './order-groups.controller';
 import { OrderGroup } from './entities/order-group.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Order } from '../orders/entities/order.entity';
+import { OrderItem } from '../orders/entities/order-item.entity';
+import { PricingModule } from '../pricing/pricing.module';
+import { ProductTemplate } from '../products/entities/product-template.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([OrderGroup, Order])],
+  imports: [
+    PricingModule,
+    TypeOrmModule.forFeature([OrderGroup, Order, OrderItem, ProductTemplate]),
+  ],
   controllers: [OrderGroupsController],
   providers: [OrderGroupsService],
 })

@@ -2,7 +2,10 @@ import { NotFoundException } from '@nestjs/common';
 import type { Repository } from 'typeorm';
 
 import { PricingService } from '../pricing/pricing.service';
-import { OrderGroup } from '../order-groups/entities/order-group.entity';
+import {
+  OrderGroup,
+  OrderStatus,
+} from '../order-groups/entities/order-group.entity';
 import {
   CustomerPricingMethod,
   ProductTemplate,
@@ -201,5 +204,72 @@ describe('OrdersService price recalculation', () => {
     );
     expect(calculateCustomerPrices).toHaveBeenCalledWith(order.items, order);
     expect(result.totalPrice).toBe(60);
+  });
+
+  it('keeps production results when an item outside draft is updated', async () => {
+    const item = {
+      id: 'item-1',
+      quantity: 1,
+      template: { id: 'template-1' },
+      productionOperationResults: [{ operationId: 'saved-operation' }],
+      calculatedProductionCost: 75,
+      calculatedCustomerPrice: 20,
+    } as OrderItem;
+    const order = {
+      id: 'order-1',
+      items: [item],
+      orderGroup: { status: OrderStatus.IN_PRODUCTION },
+      totalPrice: 20,
+    } as Order;
+
+    findOne.mockResolvedValue(order);
+    calculateCustomerPrices.mockResolvedValue([40]);
+    save.mockImplementation((entity: Order) => Promise.resolve(entity));
+
+    await service.updateItemInOrder(order.id, item.id, { quantity: 2 });
+
+    expect(calculateProductionCost).not.toHaveBeenCalled();
+    expect(item.productionOperationResults).toEqual([
+      { operationId: 'saved-operation' },
+    ]);
+    expect(item.calculatedProductionCost).toBe(75);
+    expect(item.calculatedCustomerPrice).toBe(40);
+  });
+
+  it('automatically replaces production results when a draft item changes', async () => {
+    const item = {
+      id: 'item-1',
+      quantity: 1,
+      template: { id: 'template-1' },
+      productionOperationResults: [{ operationId: 'old-operation' }],
+      calculatedProductionCost: 10,
+      calculatedCustomerPrice: 20,
+    } as OrderItem;
+    const order = {
+      id: 'order-1',
+      items: [item],
+      orderGroup: { status: OrderStatus.DRAFT },
+      totalPrice: 20,
+    } as Order;
+
+    findOne.mockResolvedValue(order);
+    calculateCustomerPrices.mockResolvedValue([40]);
+    calculateProductionCost.mockReturnValue({
+      results: [{ operationId: 'new-operation' }],
+      totalCost: 30,
+    });
+    save.mockImplementation((entity: Order) => Promise.resolve(entity));
+
+    await service.updateItemInOrder(order.id, item.id, { quantity: 2 });
+
+    expect(calculateProductionCost).toHaveBeenCalledWith(
+      item,
+      item.template,
+      order.characteristics,
+    );
+    expect(item.productionOperationResults).toEqual([
+      { operationId: 'new-operation' },
+    ]);
+    expect(item.calculatedProductionCost).toBe(30);
   });
 });

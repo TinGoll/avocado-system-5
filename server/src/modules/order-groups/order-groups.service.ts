@@ -2,9 +2,27 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateOrderGroupDto } from './dto/create-order-group.dto';
 import { UpdateOrderGroupDto } from './dto/update-order-group.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { OrderGroup } from './entities/order-group.entity';
 import { Order } from '../orders/entities/order.entity';
+import { PricingService } from '../pricing/pricing.service';
+
+export type OrderGroupRecalculationError = {
+  orderId: string;
+  itemId: string;
+  message: string;
+};
+
+export type OrderGroupRecalculationResult = {
+  updatedItems: number;
+  errors: OrderGroupRecalculationError[];
+};
+
+class RecalculationFailedError extends Error {
+  constructor(readonly diagnostics: OrderGroupRecalculationError[]) {
+    super('Order group production recalculation failed');
+  }
+}
 
 @Injectable()
 export class OrderGroupsService {
@@ -13,6 +31,8 @@ export class OrderGroupsService {
     private readonly repository: Repository<OrderGroup>,
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
+    private readonly dataSource: DataSource,
+    private readonly pricingService: PricingService,
   ) {}
 
   create(createDto: CreateOrderGroupDto) {
@@ -138,6 +158,76 @@ export class OrderGroupsService {
       throw new NotFoundException(`Order Group with ID "${id}" not found`);
     }
     return this.repository.save(item);
+  }
+
+  async recalculateProduction(
+    id: number,
+  ): Promise<OrderGroupRecalculationResult> {
+    try {
+      return await this.dataSource.transaction(async (manager) => {
+        const group = await manager.getRepository(OrderGroup).findOne({
+          where: { id },
+          relations: {
+            orders: {
+              items: {
+                template: {
+                  operations: true,
+                },
+              },
+            },
+          },
+          order: {
+            orders: {
+              items: {
+                position: 'ASC',
+              },
+            },
+          },
+        });
+
+        if (!group) {
+          throw new NotFoundException(`Order Group with ID "${id}" not found`);
+        }
+
+        const errors: OrderGroupRecalculationError[] = [];
+        let updatedItems = 0;
+
+        for (const order of group.orders) {
+          for (const item of order.items) {
+            try {
+              const productionCost =
+                this.pricingService.calculateProductionCost(
+                  item,
+                  item.template,
+                  order.characteristics,
+                );
+              item.productionOperationResults = productionCost.results;
+              item.calculatedProductionCost = productionCost.totalCost;
+              updatedItems += 1;
+            } catch (error) {
+              errors.push({
+                orderId: order.id,
+                itemId: item.id,
+                message:
+                  error instanceof Error ? error.message : 'Неизвестная ошибка',
+              });
+            }
+          }
+        }
+
+        if (errors.length > 0) {
+          throw new RecalculationFailedError(errors);
+        }
+
+        await manager.getRepository(Order).save(group.orders);
+        return { updatedItems, errors: [] };
+      });
+    } catch (error) {
+      if (error instanceof RecalculationFailedError) {
+        return { updatedItems: 0, errors: error.diagnostics };
+      }
+      throw error;
+    }
   }
 
   async remove(id: number) {
