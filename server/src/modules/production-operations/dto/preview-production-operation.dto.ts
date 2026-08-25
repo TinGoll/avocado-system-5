@@ -15,6 +15,10 @@ import {
 } from '../types/production-operation-formula-contract';
 
 class PreviewItemDto {
+  @IsString()
+  @IsOptional()
+  name?: string;
+
   @IsNumber()
   @IsOptional()
   width?: number;

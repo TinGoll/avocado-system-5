@@ -3,12 +3,14 @@ import {
   PRODUCTION_OPERATION_FORMULA_MAX_LENGTH,
   PRODUCTION_OPERATION_FORMULA_VARIABLES,
   PRODUCTION_OPERATION_TEMPLATE_MAX_LENGTH,
+  PRODUCTION_OPERATION_TEMPLATE_VARIABLES,
   ProductionOperationCalculationError,
   ProductionOperationCalculationErrorCode,
   ProductionOperationCalculationErrorField,
   ProductionOperationEvaluationContext,
   ProductionOperationFormulaContext,
   ProductionOperationFormulaVariable,
+  ProductionOperationTemplateVariable,
 } from './types/production-operation-formula-contract';
 
 type ExpressionNode =
@@ -59,7 +61,7 @@ export class ProductionOperationCalculatorService {
       (_placeholder, rawVariable: string) =>
         String(
           this.getValue(
-            rawVariable.trim() as ProductionOperationFormulaVariable,
+            rawVariable.trim() as ProductionOperationTemplateVariable,
             evaluationContext,
             'displayNameTemplate',
           ),
@@ -146,7 +148,7 @@ export class ProductionOperationCalculatorService {
 
   private parseTemplate(
     template: string,
-  ): ProductionOperationFormulaVariable[] {
+  ): ProductionOperationTemplateVariable[] {
     if (template.length > PRODUCTION_OPERATION_TEMPLATE_MAX_LENGTH) {
       this.fail(
         'TEMPLATE_TOO_LONG',
@@ -155,7 +157,7 @@ export class ProductionOperationCalculatorService {
       );
     }
 
-    const variables: ProductionOperationFormulaVariable[] = [];
+    const variables: ProductionOperationTemplateVariable[] = [];
     let cursor = 0;
     const placeholder = /{{\s*([^{}]+?)\s*}}/g;
     for (const match of template.matchAll(placeholder)) {
@@ -171,7 +173,7 @@ export class ProductionOperationCalculatorService {
         );
       }
       const variable = match[1].trim();
-      if (!this.isVariable(variable)) {
+      if (!this.isTemplateVariable(variable)) {
         this.fail(
           'UNKNOWN_VARIABLE',
           'displayNameTemplate',
@@ -202,7 +204,7 @@ export class ProductionOperationCalculatorService {
     let result: number;
     if (node.type === 'number') result = node.value;
     else if (node.type === 'variable') {
-      result = this.getValue(node.name, context, 'calculationFormula');
+      result = this.getFormulaValue(node.name, context);
     } else if (node.type === 'unary') {
       const value = this.evaluate(node.operand, context);
       result = node.operator === '-' ? -value : value;
@@ -236,14 +238,15 @@ export class ProductionOperationCalculatorService {
   }
 
   private getValue(
-    variable: ProductionOperationFormulaVariable,
+    variable: ProductionOperationTemplateVariable,
     context: ProductionOperationEvaluationContext,
     field: ProductionOperationCalculationErrorField,
-  ): number {
+  ): number | string {
     const values: Record<
-      ProductionOperationFormulaVariable,
-      number | undefined
+      ProductionOperationTemplateVariable,
+      number | string | undefined
     > = {
+      'item.name': context.item.name,
       'item.width': context.item.width,
       'item.height': context.item.height,
       'item.thickness': context.item.thickness,
@@ -254,22 +257,34 @@ export class ProductionOperationCalculatorService {
       panelHeight: context.panelHeight,
     };
     const value = values[variable];
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
+    if (
+      value === undefined ||
+      (typeof value === 'number' && !Number.isFinite(value))
+    ) {
       this.fail(
         'MISSING_VALUE',
         field,
-        `Отсутствует числовое значение: ${variable}.`,
+        variable === 'item.name'
+          ? `Отсутствует значение: ${variable}.`
+          : `Отсутствует числовое значение: ${variable}.`,
         variable,
       );
     }
     return value;
   }
 
-  private isVariable(
+  private getFormulaValue(
+    variable: ProductionOperationFormulaVariable,
+    context: ProductionOperationEvaluationContext,
+  ): number {
+    return this.getValue(variable, context, 'calculationFormula') as number;
+  }
+
+  private isTemplateVariable(
     value: string,
-  ): value is ProductionOperationFormulaVariable {
+  ): value is ProductionOperationTemplateVariable {
     return (
-      PRODUCTION_OPERATION_FORMULA_VARIABLES as readonly string[]
+      PRODUCTION_OPERATION_TEMPLATE_VARIABLES as readonly string[]
     ).includes(value);
   }
 

@@ -274,6 +274,7 @@ describe('PricingService', () => {
     const { service } = createService([]);
     const item = {
       quantity: 2,
+      snapshot: { name: 'Фасад прямой' },
       characteristics: { width: 500, height: 800 },
     } as OrderItem;
     const operation = {
@@ -283,7 +284,7 @@ describe('PricingService', () => {
       calculationFormula:
         'panelWidth / 1000 * panelHeight / 1000 * item.quantity',
       displayNameTemplate:
-        'Филёнка: {{ panelHeight }}х{{ panelWidth }} — {{ item.quantity }} шт.',
+        '{{ item.name }}: {{ panelHeight }}х{{ panelWidth }} — {{ item.quantity }} шт.',
       costPerUnit: 100,
     } as ProductionOperation;
     const template = new ProductTemplate();
@@ -303,7 +304,7 @@ describe('PricingService', () => {
           calculationMethod: operation.calculationMethod,
           costPerUnit: 100,
           calculatedQuantity: 0.6048,
-          renderedName: 'Филёнка: 720х420 — 2 шт.',
+          renderedName: 'Фасад прямой: 720х420 — 2 шт.',
           totalCost: 60.48,
         },
       ],

@@ -23,6 +23,7 @@ import {
 import type { FieldType } from '../model/create-production-operation';
 
 const variables = [
+  ['item.name', 'Название продукта (только для шаблона названия)'],
   ['item.width', 'Ширина позиции, мм'],
   ['item.height', 'Высота позиции, мм'],
   ['item.thickness', 'Толщина позиции, мм'],
@@ -64,6 +65,7 @@ export const ProductionOperationEditorFields: FC<Props> = ({ form }) => {
           displayNameTemplate: template,
           costPerUnit: values.costPerUnit,
           item: {
+            name: test.name,
             width: test.width,
             height: test.height,
             thickness: test.thickness,
@@ -143,6 +145,7 @@ export const ProductionOperationEditorFields: FC<Props> = ({ form }) => {
       <Card size="small" title="Тестовые значения" className={styles}>
         <Row gutter={12} className="preview-grid">
           {[
+            ['name', 'Название продукта'],
             ['width', 'Ширина, мм'],
             ['height', 'Высота, мм'],
             ['thickness', 'Толщина, мм'],
@@ -157,13 +160,18 @@ export const ProductionOperationEditorFields: FC<Props> = ({ form }) => {
                 rules={[
                   {
                     required:
+                      name === 'name' ||
                       name === 'width' ||
                       name === 'height' ||
                       name === 'quantity',
                   },
                 ]}
               >
-                <InputNumber min={0} style={{ width: '100%' }} />
+                {name === 'name' ? (
+                  <Input />
+                ) : (
+                  <InputNumber min={0} style={{ width: '100%' }} />
+                )}
               </Form.Item>
             </Col>
           ))}

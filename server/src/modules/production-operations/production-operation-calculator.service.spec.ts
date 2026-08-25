@@ -72,4 +72,14 @@ describe('ProductionOperationCalculatorService', () => {
       variable: 'panelWidth',
     });
   });
+
+  it('renders the product name in the display-name template', () => {
+    const result = service.calculate(
+      'item.quantity',
+      '{{ item.name }} — {{ item.quantity }} шт.',
+      { item: { name: 'Фасад прямой', quantity: 2 } },
+    );
+
+    expect(result.renderedName).toBe('Фасад прямой — 2 шт.');
+  });
 });

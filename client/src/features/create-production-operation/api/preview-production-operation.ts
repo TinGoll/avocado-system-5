@@ -25,6 +25,7 @@ export const previewProductionOperation = (data: {
   displayNameTemplate: string;
   costPerUnit: number;
   item: {
+    name?: string;
     width?: number;
     height?: number;
     thickness?: number;

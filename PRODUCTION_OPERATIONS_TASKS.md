@@ -23,6 +23,7 @@ roundMoney(calculatedQuantity * costPerUnit)
 
 | Переменная | Единица | Источник |
 | --- | --- | --- |
+| `item.name` | — | название продукта (только шаблон названия) |
 | `item.width` | мм | ширина позиции |
 | `item.height` | мм | высота позиции |
 | `item.thickness` | мм | толщина позиции |

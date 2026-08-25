@@ -7,6 +7,7 @@ export type FieldType = {
   displayNameTemplate: string;
   costPerUnit: number;
   preview: {
+    name?: string;
     width: number;
     height: number;
     thickness?: number;

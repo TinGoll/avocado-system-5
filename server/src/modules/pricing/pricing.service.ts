@@ -153,6 +153,7 @@ export class PricingService {
   ): ProductionCostCalculation {
     const context = this.operationCalculator.contextFromSnapshot(
       {
+        name: item.snapshot?.name ?? template.name,
         width: this.readOptionalNumber(item.characteristics?.width),
         height: this.readOptionalNumber(item.characteristics?.height),
         thickness: this.readOptionalNumber(item.characteristics?.thickness),

@@ -11,6 +11,7 @@ export const PRODUCTION_OPERATION_TEMPLATE_MAX_LENGTH = 500;
  */
 export interface ProductionOperationFormulaContext {
   item: {
+    name?: string;
     width?: number;
     height?: number;
     thickness?: number;
@@ -51,7 +52,7 @@ export type ProductionOperationFormulaVariable =
   (typeof PRODUCTION_OPERATION_FORMULA_VARIABLES)[number];
 
 export const PRODUCTION_OPERATION_TEMPLATE_VARIABLES =
-  PRODUCTION_OPERATION_FORMULA_VARIABLES;
+  [...PRODUCTION_OPERATION_FORMULA_VARIABLES, 'item.name'] as const;
 
 export type ProductionOperationTemplateVariable =
   (typeof PRODUCTION_OPERATION_TEMPLATE_VARIABLES)[number];
