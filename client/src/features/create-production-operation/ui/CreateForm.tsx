@@ -122,6 +122,8 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
             height: 860,
             thickness: 20,
             quantity: 1,
+            profileWidth: 50,
+            grooveDepth: 10,
             profileName: 'Тестовый профиль',
             panelName: 'Тестовая филёнка',
           },
