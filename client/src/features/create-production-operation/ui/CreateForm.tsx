@@ -14,7 +14,7 @@ import { type FC } from 'react';
 
 import {
   CALCULATION_METHOD,
-  calculationMethodNameMap,
+  calculationMethodShortNameMap,
   type ProductionOperation,
 } from '@entities/production-operation';
 
@@ -156,16 +156,16 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
           >
             <Radio.Group block optionType="button" buttonStyle="solid">
               <Radio.Button value={CALCULATION_METHOD.PER_ITEM}>
-                {calculationMethodNameMap[CALCULATION_METHOD.PER_ITEM]}
+                {calculationMethodShortNameMap[CALCULATION_METHOD.PER_ITEM]}
               </Radio.Button>
               <Radio.Button value={CALCULATION_METHOD.LINEAR_METER}>
-                {calculationMethodNameMap[CALCULATION_METHOD.LINEAR_METER]}
+                {calculationMethodShortNameMap[CALCULATION_METHOD.LINEAR_METER]}
               </Radio.Button>
               <Radio.Button value={CALCULATION_METHOD.AREA}>
-                {calculationMethodNameMap[CALCULATION_METHOD.AREA]}
+                {calculationMethodShortNameMap[CALCULATION_METHOD.AREA]}
               </Radio.Button>
               <Radio.Button value={CALCULATION_METHOD.VOLUME}>
-                {calculationMethodNameMap[CALCULATION_METHOD.VOLUME]}
+                {calculationMethodShortNameMap[CALCULATION_METHOD.VOLUME]}
               </Radio.Button>
             </Radio.Group>
           </Form.Item>
