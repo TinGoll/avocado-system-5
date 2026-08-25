@@ -13,6 +13,7 @@ import {
 import { ProductionOperationsService } from './production-operations.service';
 import { CreateProductionOperationDto } from './dto/create-production-operation.dto';
 import { UpdateProductionOperationDto } from './dto/update-production-operation.dto';
+import { PreviewProductionOperationDto } from './dto/preview-production-operation.dto';
 
 @Controller('production-operations')
 export class ProductionOperationsController {
@@ -23,6 +24,11 @@ export class ProductionOperationsController {
   @Post()
   create(@Body() createDto: CreateProductionOperationDto) {
     return this.operationsService.create(createDto);
+  }
+
+  @Post('preview')
+  preview(@Body() previewDto: PreviewProductionOperationDto) {
+    return this.operationsService.preview(previewDto);
   }
 
   @Get()

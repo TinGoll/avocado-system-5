@@ -77,5 +77,5 @@ export interface ProductionOperationCalculationError {
   code: ProductionOperationCalculationErrorCode;
   field: ProductionOperationCalculationErrorField;
   message: string;
-  variable?: ProductionOperationFormulaVariable | string;
+  variable?: string;
 }
