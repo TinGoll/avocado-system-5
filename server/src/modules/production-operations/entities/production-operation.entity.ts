@@ -13,6 +13,7 @@ import {
 
 export enum CalculationMethod {
   PER_ITEM = 'per_item', // Поштучно
+  LINEAR_METER = 'linear_meter', // По погонным метрам (м)
   AREA = 'area', // По квадратуре (м²)
   VOLUME = 'volume', // По кубатуре (м³)
 }

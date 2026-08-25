@@ -158,6 +158,9 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
               <Radio.Button value={CALCULATION_METHOD.PER_ITEM}>
                 {calculationMethodNameMap[CALCULATION_METHOD.PER_ITEM]}
               </Radio.Button>
+              <Radio.Button value={CALCULATION_METHOD.LINEAR_METER}>
+                {calculationMethodNameMap[CALCULATION_METHOD.LINEAR_METER]}
+              </Radio.Button>
               <Radio.Button value={CALCULATION_METHOD.AREA}>
                 {calculationMethodNameMap[CALCULATION_METHOD.AREA]}
               </Radio.Button>

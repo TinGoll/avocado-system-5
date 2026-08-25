@@ -100,6 +100,7 @@ export type ProductTemplate = {
 
 export const CALCULATION_METHOD = {
   PER_ITEM: 'per_item',
+  LINEAR_METER: 'linear_meter',
   AREA: 'area',
   VOLUME: 'volume',
 } as const;

@@ -7,6 +7,7 @@ import type { ProductionOrderDocument } from '../model/production-order';
 
 const unitLabels: Record<string, string> = {
   per_item: 'шт.',
+  linear_meter: 'м',
   area: 'м²',
   volume: 'м³',
 };
