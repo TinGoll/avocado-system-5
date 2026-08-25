@@ -53,6 +53,75 @@ button:hover {
   border-color: #646cff;
 }
 
+.server-connection-screen {
+  align-items: center;
+  background: var(--app-body-background-color);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  min-height: 100vh;
+  opacity: 1;
+  padding: 24px;
+  position: fixed;
+  transition: opacity 2s ease;
+  z-index: 9999;
+}
+
+.server-connection-card {
+  box-sizing: border-box;
+  max-width: 480px;
+  padding: 32px;
+  text-align: center;
+  transition:
+    opacity 0.8s ease,
+    transform 2s ease;
+  width: 100%;
+}
+
+.server-connection-screen--connected {
+  opacity: 0;
+}
+
+.server-connection-screen--connected .server-connection-card {
+  opacity: 0;
+  transform: translateY(-12px) scale(0.98);
+}
+
+.app-entry-animation {
+  animation: app-entry 2s ease both;
+}
+
+@keyframes app-entry {
+  from {
+    opacity: 0;
+    transform: scale(0.995);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .server-connection-screen,
+  .server-connection-card {
+    transition: none;
+  }
+
+  .app-entry-animation {
+    animation: none;
+  }
+}
+
+.server-connection-card .ant-typography {
+  display: block;
+}
+
+.server-connection-card .ant-progress {
+  margin-top: 24px;
+}
+
 @media print {
   @page {
     size: A4;
@@ -111,7 +180,9 @@ button:hover {
     display: none !important;
   }
 
-  body:has(.order-invoice-print-area) .order-view-tabs .ant-tabs-content-holder {
+  body:has(.order-invoice-print-area)
+    .order-view-tabs
+    .ant-tabs-content-holder {
     padding-top: 0;
   }
 
