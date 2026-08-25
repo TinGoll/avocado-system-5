@@ -12,5 +12,6 @@ export type ProductTemplateFieldType = {
   baseCustomerPrice: number;
   attributes: DynamicField[];
   additionalCharacteristics: DynamicField[];
+  operationIds: string[];
   priceModifierIds: string[];
 };

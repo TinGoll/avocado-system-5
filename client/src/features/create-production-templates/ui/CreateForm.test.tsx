@@ -81,6 +81,8 @@ describe('CreateForm', () => {
       isMutating: false,
       trigger,
       products: [],
+      operations: [],
+      operationsError: undefined,
       priceModifiers: [scopedModifier, globalModifier],
       priceModifiersError: undefined,
       isLoading: false,

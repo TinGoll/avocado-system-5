@@ -29,8 +29,8 @@ const variables = [
   ['item.quantity', 'Количество, шт.'],
   ['profile.width', 'Ширина профиля, мм'],
   ['profile.grooveDepth', 'Глубина паза профиля, мм'],
-  ['panelWidth', 'Расчётная ширина филёнки, мм'],
-  ['panelHeight', 'Расчётная высота филёнки, мм'],
+  ['panelWidth', 'Внутренняя ширина с учётом профиля, мм (опционально)'],
+  ['panelHeight', 'Внутренняя высота с учётом профиля, мм (опционально)'],
 ] as const;
 
 const styles = css`
@@ -69,14 +69,18 @@ export const ProductionOperationEditorFields: FC<Props> = ({ form }) => {
             thickness: test.thickness,
             quantity: test.quantity,
           },
-          orderCharacteristics: {
-            profile: {
-              characteristics: {
-                width: test.profileWidth,
-                grooveDepth: test.grooveDepth,
-              },
-            },
-          },
+          ...(test.profileWidth !== undefined || test.grooveDepth !== undefined
+            ? {
+                orderCharacteristics: {
+                  profile: {
+                    characteristics: {
+                      width: test.profileWidth,
+                      grooveDepth: test.grooveDepth,
+                    },
+                  },
+                },
+              }
+            : {}),
         });
         setPreview(result);
         setPreviewError(undefined);
@@ -121,7 +125,7 @@ export const ProductionOperationEditorFields: FC<Props> = ({ form }) => {
           { required: true, whitespace: true, message: 'Введите шаблон' },
         ]}
       >
-        <Input placeholder="Филёнка: {{ panelHeight }}х{{ panelWidth }} — {{ item.quantity }} шт." />
+        <Input placeholder="Например: {{ item.height }}х{{ item.width }} — {{ item.quantity }} шт." />
       </Form.Item>
 
       <Card size="small" title="Доступные переменные">
@@ -150,7 +154,14 @@ export const ProductionOperationEditorFields: FC<Props> = ({ form }) => {
               <Form.Item
                 label={label}
                 name={['preview', name]}
-                rules={[{ required: name !== 'thickness' }]}
+                rules={[
+                  {
+                    required:
+                      name === 'width' ||
+                      name === 'height' ||
+                      name === 'quantity',
+                  },
+                ]}
               >
                 <InputNumber min={0} style={{ width: '100%' }} />
               </Form.Item>
@@ -171,7 +182,7 @@ export const ProductionOperationEditorFields: FC<Props> = ({ form }) => {
               items={[
                 {
                   key: 'geometry',
-                  label: 'Размер филёнки',
+                  label: 'Внутренний размер по профилю',
                   children:
                     preview.panelHeight !== undefined &&
                     preview.panelWidth !== undefined

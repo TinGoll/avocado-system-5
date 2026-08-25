@@ -7,11 +7,12 @@ import {
 
 export type ProductTemplateEditValues = Omit<
   ProductTemplate,
-  'id' | 'attributes' | 'defaultCharacteristics'
+  'id' | 'attributes' | 'defaultCharacteristics' | 'operations'
 > & {
   defaultCharacteristics: ProductTemplate['defaultCharacteristics'];
   attributes: DynamicField[];
   additionalCharacteristics: DynamicField[];
+  operationIds: string[];
 };
 
 const dimensionKeys = new Set(['width', 'height', 'thickness']);
@@ -23,6 +24,7 @@ export const getProductTemplateEditValues = (
   group: product.group,
   customerPricingMethod: product.customerPricingMethod,
   baseCustomerPrice: product.baseCustomerPrice,
+  operationIds: product.operations?.map(({ id }) => id) ?? [],
   defaultCharacteristics: {
     width: product.defaultCharacteristics.width,
     height: product.defaultCharacteristics.height,

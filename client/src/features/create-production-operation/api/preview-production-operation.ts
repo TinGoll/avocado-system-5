@@ -31,7 +31,9 @@ export const previewProductionOperation = (data: {
     quantity: number;
   };
   orderCharacteristics?: {
-    profile?: { characteristics: { width: number; grooveDepth: number } };
+    profile?: {
+      characteristics: { width?: number; grooveDepth?: number };
+    };
   };
 }) =>
   fetcher<ProductionOperationPreview>({

@@ -27,6 +27,12 @@ import { ProductionOperationEditorFields } from './ProductionOperationEditorFiel
 const styles = {
   form: css`
     box-sizing: border-box;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    width: 100%;
+
     & .ant-form-item {
       margin-bottom: 16px;
     }
@@ -39,7 +45,13 @@ const styles = {
       min-width: 140px;
     }
   `,
+  formBody: css`
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 8px;
+  `,
   formActions: css`
+    flex: none;
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -101,61 +113,59 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
         layout="vertical"
         initialValues={{
           costPerUnit: 100,
-          calculationMethod: CALCULATION_METHOD.AREA,
-          calculationFormula:
-            '(panelWidth / 1000) * (panelHeight / 1000) * item.quantity',
-          displayNameTemplate:
-            'Филёнка: {{ panelHeight }}х{{ panelWidth }} — {{ item.quantity }} шт.',
+          calculationMethod: CALCULATION_METHOD.PER_ITEM,
+          calculationFormula: 'item.quantity',
+          displayNameTemplate: 'Количество: {{ item.quantity }} шт.',
           preview: {
             width: 500,
             height: 860,
             thickness: 20,
             quantity: 1,
-            profileWidth: 50,
-            grooveDepth: 10,
           },
         }}
         onFinish={handleFinish}
         autoComplete="off"
       >
-        <Form.Item<FieldType>
-          label="Название"
-          name="name"
-          tooltip="Название работы должно быть уникальным"
-          rules={[{ required: true, message: 'Введи название работы' }]}
-        >
-          <Input />
-        </Form.Item>
+        <div className={styles.formBody}>
+          <Form.Item<FieldType>
+            label="Название"
+            name="name"
+            tooltip="Название работы должно быть уникальным"
+            rules={[{ required: true, message: 'Введи название работы' }]}
+          >
+            <Input />
+          </Form.Item>
 
-        <Form.Item<FieldType>
-          label="Стоимость за единицу"
-          name="costPerUnit"
-          tooltip="Введите цену за еденицу"
-          rules={[{ required: true, message: 'Введите цену за еденицу' }]}
-        >
-          <InputNumber className="input-number" min={0.01} precision={2} />
-        </Form.Item>
-        <Divider className="form-divider" />
-        <Form.Item<FieldType>
-          label="Единица расчёта"
-          name="calculationMethod"
-          tooltip="Выберите тип расчета из предложенных  вариантов."
-          rules={[{ required: true, message: 'Выбери тип расчета' }]}
-        >
-          <Radio.Group block optionType="button" buttonStyle="solid">
-            <Radio.Button value={CALCULATION_METHOD.PER_ITEM}>
-              {calculationMethodNameMap[CALCULATION_METHOD.PER_ITEM]}
-            </Radio.Button>
-            <Radio.Button value={CALCULATION_METHOD.AREA}>
-              {calculationMethodNameMap[CALCULATION_METHOD.AREA]}
-            </Radio.Button>
-            <Radio.Button value={CALCULATION_METHOD.VOLUME}>
-              {calculationMethodNameMap[CALCULATION_METHOD.VOLUME]}
-            </Radio.Button>
-          </Radio.Group>
-        </Form.Item>
-        <ProductionOperationEditorFields form={form} />
-        <Divider className="form-divider" />
+          <Form.Item<FieldType>
+            label="Стоимость за единицу"
+            name="costPerUnit"
+            tooltip="Введите цену за еденицу"
+            rules={[{ required: true, message: 'Введите цену за еденицу' }]}
+          >
+            <InputNumber className="input-number" min={0.01} precision={2} />
+          </Form.Item>
+          <Divider className="form-divider" />
+          <Form.Item<FieldType>
+            label="Единица расчёта"
+            name="calculationMethod"
+            tooltip="Выберите тип расчета из предложенных  вариантов."
+            rules={[{ required: true, message: 'Выбери тип расчета' }]}
+          >
+            <Radio.Group block optionType="button" buttonStyle="solid">
+              <Radio.Button value={CALCULATION_METHOD.PER_ITEM}>
+                {calculationMethodNameMap[CALCULATION_METHOD.PER_ITEM]}
+              </Radio.Button>
+              <Radio.Button value={CALCULATION_METHOD.AREA}>
+                {calculationMethodNameMap[CALCULATION_METHOD.AREA]}
+              </Radio.Button>
+              <Radio.Button value={CALCULATION_METHOD.VOLUME}>
+                {calculationMethodNameMap[CALCULATION_METHOD.VOLUME]}
+              </Radio.Button>
+            </Radio.Group>
+          </Form.Item>
+          <ProductionOperationEditorFields form={form} />
+        </div>
+
         <div className={styles.formActions}>
           <Button variant="solid" color="danger" onClick={handleCancel}>
             Отмена

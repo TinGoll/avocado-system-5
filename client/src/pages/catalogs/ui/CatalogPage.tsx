@@ -251,6 +251,15 @@ const productFields: CatalogField<ProductTemplate>[] = [
       }).format(Number(value) || 0),
   },
   {
+    title: 'Работы',
+    dataIndex: 'operations',
+    form: false,
+    render: (value) =>
+      ((value as ProductTemplate['operations']) ?? [])
+        .map(({ name }) => name)
+        .join(', ') || '—',
+  },
+  {
     title: 'Характеристики по умолчанию (JSON)',
     dataIndex: 'defaultCharacteristics',
     editor: { kind: 'json', rows: 9 },
@@ -554,6 +563,11 @@ const ProductionOperationsCatalog: FC = () => {
 
 const ProductsCatalog: FC = () => {
   const { data, update, remove, isLoading, error } = useProductTemplates();
+  const {
+    data: operationsData,
+    error: operationsError,
+    isLoading: isOperationsLoading,
+  } = useProductionOperations();
   const products = data?.products ?? [];
   return (
     <EditableCatalogTable
@@ -561,7 +575,7 @@ const ProductsCatalog: FC = () => {
       emptyText="Номенклатуры пока нет"
       items={products}
       fields={productFields}
-      loading={isLoading}
+      loading={isLoading || isOperationsLoading}
       error={error}
       headerAction={
         <CreateProductTemplatesButton {...addButtonProps}>
@@ -575,6 +589,8 @@ const ProductsCatalog: FC = () => {
           <ProductTemplateEditForm
             products={products}
             currentProduct={record}
+            operations={operationsData?.operations ?? []}
+            operationsError={operationsError}
           />
         ),
         getInitialValues: (record) =>

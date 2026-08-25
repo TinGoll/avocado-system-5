@@ -70,6 +70,8 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
     trigger,
     isLoading,
     products,
+    operations,
+    operationsError,
     priceModifiers,
     priceModifiersError,
   } = useCreateProductTemplates();
@@ -148,6 +150,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
           attributes: [],
           additionalCharacteristics: [],
           priceModifierIds: [],
+          operationIds: [],
           customerPricingMethod: CUSTOMER_PRICING_METHOD.PER_ITEM,
           baseCustomerPrice: 0,
         }}
@@ -262,6 +265,32 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
           >
             <InputNumber min={0} precision={2} />
           </Form.Item>
+
+          <Form.Item<ProductTemplateFieldType>
+            label="Работы"
+            name="operationIds"
+          >
+            <Select
+              aria-label="Работы"
+              mode="multiple"
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="Выберите работы"
+              options={operations?.map(({ id, name }) => ({
+                label: name,
+                value: id,
+              }))}
+            />
+          </Form.Item>
+
+          {operationsError && (
+            <Alert
+              type="error"
+              title="Не удалось загрузить справочник работ"
+              showIcon
+            />
+          )}
 
           <Form.Item<ProductTemplateFieldType>
             label="Ценовые модификаторы"

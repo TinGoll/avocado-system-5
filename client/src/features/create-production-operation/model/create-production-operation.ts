@@ -11,7 +11,7 @@ export type FieldType = {
     height: number;
     thickness?: number;
     quantity: number;
-    profileWidth: number;
-    grooveDepth: number;
+    profileWidth?: number;
+    grooveDepth?: number;
   };
 };

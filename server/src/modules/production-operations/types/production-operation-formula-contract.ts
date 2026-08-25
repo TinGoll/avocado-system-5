@@ -23,8 +23,10 @@ export interface ProductionOperationFormulaContext {
 }
 
 /**
- * Server-derived panel geometry. Both values are rounded to whole millimetres
- * before they are exposed to a formula or a display-name template.
+ * Optional server-derived inner geometry for operations that use a profile
+ * (for example, panel production). Operations are not bound to a panel entity.
+ * Both values are rounded to whole millimetres before they are exposed to a
+ * formula or a display-name template.
  */
 export interface ProductionOperationDerivedContext {
   panelWidth?: number;
