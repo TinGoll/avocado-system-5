@@ -439,6 +439,7 @@ const orderHandlers = [
 ];
 
 export const handlers = [
+  http.get('*/health', () => HttpResponse.json({ status: 'ok' })),
   ...priceModifierHandlers,
   ...orderHandlers,
   ...entityHandlers,
