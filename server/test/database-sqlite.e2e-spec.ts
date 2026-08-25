@@ -111,8 +111,15 @@ describe('SQLite database', () => {
         values: ['per_item', 'area', 'volume'],
         insert: (value: string, index: number) =>
           dataSource.query(
-            'INSERT INTO "production_operations" ("id", "name", "calculationMethod", "costPerUnit") VALUES (?, ?, ?, ?)',
-            [`operation-${index}`, `Operation ${index}`, value, 1],
+            'INSERT INTO "production_operations" ("id", "name", "calculationMethod", "calculationFormula", "displayNameTemplate", "costPerUnit") VALUES (?, ?, ?, ?, ?, ?)',
+            [
+              `operation-${index}`,
+              `Operation ${index}`,
+              value,
+              'item.quantity',
+              `Operation ${index}`,
+              1,
+            ],
           ),
       },
       {
