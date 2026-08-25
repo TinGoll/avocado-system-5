@@ -18,8 +18,12 @@ export interface ProductionOperationFormulaContext {
     quantity: number;
   };
   profile?: {
+    name?: string;
     width?: number;
     grooveDepth?: number;
+  };
+  panel?: {
+    name?: string;
   };
 }
 
@@ -51,8 +55,12 @@ export const PRODUCTION_OPERATION_FORMULA_VARIABLES = [
 export type ProductionOperationFormulaVariable =
   (typeof PRODUCTION_OPERATION_FORMULA_VARIABLES)[number];
 
-export const PRODUCTION_OPERATION_TEMPLATE_VARIABLES =
-  [...PRODUCTION_OPERATION_FORMULA_VARIABLES, 'item.name'] as const;
+export const PRODUCTION_OPERATION_TEMPLATE_VARIABLES = [
+  ...PRODUCTION_OPERATION_FORMULA_VARIABLES,
+  'item.name',
+  'profile.name',
+  'panel.name',
+] as const;
 
 export type ProductionOperationTemplateVariable =
   (typeof PRODUCTION_OPERATION_TEMPLATE_VARIABLES)[number];

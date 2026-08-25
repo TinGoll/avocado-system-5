@@ -505,6 +505,8 @@ const ProductionOperationsCatalog: FC = () => {
             quantity: 1,
             profileWidth: 50,
             grooveDepth: 10,
+            profileName: 'Тестовый профиль',
+            panelName: 'Тестовая филёнка',
           },
         }),
         normalizeValues: (values) => {

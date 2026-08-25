@@ -14,5 +14,7 @@ export type FieldType = {
     quantity: number;
     profileWidth?: number;
     grooveDepth?: number;
+    profileName?: string;
+    panelName?: string;
   };
 };

@@ -30,6 +30,8 @@ const variables = [
   ['item.quantity', 'Количество, шт.'],
   ['profile.width', 'Ширина профиля, мм'],
   ['profile.grooveDepth', 'Глубина паза профиля, мм'],
+  ['profile.name', 'Название профиля (только для шаблона названия)'],
+  ['panel.name', 'Название филёнки (только для шаблона названия)'],
   ['panelWidth', 'Внутренняя ширина с учётом профиля, мм (опционально)'],
   ['panelHeight', 'Внутренняя высота с учётом профиля, мм (опционально)'],
 ] as const;
@@ -71,15 +73,32 @@ export const ProductionOperationEditorFields: FC<Props> = ({ form }) => {
             thickness: test.thickness,
             quantity: test.quantity,
           },
-          ...(test.profileWidth !== undefined || test.grooveDepth !== undefined
+          ...(test.profileWidth !== undefined ||
+          test.grooveDepth !== undefined ||
+          test.profileName ||
+          test.panelName
             ? {
                 orderCharacteristics: {
-                  profile: {
-                    characteristics: {
-                      width: test.profileWidth,
-                      grooveDepth: test.grooveDepth,
-                    },
-                  },
+                  ...(test.profileWidth !== undefined ||
+                  test.grooveDepth !== undefined ||
+                  test.profileName
+                    ? {
+                        profile: {
+                          name: test.profileName,
+                          characteristics: {
+                            width: test.profileWidth,
+                            grooveDepth: test.grooveDepth,
+                          },
+                        },
+                      }
+                    : {}),
+                  ...(test.panelName
+                    ? {
+                        panel: {
+                          name: test.panelName,
+                        },
+                      }
+                    : {}),
                 },
               }
             : {}),
@@ -152,6 +171,8 @@ export const ProductionOperationEditorFields: FC<Props> = ({ form }) => {
             ['quantity', 'Количество, шт.'],
             ['profileWidth', 'Ширина профиля, мм'],
             ['grooveDepth', 'Глубина паза, мм'],
+            ['profileName', 'Название профиля'],
+            ['panelName', 'Название филёнки'],
           ].map(([name, label]) => (
             <Col xs={24} sm={12} md={8} key={name}>
               <Form.Item
@@ -167,7 +188,9 @@ export const ProductionOperationEditorFields: FC<Props> = ({ form }) => {
                   },
                 ]}
               >
-                {name === 'name' ? (
+                {name === 'name' ||
+                name === 'profileName' ||
+                name === 'panelName' ? (
                   <Input />
                 ) : (
                   <InputNumber min={0} style={{ width: '100%' }} />

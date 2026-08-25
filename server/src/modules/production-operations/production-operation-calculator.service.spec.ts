@@ -97,4 +97,22 @@ describe('ProductionOperationCalculatorService', () => {
 
     expect(result.renderedName).toBe('Фасад прямой — 2 шт.');
   });
+
+  it('renders profile and panel names from the order snapshot', () => {
+    const context = service.contextFromSnapshot(
+      { quantity: 1 },
+      {
+        profile: { name: 'Классика', characteristics: {} },
+        panel: { name: 'Гладкая филёнка', characteristics: {} },
+      },
+    );
+
+    const result = service.calculate(
+      'item.quantity',
+      '{{ profile.name }} / {{ panel.name }}',
+      context,
+    );
+
+    expect(result.renderedName).toBe('Классика / Гладкая филёнка');
+  });
 });

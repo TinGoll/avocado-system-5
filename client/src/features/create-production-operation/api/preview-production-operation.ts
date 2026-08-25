@@ -33,8 +33,10 @@ export const previewProductionOperation = (data: {
   };
   orderCharacteristics?: {
     profile?: {
+      name?: string;
       characteristics: { width?: number; grooveDepth?: number };
     };
+    panel?: { name?: string };
   };
 }) =>
   fetcher<ProductionOperationPreview>({

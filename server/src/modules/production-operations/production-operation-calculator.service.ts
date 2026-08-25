@@ -85,7 +85,12 @@ export class ProductionOperationCalculatorService {
     orderCharacteristics: unknown,
   ): ProductionOperationFormulaContext {
     const profile = this.readProfile(orderCharacteristics);
-    return { item, ...(profile ? { profile } : {}) };
+    const panel = this.readPanel(orderCharacteristics);
+    return {
+      item,
+      ...(profile ? { profile } : {}),
+      ...(panel ? { panel } : {}),
+    };
   }
 
   private deriveContext(
@@ -94,6 +99,7 @@ export class ProductionOperationCalculatorService {
     const result: ProductionOperationEvaluationContext = {
       item: { ...context.item },
       ...(context.profile ? { profile: { ...context.profile } } : {}),
+      ...(context.panel ? { panel: { ...context.panel } } : {}),
     };
     const { width, height } = context.item;
     const profileWidth = context.profile?.width;
@@ -124,6 +130,7 @@ export class ProductionOperationCalculatorService {
       ? profile.characteristics
       : profile;
     return {
+      ...(typeof profile.name === 'string' ? { name: profile.name } : {}),
       ...(typeof characteristics.width === 'number'
         ? { width: characteristics.width }
         : {}),
@@ -131,6 +138,15 @@ export class ProductionOperationCalculatorService {
         ? { grooveDepth: characteristics.grooveDepth }
         : {}),
     };
+  }
+
+  private readPanel(
+    orderCharacteristics: unknown,
+  ): ProductionOperationFormulaContext['panel'] | undefined {
+    if (!this.isRecord(orderCharacteristics)) return undefined;
+    const panel = orderCharacteristics.panel;
+    if (!this.isRecord(panel)) return undefined;
+    return typeof panel.name === 'string' ? { name: panel.name } : undefined;
   }
 
   private parseFormula(formula: string): ExpressionNode {
@@ -247,6 +263,8 @@ export class ProductionOperationCalculatorService {
       number | string | undefined
     > = {
       'item.name': context.item.name,
+      'profile.name': context.profile?.name,
+      'panel.name': context.panel?.name,
       'item.width': context.item.width,
       'item.height': context.item.height,
       'item.thickness': context.item.thickness,
@@ -271,9 +289,11 @@ export class ProductionOperationCalculatorService {
         field,
         isMissingPanelProfile
           ? 'Выберите профиль заказа для расчёта размера филёнки.'
-          : variable === 'item.name'
-          ? `Отсутствует значение: ${variable}.`
-          : `Отсутствует числовое значение: ${variable}.`,
+          : variable === 'item.name' ||
+              variable === 'profile.name' ||
+              variable === 'panel.name'
+            ? `Отсутствует значение: ${variable}.`
+            : `Отсутствует числовое значение: ${variable}.`,
         variable,
       );
     }
