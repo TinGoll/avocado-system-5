@@ -498,6 +498,7 @@ const ProductionOperationsCatalog: FC = () => {
         getInitialValues: (record) => ({
           ...record,
           preview: {
+            name: 'Тестовый продукт',
             width: 500,
             height: 860,
             thickness: 20,

@@ -117,6 +117,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
           calculationFormula: 'item.quantity',
           displayNameTemplate: 'Количество: {{ item.quantity }} шт.',
           preview: {
+            name: 'Тестовый продукт',
             width: 500,
             height: 860,
             thickness: 20,
