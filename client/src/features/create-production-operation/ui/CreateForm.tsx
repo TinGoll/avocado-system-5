@@ -18,8 +18,11 @@ import {
   type ProductionOperation,
 } from '@entities/production-operation';
 
+import { getPreviewError } from '../api/preview-production-operation';
 import { useCreateProductionOperations } from '../hooks/useCreateProductionOperations';
 import type { FieldType } from '../model/create-production-operation';
+
+import { ProductionOperationEditorFields } from './ProductionOperationEditorFields';
 
 const styles = {
   form: css`
@@ -45,17 +48,6 @@ const styles = {
   `,
 };
 
-const defaultFormulaByCalculationMethod: Record<
-  ProductionOperation['calculationMethod'],
-  string
-> = {
-  [CALCULATION_METHOD.PER_ITEM]: 'item.quantity',
-  [CALCULATION_METHOD.AREA]:
-    'item.width / 1000 * item.height / 1000 * item.quantity',
-  [CALCULATION_METHOD.VOLUME]:
-    'item.width / 1000 * item.height / 1000 * item.thickness / 1000 * item.quantity',
-};
-
 type Props = {
   onCreated?: (operation: ProductionOperation) => void;
   onCancel?: () => void;
@@ -66,19 +58,34 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
   const { isMutating, trigger, isLoading } = useCreateProductionOperations();
   const { notification } = App.useApp();
 
-  const handleFinish: FormProps<FieldType>['onFinish'] = (values) => {
-    trigger({
-      ...values,
-      calculationFormula:
-        defaultFormulaByCalculationMethod[values.calculationMethod],
-      displayNameTemplate: values.name,
-    }).then((data) => {
+  const handleFinish: FormProps<FieldType>['onFinish'] = async (values) => {
+    try {
+      const data = await trigger({
+        name: values.name,
+        calculationMethod: values.calculationMethod,
+        calculationFormula: values.calculationFormula,
+        displayNameTemplate: values.displayNameTemplate,
+        costPerUnit: values.costPerUnit,
+      });
       onCreated?.(data);
       notification.success({
         title: 'Новая работа успешно добавлена',
       });
       form.resetFields();
-    });
+    } catch (error) {
+      const details = getPreviewError(error);
+      if (
+        details.field === 'calculationFormula' ||
+        details.field === 'displayNameTemplate'
+      ) {
+        form.setFields([
+          {
+            name: details.field,
+            errors: [details.message ?? 'Проверьте значение'],
+          },
+        ]);
+      }
+    }
   };
 
   const handleCancel = () => {
@@ -93,8 +100,20 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
         className={styles.form}
         layout="vertical"
         initialValues={{
-          costPerUnit: 0,
-          calculationMethod: CALCULATION_METHOD.PER_ITEM,
+          costPerUnit: 100,
+          calculationMethod: CALCULATION_METHOD.AREA,
+          calculationFormula:
+            '(panelWidth / 1000) * (panelHeight / 1000) * item.quantity',
+          displayNameTemplate:
+            'Филёнка: {{ panelHeight }}х{{ panelWidth }} — {{ item.quantity }} шт.',
+          preview: {
+            width: 500,
+            height: 860,
+            thickness: 20,
+            quantity: 1,
+            profileWidth: 50,
+            grooveDepth: 10,
+          },
         }}
         onFinish={handleFinish}
         autoComplete="off"
@@ -109,16 +128,16 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
         </Form.Item>
 
         <Form.Item<FieldType>
-          label="Цена"
+          label="Стоимость за единицу"
           name="costPerUnit"
           tooltip="Введите цену за еденицу"
           rules={[{ required: true, message: 'Введите цену за еденицу' }]}
         >
-          <InputNumber className="input-number" />
+          <InputNumber className="input-number" min={0.01} precision={2} />
         </Form.Item>
         <Divider className="form-divider" />
         <Form.Item<FieldType>
-          label="Тип расчета"
+          label="Единица расчёта"
           name="calculationMethod"
           tooltip="Выберите тип расчета из предложенных  вариантов."
           rules={[{ required: true, message: 'Выбери тип расчета' }]}
@@ -135,6 +154,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
             </Radio.Button>
           </Radio.Group>
         </Form.Item>
+        <ProductionOperationEditorFields form={form} />
         <Divider className="form-divider" />
         <div className={styles.formActions}>
           <Button variant="solid" color="danger" onClick={handleCancel}>

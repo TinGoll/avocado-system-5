@@ -175,6 +175,7 @@ type Props<T extends CatalogRecord> = {
     normalizeValues: (
       values: Record<string, unknown>,
     ) => Record<string, unknown>;
+    onSaveError?: (error: unknown, form: FormInstance) => void;
   };
 };
 
@@ -261,6 +262,7 @@ export const EditableCatalogTable = <T extends CatalogRecord>({
       setEditingRecord(undefined);
       message.success('Запись сохранена');
     } catch (saveError) {
+      editForm?.onSaveError?.(saveError, form);
       if (saveError instanceof SyntaxError) {
         message.error('Проверьте формат JSON');
       } else {

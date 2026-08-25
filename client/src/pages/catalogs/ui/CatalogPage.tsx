@@ -38,7 +38,11 @@ import { CreateFacadePanelButton } from '@features/create-facade-panel';
 import { CreateFacadeProfileButton } from '@features/create-facade-profile';
 import { CreateMaterialButton } from '@features/create-material';
 import { CreatePatinaButton } from '@features/create-patina';
-import { CreateProductionOperationButton } from '@features/create-production-operation';
+import {
+  CreateProductionOperationButton,
+  getPreviewError,
+  ProductionOperationEditorFields,
+} from '@features/create-production-operation';
 import { CreateProductTemplatesButton } from '@features/create-production-templates';
 import { CreateVarnishButton } from '@features/create-varnish';
 
@@ -157,7 +161,7 @@ const nameOnlyFields: CatalogField<Patina | Varnish>[] = [
 const operationFields: CatalogField<ProductionOperation>[] = [
   { title: 'Название', dataIndex: 'name', ...requiredName },
   {
-    title: 'Способ расчёта',
+    title: 'Единица расчёта',
     dataIndex: 'calculationMethod',
     editor: {
       kind: 'select',
@@ -481,6 +485,69 @@ const ProductionOperationsCatalog: FC = () => {
       }
       onUpdate={update.trigger}
       onDelete={remove.trigger}
+      editForm={{
+        getInitialValues: (record) => ({
+          ...record,
+          preview: {
+            width: 500,
+            height: 860,
+            thickness: 20,
+            quantity: 1,
+            profileWidth: 50,
+            grooveDepth: 10,
+          },
+        }),
+        normalizeValues: (values) => {
+          const operation = { ...values };
+          delete operation.preview;
+          return operation;
+        },
+        onSaveError: (saveError, form) => {
+          const details = getPreviewError(saveError);
+          if (
+            details.field === 'calculationFormula' ||
+            details.field === 'displayNameTemplate'
+          ) {
+            form.setFields([
+              {
+                name: details.field,
+                errors: [details.message ?? 'Проверьте значение'],
+              },
+            ]);
+          }
+        },
+        render: (form) => (
+          <>
+            <Form.Item
+              label="Название"
+              name="name"
+              rules={[{ required: true, whitespace: true }]}
+            >
+              <Input />
+            </Form.Item>
+            <Form.Item
+              label="Стоимость за единицу"
+              name="costPerUnit"
+              rules={[{ required: true }]}
+            >
+              <Input type="number" min={0.01} step={0.01} />
+            </Form.Item>
+            <Form.Item
+              label="Единица расчёта"
+              name="calculationMethod"
+              rules={[{ required: true }]}
+            >
+              <Select
+                options={Object.values(CALCULATION_METHOD).map((value) => ({
+                  value,
+                  label: calculationMethodNameMap[value],
+                }))}
+              />
+            </Form.Item>
+            <ProductionOperationEditorFields form={form} />
+          </>
+        ),
+      }}
     />
   );
 };

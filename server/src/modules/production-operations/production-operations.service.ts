@@ -61,11 +61,17 @@ export class ProductionOperationsService {
       previewDto.item,
       previewDto.orderCharacteristics,
     );
-    return this.calculator.calculate(
+    const result = this.calculator.calculate(
       previewDto.calculationFormula,
       previewDto.displayNameTemplate,
       context,
     );
+    return {
+      ...result,
+      calculatedCost:
+        Math.round(result.calculatedQuantity * previewDto.costPerUnit * 100) /
+        100,
+    };
   }
 
   async remove(id: string): Promise<ProductionOperation> {

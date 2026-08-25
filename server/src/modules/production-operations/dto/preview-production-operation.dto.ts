@@ -4,6 +4,7 @@ import {
   IsNumber,
   IsObject,
   IsOptional,
+  IsPositive,
   IsString,
   MaxLength,
   ValidateNested,
@@ -31,6 +32,10 @@ class PreviewItemDto {
 }
 
 export class PreviewProductionOperationDto {
+  @IsNumber()
+  @IsPositive()
+  costPerUnit: number;
+
   @IsString()
   @IsNotEmpty()
   @MaxLength(PRODUCTION_OPERATION_FORMULA_MAX_LENGTH)
