@@ -20,21 +20,8 @@ import {
   previewProductionOperation,
   type ProductionOperationPreview,
 } from '../api/preview-production-operation';
+import { useProductionOperationVariables } from '../api/template-variable-metadata';
 import type { FieldType } from '../model/create-production-operation';
-
-const variables = [
-  ['item.name', 'Название продукта (только для шаблона названия)'],
-  ['item.width', 'Ширина позиции, мм'],
-  ['item.height', 'Высота позиции, мм'],
-  ['item.thickness', 'Толщина позиции, мм'],
-  ['item.quantity', 'Количество, шт.'],
-  ['profile.width', 'Ширина профиля, мм'],
-  ['profile.grooveDepth', 'Глубина паза профиля, мм'],
-  ['profile.name', 'Название профиля (только для шаблона названия)'],
-  ['panel.name', 'Название филёнки (только для шаблона названия)'],
-  ['panelWidth', 'Внутренняя ширина с учётом профиля, мм (опционально)'],
-  ['panelHeight', 'Внутренняя высота с учётом профиля, мм (опционально)'],
-] as const;
 
 const styles = css`
   .preview-grid .ant-form-item {
@@ -45,6 +32,11 @@ const styles = css`
 type Props = { form: FormInstance<FieldType> };
 
 export const ProductionOperationEditorFields: FC<Props> = ({ form }) => {
+  const {
+    data: variables,
+    error: variablesError,
+    isLoading: variablesLoading,
+  } = useProductionOperationVariables();
   const values = Form.useWatch([], form) as FieldType | undefined;
   const [preview, setPreview] = useState<ProductionOperationPreview>();
   const [previewError, setPreviewError] = useState<string>();
@@ -150,15 +142,25 @@ export const ProductionOperationEditorFields: FC<Props> = ({ form }) => {
       </Form.Item>
 
       <Card size="small" title="Доступные переменные">
-        <Descriptions
-          column={1}
-          size="small"
-          items={variables.map(([name, description]) => ({
-            key: name,
-            label: <Typography.Text code>{name}</Typography.Text>,
-            children: description,
-          }))}
-        />
+        <Spin spinning={variablesLoading}>
+          {variablesError ? (
+            <Alert
+              type="error"
+              showIcon
+              title="Не удалось загрузить доступные переменные"
+            />
+          ) : (
+            <Descriptions
+              column={1}
+              size="small"
+              items={(variables ?? []).map((variable) => ({
+                key: variable.path,
+                label: <Typography.Text code>{variable.path}</Typography.Text>,
+                children: `${variable.label}${variable.unit ? `, ${variable.unit}` : ''}${variable.optional ? ' (опционально)' : ''} — ${variable.availability === 'formula-and-name' ? 'Формула и шаблон' : 'Только шаблон названия'}`,
+              }))}
+            />
+          )}
+        </Spin>
       </Card>
 
       <Card size="small" title="Тестовые значения" className={styles}>

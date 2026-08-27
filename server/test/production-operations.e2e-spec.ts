@@ -42,6 +42,41 @@ describe('Production operations flow (SQLite)', () => {
     delete process.env.DB_PATH;
   });
 
+  it('exposes template variable metadata by scope', async () => {
+    const formulaResponse = await request(app.getHttpServer())
+      .get('/api/template-variables')
+      .query({ scope: 'production-operation-formula' })
+      .expect(200);
+    const nameResponse = await request(app.getHttpServer())
+      .get('/api/template-variables')
+      .query({ scope: 'production-operation-name' })
+      .expect(200);
+    const formulaVariables = formulaResponse.body.variables as {
+      path: string;
+      valueType: string;
+    }[];
+
+    expect(
+      formulaVariables.every(({ valueType }) => valueType === 'number'),
+    ).toBe(true);
+    expect(formulaVariables).not.toContainEqual(
+      expect.objectContaining({ path: 'item.name' }),
+    );
+    expect(nameResponse.body.variables).toContainEqual(
+      expect.objectContaining({
+        path: 'item.name',
+        label: 'Название продукта',
+      }),
+    );
+    expect(nameResponse.body.variables[0]).not.toHaveProperty('scopes');
+  });
+
+  it('rejects an unknown template variable scope', () =>
+    request(app.getHttpServer())
+      .get('/api/template-variables')
+      .query({ scope: 'unknown' })
+      .expect(400));
+
   it('runs a panel operation from setup through snapshot and manual recalculation', async () => {
     const operationResponse = await request(app.getHttpServer())
       .post('/api/production-operations')

@@ -438,8 +438,33 @@ const orderHandlers = [
   }),
 ];
 
+const templateVariables = [
+  {
+    path: 'item.quantity',
+    label: 'Количество',
+    description: 'Количество позиций заказа',
+    valueType: 'number',
+    unit: 'шт.',
+  },
+  {
+    path: 'item.name',
+    label: 'Название продукта',
+    description: 'Название продукта в позиции заказа',
+    valueType: 'string',
+    optional: true,
+  },
+];
+
 export const handlers = [
   http.get('*/health', () => HttpResponse.json({ status: 'ok' })),
+  http.get('*/template-variables', ({ request }) => {
+    const scope = new URL(request.url).searchParams.get('scope');
+    const variables =
+      scope === 'production-operation-formula'
+        ? templateVariables.filter(({ valueType }) => valueType === 'number')
+        : templateVariables;
+    return HttpResponse.json({ variables });
+  }),
   ...priceModifierHandlers,
   ...orderHandlers,
   ...entityHandlers,
