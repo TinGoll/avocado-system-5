@@ -1,3 +1,12 @@
+import {
+  TEMPLATE_VARIABLE_DEFINITIONS,
+  TemplateVariablePathForScope,
+} from '../../../common/template-variables/template-variable-registry';
+import {
+  TEMPLATE_VARIABLE_SCOPE,
+  TemplateVariableScope,
+} from '../../../common/template-variables/template-variables.types';
+
 /**
  * Public limits shared by persistence validation, the formula evaluator and UI.
  */
@@ -41,29 +50,31 @@ export interface ProductionOperationDerivedContext {
 export type ProductionOperationEvaluationContext =
   ProductionOperationFormulaContext & ProductionOperationDerivedContext;
 
-export const PRODUCTION_OPERATION_FORMULA_VARIABLES = [
-  'item.width',
-  'item.height',
-  'item.thickness',
-  'item.quantity',
-  'profile.width',
-  'profile.grooveDepth',
-  'panelWidth',
-  'panelHeight',
-] as const;
+export type ProductionOperationFormulaVariable = TemplateVariablePathForScope<
+  typeof TEMPLATE_VARIABLE_SCOPE.PRODUCTION_OPERATION_FORMULA
+>;
 
-export type ProductionOperationFormulaVariable =
-  (typeof PRODUCTION_OPERATION_FORMULA_VARIABLES)[number];
+export const PRODUCTION_OPERATION_FORMULA_VARIABLES =
+  TEMPLATE_VARIABLE_DEFINITIONS.filter((definition) =>
+    (definition.scopes as readonly TemplateVariableScope[]).includes(
+      TEMPLATE_VARIABLE_SCOPE.PRODUCTION_OPERATION_FORMULA,
+    ),
+  ).map(
+    (definition) => definition.path,
+  ) as readonly ProductionOperationFormulaVariable[];
 
-export const PRODUCTION_OPERATION_TEMPLATE_VARIABLES = [
-  ...PRODUCTION_OPERATION_FORMULA_VARIABLES,
-  'item.name',
-  'profile.name',
-  'panel.name',
-] as const;
+export type ProductionOperationTemplateVariable = TemplateVariablePathForScope<
+  typeof TEMPLATE_VARIABLE_SCOPE.PRODUCTION_OPERATION_NAME
+>;
 
-export type ProductionOperationTemplateVariable =
-  (typeof PRODUCTION_OPERATION_TEMPLATE_VARIABLES)[number];
+export const PRODUCTION_OPERATION_TEMPLATE_VARIABLES =
+  TEMPLATE_VARIABLE_DEFINITIONS.filter((definition) =>
+    (definition.scopes as readonly TemplateVariableScope[]).includes(
+      TEMPLATE_VARIABLE_SCOPE.PRODUCTION_OPERATION_NAME,
+    ),
+  ).map(
+    (definition) => definition.path,
+  ) as readonly ProductionOperationTemplateVariable[];
 
 export const PRODUCTION_OPERATION_CALCULATION_ERROR_CODES = [
   'FORMULA_TOO_LONG',

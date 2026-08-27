@@ -9,6 +9,7 @@ describe('ProductionOperationCalculatorService', () => {
       action();
     } catch (error) {
       expect(error).toBeInstanceOf(BadRequestException);
+      expect((error as BadRequestException).getStatus()).toBe(400);
       return (error as BadRequestException).getResponse() as {
         code: string;
         field: string;
@@ -114,5 +115,97 @@ describe('ProductionOperationCalculatorService', () => {
     );
 
     expect(result.renderedName).toBe('Классика / Гладкая филёнка');
+  });
+
+  it('preserves whitespace, repeated variables and a template without variables', () => {
+    const repeated = service.calculate(
+      'item.quantity',
+      '{{ item.width }} + {{item.height}} + {{ item.width }} / {{ item.name }}',
+      {
+        item: { name: 'Фасад', width: 500, height: 860, quantity: 1 },
+      },
+    );
+    const plain = service.calculate('item.quantity', 'Обычная работа', {
+      item: { quantity: 1 },
+    });
+
+    expect(repeated.renderedName).toBe('500 + 860 + 500 / Фасад');
+    expect(plain.renderedName).toBe('Обычная работа');
+  });
+
+  it.each([
+    [
+      '{{ unknown.path }}',
+      {},
+      {
+        code: 'UNKNOWN_VARIABLE',
+        field: 'displayNameTemplate',
+        message: 'Неизвестная переменная: unknown.path.',
+        variable: 'unknown.path',
+      },
+    ],
+    [
+      '{{ profile.name }}',
+      {},
+      {
+        code: 'MISSING_VALUE',
+        field: 'displayNameTemplate',
+        message: 'Отсутствует значение: profile.name.',
+        variable: 'profile.name',
+      },
+    ],
+    [
+      '{{ item.name',
+      {},
+      {
+        code: 'INVALID_SYNTAX',
+        field: 'displayNameTemplate',
+        message: 'Некорректный шаблон названия.',
+      },
+    ],
+  ])(
+    'preserves the template error payload for %s',
+    (template, context, expected) => {
+      const error = getCalculationError(() =>
+        service.calculate('item.quantity', template, {
+          item: { quantity: 1 },
+          ...context,
+        }),
+      );
+
+      expect(error).toEqual(expected);
+    },
+  );
+
+  it('rejects a string variable in a formula with the existing payload', () => {
+    const error = getCalculationError(() =>
+      service.calculate('item.name', 'Работа', {
+        item: { name: 'Фасад', quantity: 1 },
+      }),
+    );
+
+    expect(error).toEqual({
+      code: 'UNKNOWN_VARIABLE',
+      field: 'calculationFormula',
+      message: 'Неизвестная переменная: item.name.',
+      variable: 'item.name',
+    });
+  });
+
+  it('preserves formula and template length errors', () => {
+    expect(
+      getCalculationError(() => service.validate('1'.repeat(1001), 'Работа')),
+    ).toEqual({
+      code: 'FORMULA_TOO_LONG',
+      field: 'calculationFormula',
+      message: 'Формула слишком длинная.',
+    });
+    expect(
+      getCalculationError(() => service.validate('1', 'а'.repeat(501))),
+    ).toEqual({
+      code: 'TEMPLATE_TOO_LONG',
+      field: 'displayNameTemplate',
+      message: 'Шаблон слишком длинный.',
+    });
   });
 });
