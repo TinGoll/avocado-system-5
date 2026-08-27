@@ -216,8 +216,6 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
             />
           </Form.Item>
 
-          <ProductDisplayTemplateEditor form={form} />
-
           <Row gutter={16}>
             <Col span={8}>
               <Form.Item
@@ -334,6 +332,8 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
               showIcon
             />
           )}
+
+          <ProductDisplayTemplateEditor form={form} />
         </div>
 
         <div className={styles.formActions}>

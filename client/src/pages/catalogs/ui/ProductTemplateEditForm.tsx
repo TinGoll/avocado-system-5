@@ -108,8 +108,6 @@ export const ProductTemplateEditForm: FC<Props> = ({
         />
       </Form.Item>
 
-      <ProductDisplayTemplateEditor form={form} />
-
       <Row gutter={16}>
         {(['width', 'height', 'thickness'] as const).map((dimension) => (
           <Col span={8} key={dimension}>
@@ -188,6 +186,8 @@ export const ProductTemplateEditForm: FC<Props> = ({
       >
         <InputNumber min={0} precision={2} style={{ width: '100%' }} />
       </Form.Item>
+
+      <ProductDisplayTemplateEditor form={form} />
     </>
   );
 };
