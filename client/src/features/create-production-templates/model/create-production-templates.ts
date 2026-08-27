@@ -6,6 +6,15 @@ import type { DynamicField } from '@shared/ui/dynamic-fields';
 
 export type ProductTemplateFieldType = {
   name: string;
+  displayTemplate?: string | null;
+  displayTemplatePreview?: {
+    material?: string;
+    color?: string;
+    patina?: string;
+    profile?: string;
+    panel?: string;
+    varnish?: string;
+  };
   group?: string;
   defaultCharacteristics: ProductCharacteristics;
   customerPricingMethod: CustomerPricingMethod;

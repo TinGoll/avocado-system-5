@@ -455,15 +455,50 @@ const templateVariables = [
   },
 ];
 
+const productOutputVariables = [
+  ...templateVariables,
+  ...['item.width', 'item.height', 'item.thickness'].map((path) => ({
+    path,
+    label: path,
+    description: path,
+    valueType: 'number',
+    optional: true,
+  })),
+  ...['material', 'color', 'patina', 'profile', 'panel', 'varnish'].map(
+    (name) => ({
+      path: `${name}.name`,
+      label: name,
+      description: name,
+      valueType: 'string',
+      optional: true,
+    }),
+  ),
+];
+
 export const handlers = [
   http.get('*/health', () => HttpResponse.json({ status: 'ok' })),
   http.get('*/template-variables', ({ request }) => {
     const scope = new URL(request.url).searchParams.get('scope');
     const variables =
-      scope === 'production-operation-formula'
-        ? templateVariables.filter(({ valueType }) => valueType === 'number')
-        : templateVariables;
+      scope === 'product-output'
+        ? productOutputVariables
+        : scope === 'production-operation-formula'
+          ? templateVariables.filter(({ valueType }) => valueType === 'number')
+          : [
+              ...templateVariables,
+              {
+                path: 'product.display',
+                label: 'Представление продукта',
+                description: 'Результат шаблона',
+                valueType: 'string',
+                optional: true,
+              },
+            ];
     return HttpResponse.json({ variables });
+  }),
+  http.post('*/products/display-template/preview', async ({ request }) => {
+    const body = (await request.json()) as { displayTemplate: string };
+    return HttpResponse.json({ renderedValue: body.displayTemplate });
   }),
   ...priceModifierHandlers,
   ...orderHandlers,

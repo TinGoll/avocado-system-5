@@ -5,6 +5,9 @@ import { PriceModifier } from '../price-modifiers/entities/price-modifier.entity
 import { ProductionOperation } from '../production-operations/entities/production-operation.entity';
 import { ProductTemplate } from './entities/product-template.entity';
 import { ProductsService } from './products.service';
+import { ProductDisplayTemplateService } from './product-display-template.service';
+import { TemplateVariableRegistry } from '../../common/template-variables/template-variable-registry';
+import { TemplateRendererService } from '../../common/template-variables/template-renderer.service';
 
 describe('ProductsService', () => {
   const templateId = '11111111-1111-4111-8111-111111111111';
@@ -67,6 +70,12 @@ describe('ProductsService', () => {
       {} as Repository<ProductTemplate>,
       {} as Repository<ProductionOperation>,
       dataSource,
+      (() => {
+        const registry = new TemplateVariableRegistry();
+        return new ProductDisplayTemplateService(
+          new TemplateRendererService(registry),
+        );
+      })(),
     );
   });
 

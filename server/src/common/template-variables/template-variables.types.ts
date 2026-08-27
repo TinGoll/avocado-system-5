@@ -1,4 +1,5 @@
 export const TEMPLATE_VARIABLE_SCOPE = {
+  PRODUCT_OUTPUT: 'product-output',
   PRODUCTION_OPERATION_FORMULA: 'production-operation-formula',
   PRODUCTION_OPERATION_NAME: 'production-operation-name',
 } as const;
@@ -26,6 +27,10 @@ export interface RenderTemplateOptions {
 
 export interface RenderTemplateResult {
   value: string;
+  usedVariables: string[];
+}
+
+export interface ValidateTemplateResult {
   usedVariables: string[];
 }
 

@@ -48,6 +48,7 @@ describe('ProductTemplateEditForm value conversion', () => {
     expect(normalizeProductTemplateEditValues(values)).toEqual({
       name: 'Фасад глухой',
       group: 'Фасады',
+      displayTemplate: null,
       defaultCharacteristics: {
         width: 600,
         height: 720,

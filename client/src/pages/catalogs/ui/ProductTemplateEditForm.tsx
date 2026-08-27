@@ -16,6 +16,7 @@ import {
   type ProductTemplate,
 } from '@entities/product';
 import type { ProductionOperation } from '@entities/production-operation';
+import { ProductDisplayTemplateEditor } from '@features/create-production-templates';
 import { DynamicFields } from '@shared/ui/dynamic-fields';
 
 import type { ProductTemplateEditValues } from '../model/product-template-edit';
@@ -33,6 +34,7 @@ export const ProductTemplateEditForm: FC<Props> = ({
   operations,
   operationsError,
 }) => {
+  const form = Form.useFormInstance<ProductTemplateEditValues>();
   const operationOptions = useMemo(() => {
     const availableIds = new Set(operations.map(({ id }) => id));
     const unavailable =
@@ -105,6 +107,8 @@ export const ProductTemplateEditForm: FC<Props> = ({
           allowClear
         />
       </Form.Item>
+
+      <ProductDisplayTemplateEditor form={form} />
 
       <Row gutter={16}>
         {(['width', 'height', 'thickness'] as const).map((dimension) => (

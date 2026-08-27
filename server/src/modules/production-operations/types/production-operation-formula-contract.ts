@@ -28,6 +28,9 @@ export interface ProductionOperationFormulaContext {
   panel?: {
     name?: string;
   };
+  product?: {
+    display?: string;
+  };
 }
 
 /**

@@ -4,7 +4,8 @@ import { fetcher } from '@shared/lib/swr';
 
 export type TemplateVariableScope =
   | 'production-operation-formula'
-  | 'production-operation-name';
+  | 'production-operation-name'
+  | 'product-output';
 
 export type TemplateVariableMetadata = {
   path: string;

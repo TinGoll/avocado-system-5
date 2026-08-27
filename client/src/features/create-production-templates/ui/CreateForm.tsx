@@ -25,8 +25,11 @@ import {
   dynamicFieldsToObject,
 } from '@shared/ui/dynamic-fields';
 
+import { getProductTemplateError } from '../api/product-display-template';
 import { useCreateProductTemplates } from '../hooks/useCreateProductTemplates';
 import type { ProductTemplateFieldType } from '../model/create-production-templates';
+
+import { ProductDisplayTemplateEditor } from './ProductDisplayTemplateEditor';
 
 const styles = {
   form: css`
@@ -117,20 +120,34 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
     values,
   ) => {
     const { additionalCharacteristics, ...templateValues } = values;
+    delete templateValues.displayTemplatePreview;
     trigger({
       ...templateValues,
       name: values.name.trim(),
       group: values.group?.trim() || undefined,
+      displayTemplate: values.displayTemplate?.trim() || null,
       attributes: dynamicFieldsToObject(values.attributes),
       defaultCharacteristics: {
         ...values.defaultCharacteristics,
         ...dynamicFieldsToObject(additionalCharacteristics),
       },
-    }).then((template) => {
-      onCreated?.(template);
-      notification.success({ title: 'Номенклатура успешно добавлена' });
-      form.resetFields();
-    });
+    })
+      .then((template) => {
+        onCreated?.(template);
+        notification.success({ title: 'Номенклатура успешно добавлена' });
+        form.resetFields();
+      })
+      .catch((error: unknown) => {
+        const details = getProductTemplateError(error);
+        if (details?.field === 'displayTemplate') {
+          form.setFields([
+            {
+              name: 'displayTemplate',
+              errors: [details.message ?? 'Некорректный шаблон'],
+            },
+          ]);
+        }
+      });
   };
 
   const handleCancel = () => {
@@ -198,6 +215,8 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
               allowClear
             />
           </Form.Item>
+
+          <ProductDisplayTemplateEditor form={form} />
 
           <Row gutter={16}>
             <Col span={8}>

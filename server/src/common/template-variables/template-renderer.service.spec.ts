@@ -32,6 +32,15 @@ describe('TemplateRendererService', () => {
     });
   });
 
+  it('validates without reading values and returns unique paths in order', () => {
+    expect(
+      service.validate({
+        scope,
+        template: '{{ item.width }} {{ item.name }} {{ item.width }}',
+      }),
+    ).toEqual({ usedVariables: ['item.width', 'item.name'] });
+  });
+
   it('distinguishes unknown variables from missing values', () => {
     expectRendererError(
       () =>

@@ -3,6 +3,7 @@ import { TemplateVariableRegistry } from './template-variable-registry';
 import {
   RenderTemplateOptions,
   RenderTemplateResult,
+  ValidateTemplateResult,
   TemplateRendererError,
 } from './template-variables.types';
 
@@ -10,9 +11,16 @@ import {
 export class TemplateRendererService {
   constructor(private readonly registry: TemplateVariableRegistry) {}
 
+  validate(
+    options: Omit<RenderTemplateOptions, 'values'>,
+  ): ValidateTemplateResult {
+    return {
+      usedVariables: [...new Set(this.parse(options.template, options.scope))],
+    };
+  }
+
   render(options: RenderTemplateOptions): RenderTemplateResult {
-    const variables = this.parse(options.template, options.scope);
-    const usedVariables = [...new Set(variables)];
+    const { usedVariables } = this.validate(options);
     const resolvedValues = new Map(
       usedVariables.map((variable) => {
         const definition = this.registry.getDefinition(variable, options.scope);

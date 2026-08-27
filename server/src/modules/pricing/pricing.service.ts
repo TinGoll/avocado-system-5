@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   ConditionOperator,
@@ -24,6 +24,9 @@ import {
   isConditionValueValidForField,
 } from '../price-modifiers/condition-paths/price-modifier-condition-paths';
 import { ProductionOperationCalculatorService } from '../production-operations/production-operation-calculator.service';
+import { ProductDisplayTemplateService } from '../products/product-display-template.service';
+import { TemplateRendererService } from '../../common/template-variables/template-renderer.service';
+import { TEMPLATE_VARIABLE_SCOPE } from '../../common/template-variables/template-variables.types';
 
 export interface ProductionCostCalculation {
   results: OrderItemProductionOperationResult[];
@@ -36,6 +39,8 @@ export class PricingService {
     @InjectRepository(PriceModifier)
     private readonly modifiersRepository: Repository<PriceModifier>,
     private readonly operationCalculator: ProductionOperationCalculatorService,
+    private readonly productDisplayTemplate: ProductDisplayTemplateService,
+    private readonly templateRenderer: TemplateRendererService,
   ) {}
 
   async calculateCustomerPrice(item: OrderItem, order: Order): Promise<number> {
@@ -151,16 +156,42 @@ export class PricingService {
     template: ProductTemplate,
     orderCharacteristics: unknown,
   ): ProductionCostCalculation {
+    const itemContext = {
+      name: item.snapshot?.name ?? template.name,
+      width: this.readOptionalNumber(item.characteristics?.width),
+      height: this.readOptionalNumber(item.characteristics?.height),
+      thickness: this.readOptionalNumber(item.characteristics?.thickness),
+      quantity: item.quantity,
+    };
     const context = this.operationCalculator.contextFromSnapshot(
-      {
-        name: item.snapshot?.name ?? template.name,
-        width: this.readOptionalNumber(item.characteristics?.width),
-        height: this.readOptionalNumber(item.characteristics?.height),
-        thickness: this.readOptionalNumber(item.characteristics?.thickness),
-        quantity: item.quantity,
-      },
+      itemContext,
       orderCharacteristics,
     );
+    const needsProductDisplay = (template.operations ?? []).some((operation) =>
+      this.templateRenderer
+        .validate({
+          scope: TEMPLATE_VARIABLE_SCOPE.PRODUCTION_OPERATION_NAME,
+          template: operation.displayNameTemplate,
+        })
+        .usedVariables.includes('product.display'),
+    );
+    if (needsProductDisplay) {
+      if (!template.displayTemplate?.trim()) {
+        throw new BadRequestException({
+          code: 'MISSING_VALUE',
+          field: 'displayTemplate',
+          message: 'Отсутствует значение: product.display.',
+          variable: 'product.display',
+        });
+      }
+      context.product = {
+        display: this.productDisplayTemplate.render(
+          template.displayTemplate,
+          itemContext,
+          orderCharacteristics,
+        ),
+      };
+    }
     const results = (template.operations ?? []).map((operation) => {
       const calculation = this.operationCalculator.calculate(
         operation.calculationFormula,

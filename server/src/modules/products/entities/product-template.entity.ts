@@ -19,6 +19,8 @@ export enum CustomerPricingMethod {
   VOLUME = 'volume',
 }
 
+export const PRODUCT_DISPLAY_TEMPLATE_MAX_LENGTH = 500;
+
 @Entity('product_templates')
 export class ProductTemplate {
   @PrimaryGeneratedColumn('uuid')
@@ -26,6 +28,13 @@ export class ProductTemplate {
 
   @Column({ type: 'text', unique: true })
   name: string;
+
+  @Column({
+    type: 'varchar',
+    length: PRODUCT_DISPLAY_TEMPLATE_MAX_LENGTH,
+    nullable: true,
+  })
+  displayTemplate?: string | null;
 
   @Column({ type: 'text', nullable: true })
   group?: string;

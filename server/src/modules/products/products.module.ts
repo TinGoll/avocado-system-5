@@ -5,6 +5,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductTemplate } from './entities/product-template.entity';
 import { ProductionOperation } from '../production-operations/entities/production-operation.entity';
 import { PriceModifier } from '../price-modifiers/entities/price-modifier.entity';
+import { TemplateVariablesModule } from '../../common/template-variables/template-variables.module';
+import { ProductDisplayTemplateService } from './product-display-template.service';
 
 @Module({
   imports: [
@@ -13,8 +15,10 @@ import { PriceModifier } from '../price-modifiers/entities/price-modifier.entity
       ProductionOperation,
       PriceModifier,
     ]),
+    TemplateVariablesModule,
   ],
   controllers: [ProductsController],
-  providers: [ProductsService],
+  providers: [ProductsService, ProductDisplayTemplateService],
+  exports: [ProductDisplayTemplateService],
 })
 export class ProductsModule {}

@@ -90,6 +90,7 @@ export type ProductCharacteristics = {
 export type ProductTemplate = {
   id: string;
   name: string;
+  displayTemplate?: string | null;
   defaultCharacteristics: ProductCharacteristics;
   customerPricingMethod: CustomerPricingMethod;
   baseCustomerPrice: number;

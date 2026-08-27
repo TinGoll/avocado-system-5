@@ -98,6 +98,7 @@ export class ProductionOperationCalculatorService {
       item: { ...context.item },
       ...(context.profile ? { profile: { ...context.profile } } : {}),
       ...(context.panel ? { panel: { ...context.panel } } : {}),
+      ...(context.product ? { product: { ...context.product } } : {}),
     };
     const { width, height } = context.item;
     const profileWidth = context.profile?.width;
@@ -216,6 +217,7 @@ export class ProductionOperationCalculatorService {
       item: { name: '', width: 0, height: 0, thickness: 0, quantity: 0 },
       profile: { name: '', width: 0, grooveDepth: 0 },
       panel: { name: '' },
+      product: { display: '' },
       panelWidth: 0,
       panelHeight: 0,
     });
@@ -273,6 +275,7 @@ export class ProductionOperationCalculatorService {
       'item.name': context.item.name,
       'profile.name': context.profile?.name,
       'panel.name': context.panel?.name,
+      'product.display': context.product?.display,
       'item.width': context.item.width,
       'item.height': context.item.height,
       'item.thickness': context.item.thickness,

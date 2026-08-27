@@ -13,10 +13,15 @@ import {
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { PreviewProductDisplayTemplateDto } from './dto/preview-product-display-template.dto';
+import { ProductDisplayTemplateService } from './product-display-template.service';
 
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(
+    private readonly productsService: ProductsService,
+    private readonly displayTemplateService: ProductDisplayTemplateService,
+  ) {}
 
   @Post()
   create(@Body() createProductDto: CreateProductDto) {
@@ -26,6 +31,17 @@ export class ProductsController {
   @Get()
   findAll() {
     return this.productsService.findAll();
+  }
+
+  @Post('display-template/preview')
+  previewDisplayTemplate(@Body() dto: PreviewProductDisplayTemplateDto) {
+    return {
+      renderedValue: this.displayTemplateService.render(
+        dto.displayTemplate,
+        dto.item,
+        dto.orderCharacteristics,
+      ),
+    };
   }
 
   @Get(':id')
