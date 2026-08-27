@@ -16,7 +16,7 @@ const PRODUCT_OUTPUT_SCOPE = [TEMPLATE_VARIABLE_SCOPE.PRODUCT_OUTPUT] as const;
 export const TEMPLATE_VARIABLE_DEFINITIONS = [
   {
     path: 'item.width',
-    label: 'Ширина позиции',
+    label: 'Ширина',
     description: 'Ширина позиции заказа',
     valueType: 'number',
     unit: 'мм',
@@ -25,7 +25,7 @@ export const TEMPLATE_VARIABLE_DEFINITIONS = [
   },
   {
     path: 'item.height',
-    label: 'Высота позиции',
+    label: 'Высота',
     description: 'Высота позиции заказа',
     valueType: 'number',
     unit: 'мм',
@@ -34,7 +34,7 @@ export const TEMPLATE_VARIABLE_DEFINITIONS = [
   },
   {
     path: 'item.thickness',
-    label: 'Толщина позиции',
+    label: 'Толщина',
     description: 'Толщина позиции заказа',
     valueType: 'number',
     unit: 'мм',
@@ -87,7 +87,7 @@ export const TEMPLATE_VARIABLE_DEFINITIONS = [
   },
   {
     path: 'item.name',
-    label: 'Название продукта',
+    label: 'Название',
     description: 'Название продукта в позиции заказа',
     valueType: 'string',
     scopes: [
@@ -109,7 +109,7 @@ export const TEMPLATE_VARIABLE_DEFINITIONS = [
   },
   {
     path: 'panel.name',
-    label: 'Название филёнки',
+    label: 'Филёнка',
     description: 'Название выбранной филёнки',
     valueType: 'string',
     scopes: [
@@ -120,7 +120,7 @@ export const TEMPLATE_VARIABLE_DEFINITIONS = [
   },
   {
     path: 'material.name',
-    label: 'Название материала',
+    label: 'Материал',
     description: 'Название выбранного материала',
     valueType: 'string',
     scopes: PRODUCT_OUTPUT_SCOPE,
@@ -128,7 +128,7 @@ export const TEMPLATE_VARIABLE_DEFINITIONS = [
   },
   {
     path: 'color.name',
-    label: 'Название цвета',
+    label: 'Цвет',
     description: 'Название выбранного цвета',
     valueType: 'string',
     scopes: PRODUCT_OUTPUT_SCOPE,
@@ -136,7 +136,7 @@ export const TEMPLATE_VARIABLE_DEFINITIONS = [
   },
   {
     path: 'patina.name',
-    label: 'Название патины',
+    label: 'Патина',
     description: 'Название выбранной патины',
     valueType: 'string',
     scopes: PRODUCT_OUTPUT_SCOPE,
@@ -144,7 +144,7 @@ export const TEMPLATE_VARIABLE_DEFINITIONS = [
   },
   {
     path: 'varnish.name',
-    label: 'Название лака',
+    label: 'Лак',
     description: 'Название выбранного лака',
     valueType: 'string',
     scopes: PRODUCT_OUTPUT_SCOPE,

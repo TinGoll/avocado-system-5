@@ -8,6 +8,9 @@ export type ProductTemplateFieldType = {
   name: string;
   displayTemplate?: string | null;
   displayTemplatePreview?: {
+    width?: number;
+    height?: number;
+    thickness?: number;
     material?: string;
     color?: string;
     patina?: string;

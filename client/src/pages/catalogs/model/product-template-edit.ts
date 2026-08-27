@@ -13,7 +13,17 @@ export type ProductTemplateEditValues = Omit<
   attributes: DynamicField[];
   additionalCharacteristics: DynamicField[];
   operationIds: string[];
-  displayTemplatePreview?: Record<string, string>;
+  displayTemplatePreview?: {
+    width?: number;
+    height?: number;
+    thickness?: number;
+    material?: string;
+    color?: string;
+    patina?: string;
+    profile?: string;
+    panel?: string;
+    varnish?: string;
+  };
 };
 
 const dimensionKeys = new Set(['width', 'height', 'thickness']);

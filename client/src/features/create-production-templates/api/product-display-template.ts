@@ -6,6 +6,7 @@ import { fetcher } from '@shared/lib/swr';
 export type ProductOutputVariable = {
   path: string;
   label: string;
+  description: string;
   valueType: 'string' | 'number' | 'boolean';
   unit?: string;
   optional?: boolean;
