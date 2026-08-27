@@ -13,6 +13,8 @@ import {
 } from '../products/entities/product-template.entity';
 import { PricingService } from './pricing.service';
 import { ProductionOperationCalculatorService } from '../production-operations/production-operation-calculator.service';
+import { TemplateVariableRegistry } from '../../common/template-variables/template-variable-registry';
+import { TemplateRendererService } from '../../common/template-variables/template-renderer.service';
 import {
   CalculationMethod,
   ProductionOperation,
@@ -65,7 +67,13 @@ const createService = (modifiers: PriceModifier[]) => {
   return {
     service: new PricingService(
       modifiersRepository,
-      new ProductionOperationCalculatorService(),
+      (() => {
+        const registry = new TemplateVariableRegistry();
+        return new ProductionOperationCalculatorService(
+          new TemplateRendererService(registry),
+          registry,
+        );
+      })(),
     ),
     findMock,
   };

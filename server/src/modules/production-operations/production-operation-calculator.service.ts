@@ -1,9 +1,13 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { TemplateVariableRegistry } from '../../common/template-variables/template-variable-registry';
+import { TemplateRendererService } from '../../common/template-variables/template-renderer.service';
+import {
+  TEMPLATE_VARIABLE_SCOPE,
+  TemplateRendererError,
+} from '../../common/template-variables/template-variables.types';
 import {
   PRODUCTION_OPERATION_FORMULA_MAX_LENGTH,
-  PRODUCTION_OPERATION_FORMULA_VARIABLES,
   PRODUCTION_OPERATION_TEMPLATE_MAX_LENGTH,
-  PRODUCTION_OPERATION_TEMPLATE_VARIABLES,
   ProductionOperationCalculationError,
   ProductionOperationCalculationErrorCode,
   ProductionOperationCalculationErrorField,
@@ -33,9 +37,14 @@ export interface ProductionOperationCalculationResult {
 
 @Injectable()
 export class ProductionOperationCalculatorService {
+  constructor(
+    private readonly templateRenderer: TemplateRendererService,
+    private readonly templateVariableRegistry: TemplateVariableRegistry,
+  ) {}
+
   validate(calculationFormula: string, displayNameTemplate: string): void {
     this.parseFormula(calculationFormula);
-    this.parseTemplate(displayNameTemplate);
+    this.validateNameTemplate(displayNameTemplate);
   }
 
   calculate(
@@ -45,7 +54,7 @@ export class ProductionOperationCalculatorService {
   ): ProductionOperationCalculationResult {
     const evaluationContext = this.deriveContext(context);
     const expression = this.parseFormula(calculationFormula);
-    const templateVariables = this.parseTemplate(displayNameTemplate);
+    this.validateNameTemplate(displayNameTemplate);
     const calculatedQuantity = this.evaluate(expression, evaluationContext);
 
     if (calculatedQuantity < 0) {
@@ -56,25 +65,14 @@ export class ProductionOperationCalculatorService {
       );
     }
 
-    const renderedName = displayNameTemplate.replace(
-      /{{\s*([^{}]+?)\s*}}/g,
-      (_placeholder, rawVariable: string) =>
-        String(
-          this.getValue(
-            rawVariable.trim() as ProductionOperationTemplateVariable,
-            evaluationContext,
-            'displayNameTemplate',
-          ),
-        ),
+    const renderedName = this.renderName(
+      displayNameTemplate,
+      evaluationContext,
     );
-
-    for (const variable of templateVariables) {
-      this.getValue(variable, evaluationContext, 'displayNameTemplate');
-    }
 
     return {
       calculatedQuantity,
-      renderedName,
+      renderedName: renderedName.value,
       panelWidth: evaluationContext.panelWidth,
       panelHeight: evaluationContext.panelHeight,
     };
@@ -157,14 +155,18 @@ export class ProductionOperationCalculatorService {
         'Формула слишком длинная.',
       );
     }
-    return new FormulaParser(formula, (code, message, variable) =>
-      this.fail(code, 'calculationFormula', message, variable),
+    return new FormulaParser(
+      formula,
+      this.templateVariableRegistry,
+      (code, message, variable) =>
+        this.fail(code, 'calculationFormula', message, variable),
     ).parse();
   }
 
-  private parseTemplate(
+  private renderName(
     template: string,
-  ): ProductionOperationTemplateVariable[] {
+    context: ProductionOperationEvaluationContext,
+  ) {
     if (template.length > PRODUCTION_OPERATION_TEMPLATE_MAX_LENGTH) {
       this.fail(
         'TEMPLATE_TOO_LONG',
@@ -173,44 +175,50 @@ export class ProductionOperationCalculatorService {
       );
     }
 
-    const variables: ProductionOperationTemplateVariable[] = [];
-    let cursor = 0;
-    const placeholder = /{{\s*([^{}]+?)\s*}}/g;
-    for (const match of template.matchAll(placeholder)) {
-      const start = match.index ?? 0;
-      if (
-        template.slice(cursor, start).includes('{{') ||
-        template.slice(cursor, start).includes('}}')
-      ) {
-        this.fail(
-          'INVALID_SYNTAX',
-          'displayNameTemplate',
-          'Некорректный шаблон названия.',
-        );
-      }
-      const variable = match[1].trim();
-      if (!this.isTemplateVariable(variable)) {
-        this.fail(
-          'UNKNOWN_VARIABLE',
-          'displayNameTemplate',
-          `Неизвестная переменная: ${variable}.`,
+    try {
+      return this.templateRenderer.render({
+        scope: TEMPLATE_VARIABLE_SCOPE.PRODUCTION_OPERATION_NAME,
+        template,
+        values: context,
+      });
+    } catch (error) {
+      if (!(error instanceof TemplateRendererError)) throw error;
+      const variable = error.variable;
+      const isMissingPanelProfile =
+        error.code === 'MISSING_VALUE' &&
+        (variable === 'panelWidth' || variable === 'panelHeight') &&
+        (context.profile?.width === undefined ||
+          context.profile.grooveDepth === undefined);
+      const isMissingNumber =
+        error.code === 'MISSING_VALUE' &&
+        variable !== undefined &&
+        this.templateVariableRegistry.getDefinition(
           variable,
-        );
-      }
-      variables.push(variable);
-      cursor = start + match[0].length;
-    }
-    if (
-      template.slice(cursor).includes('{{') ||
-      template.slice(cursor).includes('}}')
-    ) {
+          TEMPLATE_VARIABLE_SCOPE.PRODUCTION_OPERATION_NAME,
+        )?.valueType === 'number';
       this.fail(
-        'INVALID_SYNTAX',
+        error.code,
         'displayNameTemplate',
-        'Некорректный шаблон названия.',
+        error.code === 'INVALID_SYNTAX'
+          ? 'Некорректный шаблон названия.'
+          : isMissingPanelProfile
+            ? 'Выберите профиль заказа для расчёта размера филёнки.'
+            : isMissingNumber
+              ? `Отсутствует числовое значение: ${variable}.`
+              : error.message,
+        variable,
       );
     }
-    return variables;
+  }
+
+  private validateNameTemplate(template: string): void {
+    this.renderName(template, {
+      item: { name: '', width: 0, height: 0, thickness: 0, quantity: 0 },
+      profile: { name: '', width: 0, grooveDepth: 0 },
+      panel: { name: '' },
+      panelWidth: 0,
+      panelHeight: 0,
+    });
   }
 
   private evaluate(
@@ -307,14 +315,6 @@ export class ProductionOperationCalculatorService {
     return this.getValue(variable, context, 'calculationFormula') as number;
   }
 
-  private isTemplateVariable(
-    value: string,
-  ): value is ProductionOperationTemplateVariable {
-    return (
-      PRODUCTION_OPERATION_TEMPLATE_VARIABLES as readonly string[]
-    ).includes(value);
-  }
-
   private isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
   }
@@ -340,6 +340,7 @@ class FormulaParser {
 
   constructor(
     private readonly input: string,
+    private readonly registry: TemplateVariableRegistry,
     private readonly fail: (
       code: ProductionOperationCalculationErrorCode,
       message: string,
@@ -406,11 +407,11 @@ class FormulaParser {
     )?.[0];
     if (identifier) {
       this.position += identifier.length;
-      if (
-        !(PRODUCTION_OPERATION_FORMULA_VARIABLES as readonly string[]).includes(
-          identifier,
-        )
-      ) {
+      const definition = this.registry.getDefinition(
+        identifier,
+        TEMPLATE_VARIABLE_SCOPE.PRODUCTION_OPERATION_FORMULA,
+      );
+      if (!definition || definition.valueType !== 'number') {
         this.fail(
           'UNKNOWN_VARIABLE',
           `Неизвестная переменная: ${identifier}.`,

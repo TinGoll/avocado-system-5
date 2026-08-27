@@ -1,11 +1,5 @@
-import {
-  TEMPLATE_VARIABLE_DEFINITIONS,
-  TemplateVariablePathForScope,
-} from '../../../common/template-variables/template-variable-registry';
-import {
-  TEMPLATE_VARIABLE_SCOPE,
-  TemplateVariableScope,
-} from '../../../common/template-variables/template-variables.types';
+import { TemplateVariablePathForScope } from '../../../common/template-variables/template-variable-registry';
+import { TEMPLATE_VARIABLE_SCOPE } from '../../../common/template-variables/template-variables.types';
 
 /**
  * Public limits shared by persistence validation, the formula evaluator and UI.
@@ -54,27 +48,9 @@ export type ProductionOperationFormulaVariable = TemplateVariablePathForScope<
   typeof TEMPLATE_VARIABLE_SCOPE.PRODUCTION_OPERATION_FORMULA
 >;
 
-export const PRODUCTION_OPERATION_FORMULA_VARIABLES =
-  TEMPLATE_VARIABLE_DEFINITIONS.filter((definition) =>
-    (definition.scopes as readonly TemplateVariableScope[]).includes(
-      TEMPLATE_VARIABLE_SCOPE.PRODUCTION_OPERATION_FORMULA,
-    ),
-  ).map(
-    (definition) => definition.path,
-  ) as readonly ProductionOperationFormulaVariable[];
-
 export type ProductionOperationTemplateVariable = TemplateVariablePathForScope<
   typeof TEMPLATE_VARIABLE_SCOPE.PRODUCTION_OPERATION_NAME
 >;
-
-export const PRODUCTION_OPERATION_TEMPLATE_VARIABLES =
-  TEMPLATE_VARIABLE_DEFINITIONS.filter((definition) =>
-    (definition.scopes as readonly TemplateVariableScope[]).includes(
-      TEMPLATE_VARIABLE_SCOPE.PRODUCTION_OPERATION_NAME,
-    ),
-  ).map(
-    (definition) => definition.path,
-  ) as readonly ProductionOperationTemplateVariable[];
 
 export const PRODUCTION_OPERATION_CALCULATION_ERROR_CODES = [
   'FORMULA_TOO_LONG',

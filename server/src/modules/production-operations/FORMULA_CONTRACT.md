@@ -1,8 +1,11 @@
 # Контракт формул производственных работ
 
 Этот документ фиксирует контракт MVP для валидатора, вычислителя и
-клиентских подсказок. Типы, списки переменных и ограничения длины находятся в
+клиентских подсказок. Перечень и типы переменных задаются центральным реестром
+[`../../common/template-variables/template-variable-registry.ts`](../../common/template-variables/template-variable-registry.ts),
+а публичные типы ошибок и ограничения длины находятся в
 [`types/production-operation-formula-contract.ts`](types/production-operation-formula-contract.ts).
+Семантика формул при переходе на реестр не изменилась.
 
 ## Числовая формула
 

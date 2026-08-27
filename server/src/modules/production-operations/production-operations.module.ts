@@ -4,9 +4,13 @@ import { ProductionOperationsController } from './production-operations.controll
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductionOperation } from './entities/production-operation.entity';
 import { ProductionOperationCalculatorService } from './production-operation-calculator.service';
+import { TemplateVariablesModule } from '../../common/template-variables/template-variables.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ProductionOperation])],
+  imports: [
+    TypeOrmModule.forFeature([ProductionOperation]),
+    TemplateVariablesModule,
+  ],
   controllers: [ProductionOperationsController],
   providers: [
     ProductionOperationsService,

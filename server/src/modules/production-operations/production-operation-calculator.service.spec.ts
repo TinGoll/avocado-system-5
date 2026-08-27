@@ -1,8 +1,14 @@
 import { BadRequestException } from '@nestjs/common';
+import { TemplateVariableRegistry } from '../../common/template-variables/template-variable-registry';
+import { TemplateRendererService } from '../../common/template-variables/template-renderer.service';
 import { ProductionOperationCalculatorService } from './production-operation-calculator.service';
 
 describe('ProductionOperationCalculatorService', () => {
-  const service = new ProductionOperationCalculatorService();
+  const registry = new TemplateVariableRegistry();
+  const service = new ProductionOperationCalculatorService(
+    new TemplateRendererService(registry),
+    registry,
+  );
 
   const getCalculationError = (action: () => unknown) => {
     try {
@@ -71,6 +77,21 @@ describe('ProductionOperationCalculatorService', () => {
       field: 'displayNameTemplate',
       message: 'Выберите профиль заказа для расчёта размера филёнки.',
       variable: 'panelWidth',
+    });
+  });
+
+  it('preserves the missing numeric template value payload', () => {
+    const error = getCalculationError(() =>
+      service.calculate('item.quantity', '{{ item.width }}', {
+        item: { quantity: 1 },
+      }),
+    );
+
+    expect(error).toEqual({
+      code: 'MISSING_VALUE',
+      field: 'displayNameTemplate',
+      message: 'Отсутствует числовое значение: item.width.',
+      variable: 'item.width',
     });
   });
 
