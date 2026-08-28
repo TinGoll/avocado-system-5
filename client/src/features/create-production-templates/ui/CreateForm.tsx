@@ -2,7 +2,6 @@ import { css } from '@emotion/css';
 import {
   Alert,
   App,
-  AutoComplete,
   Button,
   Col,
   Form,
@@ -20,6 +19,7 @@ import {
   CUSTOMER_PRICING_METHOD,
   type ProductTemplate,
 } from '@entities/product';
+import { BrowserSafeAutoComplete } from '@shared/ui';
 import {
   DynamicFields,
   dynamicFieldsToObject,
@@ -204,7 +204,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
           </Form.Item>
 
           <Form.Item<ProductTemplateFieldType> label="Группа" name="group">
-            <AutoComplete
+            <BrowserSafeAutoComplete
               options={groupOptions}
               placeholder="Введите или выберите группу"
               filterOption={(inputValue, option) =>

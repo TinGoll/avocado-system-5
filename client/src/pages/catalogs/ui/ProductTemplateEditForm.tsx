@@ -1,14 +1,4 @@
-import {
-  Alert,
-  AutoComplete,
-  Col,
-  Form,
-  Input,
-  InputNumber,
-  Radio,
-  Row,
-  Select,
-} from 'antd';
+import { Alert, Col, Form, Input, InputNumber, Radio, Row, Select } from 'antd';
 import { useMemo, type FC } from 'react';
 
 import {
@@ -17,6 +7,7 @@ import {
 } from '@entities/product';
 import type { ProductionOperation } from '@entities/production-operation';
 import { ProductDisplayTemplateEditor } from '@features/create-production-templates';
+import { BrowserSafeAutoComplete } from '@shared/ui';
 import { DynamicFields } from '@shared/ui/dynamic-fields';
 
 import type { ProductTemplateEditValues } from '../model/product-template-edit';
@@ -96,7 +87,7 @@ export const ProductTemplateEditForm: FC<Props> = ({
       </Form.Item>
 
       <Form.Item<ProductTemplateEditValues> label="Группа" name="group">
-        <AutoComplete
+        <BrowserSafeAutoComplete
           options={groupOptions}
           placeholder="Введите или выберите группу"
           filterOption={(inputValue, option) =>

@@ -1,17 +1,10 @@
 import { css } from '@emotion/css';
-import {
-  App,
-  AutoComplete,
-  Button,
-  Form,
-  Input,
-  Skeleton,
-  type FormProps,
-} from 'antd';
+import { App, Button, Form, Input, Skeleton, type FormProps } from 'antd';
 import type { DefaultOptionType } from 'antd/es/select';
 import { useMemo, type FC } from 'react';
 
 import type { FacadePanel } from '@entities/facade-panel';
+import { BrowserSafeAutoComplete } from '@shared/ui';
 
 import { useCreateFacadePanel } from '../hooks/useCreateFacadePanel';
 import type { FieldType } from '../model/create-facade-panel';
@@ -114,7 +107,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
           tooltip="Выберите стиль филёнки из предложенных  вариантов или введите свой. Можно оставить пустым."
           rules={[{ required: false, message: 'Выбери стиль филёнки' }]}
         >
-          <AutoComplete
+          <BrowserSafeAutoComplete
             options={styleOptions}
             onSearch={handleSearch}
             placeholder="Введите или выберите стиль"

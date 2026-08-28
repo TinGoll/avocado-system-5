@@ -1,7 +1,6 @@
 import { css } from '@emotion/css';
 import {
   App,
-  AutoComplete,
   Button,
   Col,
   Divider,
@@ -16,6 +15,7 @@ import type { DefaultOptionType } from 'antd/es/select';
 import { useMemo, type FC } from 'react';
 
 import type { FacadeProfile } from '@entities/facade-profile';
+import { BrowserSafeAutoComplete } from '@shared/ui';
 
 import { useCreateFacadeProfile } from '../hooks/useCreateFacadeProfile';
 import type { FieldType } from '../model/create-facade-profile';
@@ -150,7 +150,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
               name="style"
               tooltip="Стиль - необязательный параметр, но можно задействовать для увеличения гибкости ценообразования"
             >
-              <AutoComplete
+              <BrowserSafeAutoComplete
                 options={styleOptions}
                 onSearch={handleSearch}
                 placeholder="Введите или выберите стиль"

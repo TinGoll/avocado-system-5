@@ -1,3 +1,4 @@
+export * from './BrowserSafeAutoComplete';
 export * from './CardLayout';
 export * from './Field';
 export * from './Logo';
