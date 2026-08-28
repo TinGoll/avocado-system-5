@@ -1,7 +1,6 @@
 import { PlusCircleOutlined } from '@ant-design/icons';
 import { css } from '@emotion/css';
 import {
-  App,
   Button,
   Form,
   Input,
@@ -75,7 +74,6 @@ export const AddOrderItemForm: FC<Props> = ({
 }) => {
   const [form] = Form.useForm<FormValues>();
   const nomenclatureRef = useRef<RefSelectProps>(null);
-  const { notification } = App.useApp();
   const { data, isLoading, error } = useProductTemplates();
   const products = useMemo(() => data?.products ?? [], [data?.products]);
   const { addItem, isMutating } = useOptimisticAddItem({ orderID });
@@ -143,7 +141,7 @@ export const AddOrderItemForm: FC<Props> = ({
       });
       focusAndSelectNomenclature();
     } catch {
-      notification.error({ title: 'Не удалось добавить элемент заказа' });
+      // The API layer already displays the specific server error.
     }
   };
 
