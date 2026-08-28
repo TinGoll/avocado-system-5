@@ -10,10 +10,11 @@ import {
   Row,
   Space,
   Spin,
-  Typography,
   type FormInstance,
 } from 'antd';
-import { useEffect, useState, type FC } from 'react';
+import type { InputRef } from 'antd';
+import type { TextAreaRef } from 'antd/es/input/TextArea';
+import { useEffect, useRef, useState, type FC } from 'react';
 
 import {
   getPreviewError,
@@ -21,13 +22,34 @@ import {
   type ProductionOperationPreview,
 } from '../api/preview-production-operation';
 import { useProductionOperationVariables } from '../api/template-variable-metadata';
+import type { ProductionOperationVariableMetadata } from '../api/template-variable-metadata';
 import type { FieldType } from '../model/create-production-operation';
 
+import { ProductionOperationVariableBuilder } from './ProductionOperationVariableBuilder';
+
 const styles = css`
+  width: 100%;
+
   .preview-grid .ant-form-item {
     margin-bottom: 12px;
   }
+
+  .preview-input {
+    width: 100%;
+  }
 `;
+
+type EditorField = 'calculationFormula' | 'displayNameTemplate';
+type Selection = { start: number; end: number };
+
+const formulaOperations = [
+  { label: '+', value: ' + ', description: 'Сложение' },
+  { label: '−', value: ' - ', description: 'Вычитание' },
+  { label: '×', value: ' * ', description: 'Умножение' },
+  { label: '÷', value: ' / ', description: 'Деление' },
+  { label: '(', value: '(', description: 'Открывающая скобка' },
+  { label: ')', value: ')', description: 'Закрывающая скобка' },
+];
 
 type Props = { form: FormInstance<FieldType> };
 
@@ -41,6 +63,53 @@ export const ProductionOperationEditorFields: FC<Props> = ({ form }) => {
   const [preview, setPreview] = useState<ProductionOperationPreview>();
   const [previewError, setPreviewError] = useState<string>();
   const [loading, setLoading] = useState(false);
+  const formulaRef = useRef<TextAreaRef>(null);
+  const templateRef = useRef<InputRef>(null);
+  const elementsRef = useRef<
+    Partial<Record<EditorField, HTMLInputElement | HTMLTextAreaElement>>
+  >({});
+  const selectionsRef = useRef<Partial<Record<EditorField, Selection>>>({});
+
+  const saveSelection = (
+    field: EditorField,
+    element: HTMLInputElement | HTMLTextAreaElement,
+  ) => {
+    elementsRef.current[field] = element;
+    selectionsRef.current[field] = {
+      start: element.selectionStart ?? element.value.length,
+      end: element.selectionEnd ?? element.value.length,
+    };
+  };
+
+  const insertToken = (field: EditorField, token: string) => {
+    const currentValue = form.getFieldValue(field) ?? '';
+    const selection = selectionsRef.current[field] ?? {
+      start: currentValue.length,
+      end: currentValue.length,
+    };
+    const nextValue = `${currentValue.slice(0, selection.start)}${token}${currentValue.slice(selection.end)}`;
+    const cursorPosition = selection.start + token.length;
+
+    selectionsRef.current[field] = {
+      start: cursorPosition,
+      end: cursorPosition,
+    };
+    form.setFields([{ name: field, value: nextValue, touched: true }]);
+    void form
+      .validateFields([field])
+      .catch(() => undefined)
+      .finally(() => {
+        window.requestAnimationFrame(() => {
+          const fallback =
+            field === 'calculationFormula'
+              ? formulaRef.current?.resizableTextArea?.textArea
+              : templateRef.current?.input;
+          const element = elementsRef.current[field] ?? fallback;
+          element?.focus();
+          element?.setSelectionRange(cursorPosition, cursorPosition);
+        });
+      });
+  };
 
   useEffect(() => {
     const formula = values?.calculationFormula?.trim();
@@ -121,7 +190,7 @@ export const ProductionOperationEditorFields: FC<Props> = ({ form }) => {
   }, [form, values]);
 
   return (
-    <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+    <Space orientation="vertical" size="middle" className={styles}>
       <Form.Item<FieldType>
         label="Формула расчёта"
         name="calculationFormula"
@@ -129,8 +198,36 @@ export const ProductionOperationEditorFields: FC<Props> = ({ form }) => {
           { required: true, whitespace: true, message: 'Введите формулу' },
         ]}
       >
-        <Input.TextArea rows={3} />
+        <Input.TextArea
+          ref={formulaRef}
+          rows={3}
+          onSelect={(event) =>
+            saveSelection('calculationFormula', event.currentTarget)
+          }
+          onClick={(event) =>
+            saveSelection('calculationFormula', event.currentTarget)
+          }
+          onKeyUp={(event) =>
+            saveSelection('calculationFormula', event.currentTarget)
+          }
+        />
       </Form.Item>
+      <ProductionOperationVariableBuilder
+        title="Конструктор формулы"
+        description="Нажмите на переменную, чтобы вставить её в формулу."
+        variables={(variables ?? []).filter(
+          ({ availability }) => availability === 'formula-and-name',
+        )}
+        loading={variablesLoading}
+        error={variablesError}
+        onInsert={(variable: ProductionOperationVariableMetadata) =>
+          insertToken('calculationFormula', variable.path)
+        }
+        operations={formulaOperations}
+        onInsertOperation={(operation) =>
+          insertToken('calculationFormula', operation)
+        }
+      />
       <Form.Item<FieldType>
         label="Шаблон названия"
         name="displayNameTemplate"
@@ -138,30 +235,30 @@ export const ProductionOperationEditorFields: FC<Props> = ({ form }) => {
           { required: true, whitespace: true, message: 'Введите шаблон' },
         ]}
       >
-        <Input placeholder="Например: {{ item.height }}х{{ item.width }} — {{ item.quantity }} шт." />
+        <Input
+          ref={templateRef}
+          placeholder="Например: {{ item.height }}х{{ item.width }} — {{ item.quantity }} шт."
+          onSelect={(event) =>
+            saveSelection('displayNameTemplate', event.currentTarget)
+          }
+          onClick={(event) =>
+            saveSelection('displayNameTemplate', event.currentTarget)
+          }
+          onKeyUp={(event) =>
+            saveSelection('displayNameTemplate', event.currentTarget)
+          }
+        />
       </Form.Item>
-
-      <Card size="small" title="Доступные переменные">
-        <Spin spinning={variablesLoading}>
-          {variablesError ? (
-            <Alert
-              type="error"
-              showIcon
-              title="Не удалось загрузить доступные переменные"
-            />
-          ) : (
-            <Descriptions
-              column={1}
-              size="small"
-              items={(variables ?? []).map((variable) => ({
-                key: variable.path,
-                label: <Typography.Text code>{variable.path}</Typography.Text>,
-                children: `${variable.label}${variable.unit ? `, ${variable.unit}` : ''}${variable.optional ? ' (опционально)' : ''} — ${variable.availability === 'formula-and-name' ? 'Формула и шаблон' : 'Только шаблон названия'}`,
-              }))}
-            />
-          )}
-        </Spin>
-      </Card>
+      <ProductionOperationVariableBuilder
+        title="Конструктор шаблона названия"
+        description="Нажмите на переменную, чтобы вставить её в шаблон."
+        variables={variables ?? []}
+        loading={variablesLoading}
+        error={variablesError}
+        onInsert={(variable: ProductionOperationVariableMetadata) =>
+          insertToken('displayNameTemplate', `{{ ${variable.path} }}`)
+        }
+      />
 
       <Card size="small" title="Тестовые значения" className={styles}>
         <Row gutter={12} className="preview-grid">
@@ -195,7 +292,7 @@ export const ProductionOperationEditorFields: FC<Props> = ({ form }) => {
                 name === 'panelName' ? (
                   <Input />
                 ) : (
-                  <InputNumber min={0} style={{ width: '100%' }} />
+                  <InputNumber min={0} className="preview-input" />
                 )}
               </Form.Item>
             </Col>

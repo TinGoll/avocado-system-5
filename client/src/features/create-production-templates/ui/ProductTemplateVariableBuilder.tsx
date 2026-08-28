@@ -1,3 +1,4 @@
+import { css } from '@emotion/css';
 import { Alert, Button, Card, Flex, Spin, Tooltip, Typography } from 'antd';
 
 import type { ProductOutputVariable } from '../api/product-display-template';
@@ -8,6 +9,13 @@ type Props = {
   error?: unknown;
   onInsert: (variable: ProductOutputVariable) => void;
 };
+
+const variableButton = css`
+  height: auto;
+  max-width: 100%;
+  min-height: 26px;
+  white-space: normal;
+`;
 
 export const ProductTemplateVariableBuilder = ({
   variables,
@@ -53,15 +61,10 @@ export const ProductTemplateVariableBuilder = ({
               >
                 <Button
                   htmlType="button"
-                  size='small'
+                  size="small"
                   aria-label={`Вставить переменную «${variable.label}»`}
                   onClick={() => onInsert(variable)}
-                  style={{
-                    height: 'auto',
-                    maxWidth: '100%',
-                    minHeight: 26,
-                    whiteSpace: 'normal',
-                  }}
+                  className={variableButton}
                 >
                   {variable.label}
                   {variable.unit ? `, ${variable.unit}` : ''}
