@@ -8,14 +8,23 @@ import {
   IsOptional,
   IsPositive,
   IsString,
+  MaxLength,
   IsUUID,
 } from 'class-validator';
-import { CustomerPricingMethod } from '../entities/product-template.entity';
+import {
+  CustomerPricingMethod,
+  PRODUCT_DISPLAY_TEMPLATE_MAX_LENGTH,
+} from '../entities/product-template.entity';
 
 export class CreateProductDto {
   @IsString()
   @IsNotEmpty()
   name: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(PRODUCT_DISPLAY_TEMPLATE_MAX_LENGTH)
+  displayTemplate?: string | null;
 
   @IsString()
   @IsOptional()

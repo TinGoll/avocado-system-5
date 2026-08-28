@@ -17,6 +17,7 @@ export const CreateProductionOperationButton: FC<Props> = ({
   return (
     <CreateEntityButton<ProductionOperation>
       title="Добавление новой работы."
+      modalWidth={640}
       FormComponent={CreateForm}
       onCreated={onCreated}
       {...props}

@@ -53,6 +53,16 @@ const setInputValue = (input: HTMLInputElement, value: string) => {
   input.dispatchEvent(new Event('change', { bubbles: true }));
 };
 
+const setTextAreaValue = (input: HTMLTextAreaElement, value: string) => {
+  const valueSetter = Object.getOwnPropertyDescriptor(
+    HTMLTextAreaElement.prototype,
+    'value',
+  )?.set;
+  valueSetter?.call(input, value);
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+};
+
 describe('CreateForm', () => {
   let container: HTMLDivElement;
   let root: Root;
@@ -81,6 +91,8 @@ describe('CreateForm', () => {
       isMutating: false,
       trigger,
       products: [],
+      operations: [],
+      operationsError: undefined,
       priceModifiers: [scopedModifier, globalModifier],
       priceModifiersError: undefined,
       isLoading: false,
@@ -115,11 +127,15 @@ describe('CreateForm', () => {
     const modifierSelector = container.querySelector<HTMLElement>(
       '[aria-label="Ценовые модификаторы"]',
     );
-    if (!nameInput || !modifierSelector) {
+    const displayTemplateInput = container.querySelector<HTMLTextAreaElement>(
+      '#create_product_template_form_displayTemplate',
+    );
+    if (!nameInput || !modifierSelector || !displayTemplateInput) {
       throw new Error('Create product form controls not found');
     }
 
     act(() => setInputValue(nameInput, 'Новый фасад'));
+    act(() => setTextAreaValue(displayTemplateInput, '  {{ item.name }}  '));
     act(() => {
       modifierSelector.dispatchEvent(
         new MouseEvent('mousedown', { bubbles: true }),
@@ -152,6 +168,7 @@ describe('CreateForm', () => {
     expect(trigger).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'Новый фасад',
+        displayTemplate: '{{ item.name }}',
         priceModifierIds: [scopedModifier.id],
       }),
     );

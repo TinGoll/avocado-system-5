@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 type CreateEntityButtonProps<T> = ButtonProps & {
   title: string;
+  modalWidth?: number;
   FormComponent: React.ComponentType<{
     onCreated: (entity: T) => void;
     onCancel: () => void;
@@ -12,6 +13,7 @@ type CreateEntityButtonProps<T> = ButtonProps & {
 
 export const CreateEntityButton = <T,>({
   title,
+  modalWidth,
   FormComponent,
   onCreated,
   ...props
@@ -37,6 +39,7 @@ export const CreateEntityButton = <T,>({
       <Button {...props} onClick={showModal} disabled={open} />
       <Modal
         title={title}
+        width={modalWidth}
         open={open}
         onCancel={handleCancel}
         destroyOnHidden

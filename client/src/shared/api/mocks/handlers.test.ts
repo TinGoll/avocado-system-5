@@ -45,6 +45,20 @@ describe('MSW API mocks', () => {
     expect(schemas.item.quantity.type).toBe('number');
   });
 
+  it('returns template variables filtered by scope', async () => {
+    const response = await fetch(
+      'http://localhost/template-variables?scope=production-operation-formula',
+    );
+    const body = (await response.json()) as {
+      variables: { path: string; valueType: string }[];
+    };
+
+    expect(response.ok).toBe(true);
+    expect(body.variables).toEqual([
+      expect.objectContaining({ path: 'item.quantity', valueType: 'number' }),
+    ]);
+  });
+
   it('creates a global price modifier', async () => {
     const response = await fetch('http://localhost/price-modifiers', {
       method: 'POST',

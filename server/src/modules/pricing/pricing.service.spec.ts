@@ -7,8 +7,19 @@ import {
   ModifierType,
   PriceModifier,
 } from '../price-modifiers/entities/price-modifier.entity';
-import { CustomerPricingMethod } from '../products/entities/product-template.entity';
+import {
+  CustomerPricingMethod,
+  ProductTemplate,
+} from '../products/entities/product-template.entity';
 import { PricingService } from './pricing.service';
+import { ProductionOperationCalculatorService } from '../production-operations/production-operation-calculator.service';
+import { TemplateVariableRegistry } from '../../common/template-variables/template-variable-registry';
+import { TemplateRendererService } from '../../common/template-variables/template-renderer.service';
+import { ProductDisplayTemplateService } from '../products/product-display-template.service';
+import {
+  CalculationMethod,
+  ProductionOperation,
+} from '../production-operations/entities/production-operation.entity';
 
 const alwaysApplicableCondition = {
   source: ConditionSource.ITEM,
@@ -54,8 +65,15 @@ const createService = (modifiers: PriceModifier[]) => {
     find: findMock,
   } as unknown as jest.Mocked<Repository<PriceModifier>>;
 
+  const registry = new TemplateVariableRegistry();
+  const renderer = new TemplateRendererService(registry);
   return {
-    service: new PricingService(modifiersRepository),
+    service: new PricingService(
+      modifiersRepository,
+      new ProductionOperationCalculatorService(renderer, registry),
+      new ProductDisplayTemplateService(renderer),
+      renderer,
+    ),
     findMock,
   };
 };
@@ -257,5 +275,97 @@ describe('PricingService', () => {
     await expect(service.calculateCustomerPrice(item, order)).resolves.toBe(
       100,
     );
+  });
+
+  it('calculates and snapshots each production operation', () => {
+    const { service } = createService([]);
+    const item = {
+      quantity: 2,
+      snapshot: { name: 'Фасад прямой' },
+      characteristics: { width: 500, height: 800 },
+    } as OrderItem;
+    const operation = {
+      id: 'operation-1',
+      name: 'Филёнка',
+      calculationMethod: CalculationMethod.AREA,
+      calculationFormula:
+        'panelWidth / 1000 * panelHeight / 1000 * item.quantity',
+      displayNameTemplate:
+        '{{ item.name }}: {{ panelHeight }}х{{ panelWidth }} — {{ item.quantity }} шт.',
+      costPerUnit: 100,
+    } as ProductionOperation;
+    const template = new ProductTemplate();
+    template.operations = [operation];
+
+    const result = service.calculateProductionCost(item, template, {
+      profile: { characteristics: { width: 50, grooveDepth: 10 } },
+    });
+
+    expect(result).toEqual({
+      results: [
+        {
+          operationId: operation.id,
+          originalName: operation.name,
+          calculationFormula: operation.calculationFormula,
+          displayNameTemplate: operation.displayNameTemplate,
+          calculationMethod: operation.calculationMethod,
+          costPerUnit: 100,
+          calculatedQuantity: 0.6048,
+          renderedName: 'Фасад прямой: 720х420 — 2 шт.',
+          totalCost: 60.48,
+        },
+      ],
+      totalCost: 60.48,
+    });
+  });
+
+  it('composes the product display once into the operation name', () => {
+    const { service } = createService([]);
+    const item = {
+      quantity: 1,
+      snapshot: { name: 'Фасад прямой' },
+      characteristics: { width: 500, height: 860 },
+    } as OrderItem;
+    const template = Object.assign(new ProductTemplate(), {
+      name: 'Фасад',
+      displayTemplate:
+        '{{ item.name }} {{ item.height }}×{{ item.width }}, {{ material.name }}',
+      operations: [
+        {
+          id: 'assembly',
+          name: 'Любая работа',
+          calculationMethod: CalculationMethod.PER_ITEM,
+          calculationFormula: 'item.quantity',
+          displayNameTemplate: '{{ product.display }}',
+          costPerUnit: 10,
+        } as ProductionOperation,
+      ],
+    });
+
+    expect(
+      service.calculateProductionCost(item, template, {
+        material: { name: 'Дуб' },
+      }).results[0].renderedName,
+    ).toBe('Фасад прямой 860×500, Дуб');
+  });
+
+  it('fails when an operation uses product.display without a product template', () => {
+    const { service } = createService([]);
+    const template = Object.assign(new ProductTemplate(), {
+      name: 'Фасад',
+      operations: [
+        {
+          calculationFormula: 'item.quantity',
+          displayNameTemplate: '{{ product.display }}',
+        } as ProductionOperation,
+      ],
+    });
+    expect(() =>
+      service.calculateProductionCost(
+        { quantity: 1, snapshot: { name: 'Фасад' } } as OrderItem,
+        template,
+        {},
+      ),
+    ).toThrow('Отсутствует значение: product.display.');
   });
 });

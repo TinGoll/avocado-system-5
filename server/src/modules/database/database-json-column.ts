@@ -7,19 +7,29 @@ export type DatabaseJsonColumnOptions = Omit<
 > & {
   default?: ColumnOptions['default'];
   defaultEmptyObject?: boolean;
+  defaultEmptyArray?: boolean;
 };
 
 export function DatabaseJsonColumn(
   options: DatabaseJsonColumnOptions = {},
 ): PropertyDecorator {
-  const { defaultEmptyObject = false, ...columnOptions } = options;
+  const {
+    defaultEmptyObject = false,
+    defaultEmptyArray = false,
+    ...columnOptions
+  } = options;
   const isPostgres = getDatabaseKind() === 'postgres';
+  const emptyJsonDefault = defaultEmptyArray ? '[]' : '{}';
 
   return Column({
     ...columnOptions,
     type: isPostgres ? 'jsonb' : 'simple-json',
-    ...(defaultEmptyObject
-      ? { default: isPostgres ? () => "'{}'::jsonb" : () => "'{}'" }
+    ...(defaultEmptyObject || defaultEmptyArray
+      ? {
+          default: isPostgres
+            ? () => `'${emptyJsonDefault}'::jsonb`
+            : () => `'${emptyJsonDefault}'`,
+        }
       : {}),
   });
 }

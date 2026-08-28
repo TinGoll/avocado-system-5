@@ -90,6 +90,7 @@ export type ProductCharacteristics = {
 export type ProductTemplate = {
   id: string;
   name: string;
+  displayTemplate?: string | null;
   defaultCharacteristics: ProductCharacteristics;
   customerPricingMethod: CustomerPricingMethod;
   baseCustomerPrice: number;
@@ -100,6 +101,7 @@ export type ProductTemplate = {
 
 export const CALCULATION_METHOD = {
   PER_ITEM: 'per_item',
+  LINEAR_METER: 'linear_meter',
   AREA: 'area',
   VOLUME: 'volume',
 } as const;
@@ -111,6 +113,8 @@ export type ProductionOperation = {
   id: string;
   name: string;
   calculationMethod: CalculationMethod;
+  calculationFormula: string;
+  displayNameTemplate: string;
   costPerUnit: number;
   createdAt: Date;
   updatedAt: Date;
@@ -212,10 +216,23 @@ export interface Order {
 export interface OrderItem {
   id: string;
   position: number;
-  template: ProductTemplate;
+  template: ProductTemplate | null;
   quantity: number;
   snapshot: Snapshot;
   characteristics: OrderItemCharacteristics;
+  productionOperationResults: OrderItemProductionOperationResult[];
   calculatedProductionCost: number;
   calculatedCustomerPrice: number;
+}
+
+export interface OrderItemProductionOperationResult {
+  operationId: string;
+  originalName: string;
+  calculationFormula: string;
+  displayNameTemplate: string;
+  calculationMethod: ProductionOperation['calculationMethod'];
+  costPerUnit: number;
+  calculatedQuantity: number;
+  renderedName: string;
+  totalCost: number;
 }

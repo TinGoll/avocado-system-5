@@ -25,8 +25,11 @@ import {
   dynamicFieldsToObject,
 } from '@shared/ui/dynamic-fields';
 
+import { getProductTemplateError } from '../api/product-display-template';
 import { useCreateProductTemplates } from '../hooks/useCreateProductTemplates';
 import type { ProductTemplateFieldType } from '../model/create-production-templates';
+
+import { ProductDisplayTemplateEditor } from './ProductDisplayTemplateEditor';
 
 const styles = {
   form: css`
@@ -70,6 +73,8 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
     trigger,
     isLoading,
     products,
+    operations,
+    operationsError,
     priceModifiers,
     priceModifiersError,
   } = useCreateProductTemplates();
@@ -115,20 +120,34 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
     values,
   ) => {
     const { additionalCharacteristics, ...templateValues } = values;
+    delete templateValues.displayTemplatePreview;
     trigger({
       ...templateValues,
       name: values.name.trim(),
       group: values.group?.trim() || undefined,
+      displayTemplate: values.displayTemplate?.trim() || null,
       attributes: dynamicFieldsToObject(values.attributes),
       defaultCharacteristics: {
         ...values.defaultCharacteristics,
         ...dynamicFieldsToObject(additionalCharacteristics),
       },
-    }).then((template) => {
-      onCreated?.(template);
-      notification.success({ title: 'Номенклатура успешно добавлена' });
-      form.resetFields();
-    });
+    })
+      .then((template) => {
+        onCreated?.(template);
+        notification.success({ title: 'Номенклатура успешно добавлена' });
+        form.resetFields();
+      })
+      .catch((error: unknown) => {
+        const details = getProductTemplateError(error);
+        if (details?.field === 'displayTemplate') {
+          form.setFields([
+            {
+              name: 'displayTemplate',
+              errors: [details.message ?? 'Некорректный шаблон'],
+            },
+          ]);
+        }
+      });
   };
 
   const handleCancel = () => {
@@ -148,6 +167,7 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
           attributes: [],
           additionalCharacteristics: [],
           priceModifierIds: [],
+          operationIds: [],
           customerPricingMethod: CUSTOMER_PRICING_METHOD.PER_ITEM,
           baseCustomerPrice: 0,
         }}
@@ -264,6 +284,32 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
           </Form.Item>
 
           <Form.Item<ProductTemplateFieldType>
+            label="Работы"
+            name="operationIds"
+          >
+            <Select
+              aria-label="Работы"
+              mode="multiple"
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="Выберите работы"
+              options={operations?.map(({ id, name }) => ({
+                label: name,
+                value: id,
+              }))}
+            />
+          </Form.Item>
+
+          {operationsError && (
+            <Alert
+              type="error"
+              title="Не удалось загрузить справочник работ"
+              showIcon
+            />
+          )}
+
+          <Form.Item<ProductTemplateFieldType>
             label="Ценовые модификаторы"
             name="priceModifierIds"
             extra="Глобальные модификаторы уже применяются ко всем продуктам"
@@ -286,6 +332,8 @@ export const CreateForm: FC<Props> = ({ onCancel, onCreated }) => {
               showIcon
             />
           )}
+
+          <ProductDisplayTemplateEditor form={form} />
         </div>
 
         <div className={styles.formActions}>

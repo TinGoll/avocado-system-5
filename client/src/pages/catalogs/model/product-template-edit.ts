@@ -7,11 +7,23 @@ import {
 
 export type ProductTemplateEditValues = Omit<
   ProductTemplate,
-  'id' | 'attributes' | 'defaultCharacteristics'
+  'id' | 'attributes' | 'defaultCharacteristics' | 'operations'
 > & {
   defaultCharacteristics: ProductTemplate['defaultCharacteristics'];
   attributes: DynamicField[];
   additionalCharacteristics: DynamicField[];
+  operationIds: string[];
+  displayTemplatePreview?: {
+    width?: number;
+    height?: number;
+    thickness?: number;
+    material?: string;
+    color?: string;
+    patina?: string;
+    profile?: string;
+    panel?: string;
+    varnish?: string;
+  };
 };
 
 const dimensionKeys = new Set(['width', 'height', 'thickness']);
@@ -20,9 +32,11 @@ export const getProductTemplateEditValues = (
   product: ProductTemplate,
 ): ProductTemplateEditValues => ({
   name: product.name,
+  displayTemplate: product.displayTemplate,
   group: product.group,
   customerPricingMethod: product.customerPricingMethod,
   baseCustomerPrice: product.baseCustomerPrice,
+  operationIds: product.operations?.map(({ id }) => id) ?? [],
   defaultCharacteristics: {
     width: product.defaultCharacteristics.width,
     height: product.defaultCharacteristics.height,
@@ -42,11 +56,13 @@ export const normalizeProductTemplateEditValues = (
   values: ProductTemplateEditValues,
 ) => {
   const { additionalCharacteristics, attributes, ...product } = values;
+  delete product.displayTemplatePreview;
 
   return {
     ...product,
     name: values.name.trim(),
     group: values.group?.trim() || undefined,
+    displayTemplate: values.displayTemplate?.trim() || null,
     defaultCharacteristics: {
       ...values.defaultCharacteristics,
       ...dynamicFieldsToObject(additionalCharacteristics),

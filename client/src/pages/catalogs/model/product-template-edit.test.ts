@@ -25,6 +25,18 @@ describe('ProductTemplateEditForm value conversion', () => {
       attributes: { color: 'белый', available: true },
       customerPricingMethod: CUSTOMER_PRICING_METHOD.AREA,
       baseCustomerPrice: 5000,
+      operations: [
+        {
+          id: 'operation-1',
+          name: 'Шлифовка',
+          calculationMethod: 'per_item',
+          calculationFormula: 'item.quantity',
+          displayNameTemplate: 'Шлифовка',
+          costPerUnit: 100,
+          createdAt: new Date('2026-08-25T00:00:00.000Z'),
+          updatedAt: new Date('2026-08-25T00:00:00.000Z'),
+        },
+      ],
     } as ProductTemplate;
 
     const values = getProductTemplateEditValues(product);
@@ -32,9 +44,11 @@ describe('ProductTemplateEditForm value conversion', () => {
     expect(values.additionalCharacteristics).toEqual([
       { key: 'finish', value: 'матовый' },
     ]);
+    expect(values.operationIds).toEqual(['operation-1']);
     expect(normalizeProductTemplateEditValues(values)).toEqual({
       name: 'Фасад глухой',
       group: 'Фасады',
+      displayTemplate: null,
       defaultCharacteristics: {
         width: 600,
         height: 720,
@@ -44,6 +58,7 @@ describe('ProductTemplateEditForm value conversion', () => {
       attributes: { color: 'белый', available: true },
       customerPricingMethod: CUSTOMER_PRICING_METHOD.AREA,
       baseCustomerPrice: 5000,
+      operationIds: ['operation-1'],
     });
   });
 });

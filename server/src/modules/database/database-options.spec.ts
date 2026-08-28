@@ -27,19 +27,22 @@ describe('createDatabaseOptions', () => {
     });
   });
 
-  it('registers Unicode-aware lowercase conversion for SQLite search', () => {
+  it('registers Unicode-aware lowercase conversion for SQLite search', async () => {
     process.env.DB_TYPE = 'sqlite';
     process.env.DB_PATH = 'C:\\avocado-data\\avocado.sqlite';
     const { createDatabaseOptions } =
       require('./database-options') as typeof import('./database-options');
     const options = createDatabaseOptions();
-    const registerFunction = jest.fn();
+    const registerFunction = jest.fn<
+      void,
+      [string, object, (value: unknown) => string]
+    >();
 
     if (options.type !== 'better-sqlite3') {
       throw new Error('Expected SQLite database options');
     }
 
-    options.prepareDatabase?.({
+    await options.prepareDatabase?.({
       function: registerFunction,
     } as never);
 

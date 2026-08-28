@@ -290,7 +290,7 @@ const getCalculatedUnits = (item: OrderItem): number => {
 };
 
 type EditableTemplateCellProps = {
-  value: string;
+  value?: string;
   label: string;
   options: { label: string; value: string }[];
   onSave: (value: string) => Promise<void>;
@@ -432,8 +432,8 @@ export const OrderItemsList: FC<Props> = ({ orderID }) => {
       title: 'Наименование',
       render: (_, item) => (
         <EditableTemplateCell
-          value={item.template.id}
-          label={item.snapshot?.name ?? item.template.name ?? '—'}
+          value={item.template?.id}
+          label={item.snapshot?.name ?? item.template?.name ?? '—'}
           options={templateOptions}
           onSave={(templateId) => handleUpdate(item.id, { templateId })}
         />

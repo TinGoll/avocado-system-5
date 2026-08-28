@@ -12,7 +12,10 @@ import { ProductTemplate } from '../products/entities/product-template.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { PricingService } from '../pricing/pricing.service';
 import { CreateOrderItemDto } from './dto/create-order-item.dto';
-import { OrderGroup } from '../order-groups/entities/order-group.entity';
+import {
+  OrderGroup,
+  OrderStatus,
+} from '../order-groups/entities/order-group.entity';
 import { UpdateOrderItemDto } from './dto/update-order-item.dto';
 
 @Injectable()
@@ -46,7 +49,11 @@ export class OrdersService {
 
     order.items = await Promise.all(
       items.map(async (itemDto, position) => {
-        const item = await this.createOrderItem(itemDto, order);
+        const item = await this.createOrderItem(
+          itemDto,
+          order,
+          !order.orderGroup || order.orderGroup.status === OrderStatus.DRAFT,
+        );
         item.position = position;
         return item;
       }),
@@ -81,6 +88,9 @@ export class OrdersService {
           position: item.position,
           snapshot: structuredClone(item.snapshot),
           characteristics: structuredClone(item.characteristics),
+          productionOperationResults: structuredClone(
+            item.productionOperationResults,
+          ),
           calculatedProductionCost: item.calculatedProductionCost,
           calculatedCustomerPrice: item.calculatedCustomerPrice,
         }),
@@ -103,7 +113,11 @@ export class OrdersService {
       throw new NotFoundException(`Order with ID "${orderId}" not found`);
     }
 
-    const newOrderItem = await this.createOrderItem(createItemDto, order);
+    const newOrderItem = await this.createOrderItem(
+      createItemDto,
+      order,
+      order.orderGroup?.status === OrderStatus.DRAFT,
+    );
     newOrderItem.position = order.items.length;
     order.items.push(newOrderItem);
     this.recalculateOrderTotal(order);
@@ -177,7 +191,10 @@ export class OrdersService {
     }
 
     Object.assign(itemToUpdate, itemUpdates);
-    await this.recalculatePricesForOrder(order);
+    await this.recalculatePricesForOrder(
+      order,
+      order.orderGroup?.status === OrderStatus.DRAFT,
+    );
 
     return this.ordersRepository.save(order);
   }
@@ -245,7 +262,10 @@ export class OrdersService {
     return order;
   }
 
-  private async recalculatePricesForOrder(order: Order): Promise<void> {
+  private async recalculatePricesForOrder(
+    order: Order,
+    recalculateProduction = true,
+  ): Promise<void> {
     if (!order.items || order.items.length === 0) {
       order.totalPrice = 0;
       return;
@@ -257,11 +277,15 @@ export class OrdersService {
     );
 
     order.items.forEach((item, index) => {
-      const productionCostPerUnit = this.pricingService.calculateProductionCost(
-        item,
-        item.template,
-      );
-      item.calculatedProductionCost = productionCostPerUnit * item.quantity;
+      if (recalculateProduction) {
+        const productionCost = this.pricingService.calculateProductionCost(
+          item,
+          item.template,
+          order.characteristics,
+        );
+        item.productionOperationResults = productionCost.results;
+        item.calculatedProductionCost = productionCost.totalCost;
+      }
       item.calculatedCustomerPrice = customerPrices[index];
     });
 
@@ -271,6 +295,7 @@ export class OrdersService {
   private async createOrderItem(
     itemDto: CreateOrderItemDto,
     order: Order,
+    calculateProduction = true,
   ): Promise<OrderItem> {
     const template = await this.productsRepository.findOne({
       where: { id: itemDto.templateId },
@@ -299,12 +324,18 @@ export class OrdersService {
       defaultCharacteristics: template.defaultCharacteristics,
     };
 
-    const productionCostPerUnit = this.pricingService.calculateProductionCost(
-      orderItem,
-      template,
-    );
-    orderItem.calculatedProductionCost =
-      productionCostPerUnit * orderItem.quantity;
+    if (calculateProduction) {
+      const productionCost = this.pricingService.calculateProductionCost(
+        orderItem,
+        template,
+        order.characteristics,
+      );
+      orderItem.productionOperationResults = productionCost.results;
+      orderItem.calculatedProductionCost = productionCost.totalCost;
+    } else {
+      orderItem.productionOperationResults = [];
+      orderItem.calculatedProductionCost = 0;
+    }
 
     orderItem.calculatedCustomerPrice =
       await this.pricingService.calculateCustomerPrice(orderItem, order);
@@ -381,7 +412,10 @@ export class OrdersService {
 
     Object.assign(order, updateDto);
 
-    await this.recalculatePricesForOrder(order);
+    await this.recalculatePricesForOrder(
+      order,
+      order.orderGroup?.status === OrderStatus.DRAFT,
+    );
     return this.ordersRepository.save(order);
   }
 

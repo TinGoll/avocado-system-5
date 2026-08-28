@@ -10,6 +10,7 @@ import { ProductTemplate } from './entities/product-template.entity';
 import { ProductionOperation } from '../production-operations/entities/production-operation.entity';
 import { DataSource, In, Repository } from 'typeorm';
 import { PriceModifier } from '../price-modifiers/entities/price-modifier.entity';
+import { ProductDisplayTemplateService } from './product-display-template.service';
 
 @Injectable()
 export class ProductsService {
@@ -19,10 +20,14 @@ export class ProductsService {
     @InjectRepository(ProductionOperation)
     private readonly operationsRepository: Repository<ProductionOperation>,
     private readonly dataSource: DataSource,
+    private readonly displayTemplateService: ProductDisplayTemplateService,
   ) {}
 
   async create(createDto: CreateProductDto): Promise<ProductTemplate> {
     const { operationIds, priceModifierIds, ...productData } = createDto;
+    productData.displayTemplate = this.normalizeDisplayTemplate(
+      productData.displayTemplate,
+    );
 
     return this.dataSource.transaction(async (manager) => {
       const template = manager.create(ProductTemplate, productData);
@@ -83,6 +88,11 @@ export class ProductsService {
     updateDto: UpdateProductDto,
   ): Promise<ProductTemplate> {
     const { operationIds, ...productData } = updateDto;
+    if ('displayTemplate' in productData) {
+      productData.displayTemplate = this.normalizeDisplayTemplate(
+        productData.displayTemplate,
+      );
+    }
 
     const template = await this.productsRepository.preload({
       id,
@@ -116,5 +126,11 @@ export class ProductsService {
     const template = await this.findOne(id);
     await this.productsRepository.remove(template);
     return template;
+  }
+
+  private normalizeDisplayTemplate(template?: string | null): string | null {
+    const normalized = this.displayTemplateService.normalize(template);
+    if (normalized) this.displayTemplateService.validate(normalized);
+    return normalized;
   }
 }

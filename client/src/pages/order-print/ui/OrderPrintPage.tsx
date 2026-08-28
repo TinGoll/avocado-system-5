@@ -16,7 +16,10 @@ import { useCurrentOrderGroupID } from '@shared/lib';
 import { fetcher } from '@shared/lib/swr';
 import { NotFound, ServerError } from '@shared/ui';
 
+import { buildProductionOrderDocuments } from '../model/production-order';
+
 import { CustomerOrderPrintForm } from './CustomerOrderPrintForm';
+import { ProductionOrderPrintForm } from './ProductionOrderPrintForm';
 
 const styles = {
   page: css`
@@ -52,39 +55,10 @@ const styles = {
       border-radius: 0 0 6px 6px;
     }
   `,
-  preview: css`
-    box-sizing: border-box;
-    width: min(210mm, 100%);
-    min-height: 297mm;
-    margin: 0 auto;
-    padding: 10mm;
-    overflow: auto;
-    color: #111;
-    background: #fff;
-    box-shadow: 0 2px 16px rgb(0 0 0 / 25%);
-  `,
-  data: css`
-    margin: 16px 0 0;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    font: 12px/1.5 monospace;
-  `,
 };
 
 const hasHttpStatus = (error: Error, status: number): boolean =>
   'status' in error && error.status === status;
-
-type PrintDocumentProps = {
-  title: string;
-  data: unknown;
-};
-
-const PrintDocument: FC<PrintDocumentProps> = ({ title, data }) => (
-  <article className={`${styles.preview} order-print-document`}>
-    <h3>{title}</h3>
-    <pre className={styles.data}>{JSON.stringify(data, null, 2)}</pre>
-  </article>
-);
 
 const OrderPrintPage: FC = () => {
   const navigate = useNavigate();
@@ -111,22 +85,17 @@ const OrderPrintPage: FC = () => {
       ),
   );
 
-  const operations = useMemo(() => {
-    const uniqueOperations = new Map<
-      string,
-      NonNullable<Order['items'][number]['template']['operations']>[number]
-    >();
-
-    orders?.forEach((order) =>
-      order.items.forEach((item) =>
-        item.template.operations?.forEach((operation) =>
-          uniqueOperations.set(operation.id, operation),
-        ),
-      ),
-    );
-
-    return [...uniqueOperations.values()];
-  }, [orders]);
+  const productionDocuments = useMemo(
+    () => buildProductionOrderDocuments(orders ?? []),
+    [orders],
+  );
+  const hasItemsWithoutResults = useMemo(
+    () =>
+      orders?.some((order) =>
+        order.items.some((item) => !item.productionOperationResults?.length),
+      ) ?? false,
+    [orders],
+  );
 
   if (isGroupLoading || (orderIDs.length > 0 && areOrdersLoading)) {
     return (
@@ -193,24 +162,10 @@ const OrderPrintPage: FC = () => {
         <CustomerOrderPrintForm order={group} documents={orders ?? []} />
       ),
     },
-    ...operations.map((operation) => ({
-      key: operation.id,
-      label: operation.name,
-      children: (
-        <PrintDocument
-          title={`Бланк-наряд: ${operation.name}`}
-          data={{
-            order: group,
-            operation,
-            documents: (orders ?? []).map((order) => ({
-              ...order,
-              items: order.items.filter((item) =>
-                item.template.operations?.some(({ id }) => id === operation.id),
-              ),
-            })),
-          }}
-        />
-      ),
+    ...productionDocuments.map((document) => ({
+      key: document.operationId,
+      label: document.operationName,
+      children: <ProductionOrderPrintForm group={group} document={document} />,
     })),
   ];
 
@@ -238,12 +193,12 @@ const OrderPrintPage: FC = () => {
           </Button>
         </div>
       </div>
-      {operations.length === 0 && (
+      {hasItemsWithoutResults && (
         <Alert
-          title="В заказе пока нет работ"
-          description="Доступен только бланк для заказчика. Вкладки бланков-нарядов появятся автоматически после добавления работ."
+          title="Не для всех позиций рассчитаны работы"
+          description="Выполните ручной перерасчёт группы заказов, чтобы сформировать полный производственный бланк-наряд."
           showIcon
-          type="info"
+          type="warning"
         />
       )}
       <Tabs className={styles.tabs} items={tabs} type="card" />

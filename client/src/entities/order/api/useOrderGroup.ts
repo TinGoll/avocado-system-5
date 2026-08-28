@@ -1,4 +1,11 @@
-import { Endpoints, useEntity, type ErrorResponse } from '@shared/lib/swr';
+import useSWRMutation from 'swr/mutation';
+
+import {
+  Endpoints,
+  fetcher,
+  useEntity,
+  type ErrorResponse,
+} from '@shared/lib/swr';
 
 import type { OrderGroup } from '../model/order';
 
@@ -41,3 +48,16 @@ export const useOrderGroupMutations = () => {
     extraKeysToRevalidate: ['with-order-ids'],
   });
 };
+
+export type OrderGroupRecalculationResult = {
+  updatedItems: number;
+  errors: Array<{ orderId: string; itemId: string; message: string }>;
+};
+
+export const useRecalculateOrderGroupProductionMutation = (groupID?: number) =>
+  useSWRMutation<OrderGroupRecalculationResult, Error, string | null>(
+    groupID
+      ? `${Endpoints.ORDER_GROUPS}/${groupID}/recalculate-production`
+      : null,
+    (url) => fetcher<OrderGroupRecalculationResult>({ url, method: 'POST' }),
+  );

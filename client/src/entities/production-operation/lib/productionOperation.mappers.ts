@@ -2,6 +2,7 @@ import type { CalculationMethod } from '../model/production-operation';
 
 export const calculationMethodNameMap: Record<CalculationMethod, string> = {
   per_item: 'Штука',
+  linear_meter: 'Погонный метр',
   area: 'Квадратура',
   volume: 'Кубатура',
 };
@@ -9,6 +10,7 @@ export const calculationMethodNameMap: Record<CalculationMethod, string> = {
 export const calculationMethodShortNameMap: Record<CalculationMethod, string> =
   {
     per_item: 'шт.',
-    area: 'м. кв.',
-    volume: 'м. куб.',
+    linear_meter: 'п. м.',
+    area: 'м²',
+    volume: 'м³',
   };
