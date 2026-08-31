@@ -17,7 +17,7 @@ import {
 } from 'antd';
 import dayjs from 'dayjs';
 import { type FC, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 
 import {
   orderStatusColors,
@@ -156,6 +156,7 @@ const hasHttpStatus = (error: Error, status: number): boolean =>
 
 const OrderPage: FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { groupID } = useCurrentOrderGroupID();
   const {
     data: group,
@@ -168,11 +169,16 @@ const OrderPage: FC = () => {
     isLoading: areDocumentsLoading,
   } = useOrderDocuments(groupID);
   const documents = useMemo(() => {
-    if (documentData?.items?.length) return documentData.items;
+    if (documentData?.items?.length) {
+      return [...documentData.items].sort(
+        (first, second) => first.documentNumber - second.documentNumber,
+      );
+    }
 
     return (group?.orderIds ?? []).map((id, index) => ({
       id,
       name: `Документ ${index + 1}`,
+      documentNumber: index + 1,
       totalPrice: 0,
     }));
   }, [documentData?.items, group?.orderIds]);
@@ -188,10 +194,40 @@ const OrderPage: FC = () => {
   );
 
   useEffect(() => {
-    if (!documents.some(({ id }) => id === activeOrderID)) {
-      setActiveOrderID(documents[0]?.id);
+    if (documents.length === 0) return;
+
+    const requestedDocumentNumber = Number(searchParams.get('document'));
+    const requestedDocument = documents.find(
+      ({ documentNumber }) => documentNumber === requestedDocumentNumber,
+    );
+    const activeDocument =
+      requestedDocument ??
+      documents.find(({ id }) => id === activeOrderID) ??
+      documents[0];
+
+    if (activeDocument.id !== activeOrderID) {
+      setActiveOrderID(activeDocument.id);
     }
-  }, [activeOrderID, documents]);
+
+    if (
+      searchParams.get('document') !== String(activeDocument.documentNumber)
+    ) {
+      const nextSearchParams = new URLSearchParams(searchParams);
+      nextSearchParams.set('document', String(activeDocument.documentNumber));
+      setSearchParams(nextSearchParams, { replace: true });
+    }
+  }, [activeOrderID, documents, searchParams, setSearchParams]);
+
+  const selectDocument = (id: string) => {
+    const document = documents.find((item) => item.id === id);
+    setActiveOrderID(id);
+
+    if (document) {
+      const nextSearchParams = new URLSearchParams(searchParams);
+      nextSearchParams.set('document', String(document.documentNumber));
+      setSearchParams(nextSearchParams);
+    }
+  };
 
   const {
     data: order,
@@ -373,9 +409,11 @@ const OrderPage: FC = () => {
         <Tabs
           className={`${styles.tabs} order-view-tabs`}
           activeKey={activeOrderID}
-          items={documents.map(({ id, name }, index) => ({
+          items={documents.map(({ id, name, documentNumber }) => ({
             key: id,
-            label: name?.trim() || `Документ ${index + 1}`,
+            label: `№${documentNumber} · ${
+              name?.trim() || `Документ ${documentNumber}`
+            }`,
             children:
               id !== activeOrderID ? null : isOrderLoading ? (
                 <div className={styles.documentSkeleton}>
@@ -392,7 +430,7 @@ const OrderPage: FC = () => {
                 <OrderDocumentView order={order} />
               ),
           }))}
-          onChange={setActiveOrderID}
+          onChange={selectDocument}
           size="small"
           type="card"
         />

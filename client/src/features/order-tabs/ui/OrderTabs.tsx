@@ -6,7 +6,8 @@ import {
 } from '@ant-design/icons';
 import { css } from '@emotion/css';
 import { App, Button, Input, Skeleton, Tabs } from 'antd';
-import { type FC, type MouseEvent, useState } from 'react';
+import { type FC, type MouseEvent, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router';
 
 import { useOrdersMutations } from '@entities/order';
 import { useCurrentOrderGroupID } from '@shared/lib';
@@ -46,9 +47,55 @@ export const OrderTabs: FC<Props> = ({ isCreating, onCreate, onDelete }) => {
   const { remove, update } = useOrdersMutations();
   const [editingKey, setEditingKey] = useState<string>();
   const [editingName, setEditingName] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const { currentTabKey, removeTab, renameTab, setCurrentTabKey, tabs } =
-    orderTabsStore();
+  const {
+    currentTabKey,
+    initialization,
+    removeTab,
+    renameTab,
+    setCurrentTabKey,
+    tabs,
+  } = orderTabsStore();
+
+  useEffect(() => {
+    if (!initialization || tabs.length === 0) return;
+
+    const requestedDocumentNumber = Number(searchParams.get('document'));
+    const requestedTab = tabs.find(
+      ({ documentNumber }) => documentNumber === requestedDocumentNumber,
+    );
+    const activeTab =
+      requestedTab ?? tabs.find(({ key }) => key === currentTabKey) ?? tabs[0];
+
+    if (activeTab.key !== currentTabKey) {
+      setCurrentTabKey(activeTab.key);
+    }
+
+    if (searchParams.get('document') !== String(activeTab.documentNumber)) {
+      const nextSearchParams = new URLSearchParams(searchParams);
+      nextSearchParams.set('document', String(activeTab.documentNumber));
+      setSearchParams(nextSearchParams, { replace: true });
+    }
+  }, [
+    currentTabKey,
+    initialization,
+    searchParams,
+    setCurrentTabKey,
+    setSearchParams,
+    tabs,
+  ]);
+
+  const selectTab = (key: string) => {
+    const tab = tabs.find((item) => item.key === key);
+    setCurrentTabKey(key);
+
+    if (tab) {
+      const nextSearchParams = new URLSearchParams(searchParams);
+      nextSearchParams.set('document', String(tab.documentNumber));
+      setSearchParams(nextSearchParams);
+    }
+  };
 
   const beginEditing = (event: MouseEvent, key: string, name: string) => {
     event.preventDefault();
@@ -136,7 +183,7 @@ export const OrderTabs: FC<Props> = ({ isCreating, onCreate, onDelete }) => {
         />
       ) : (
         <span className={styles.tabLabel}>
-          {tab.label}
+          №{tab.documentNumber} · {tab.label}
           {currentTabKey === tab.key && (
             <Button
               aria-label="Переименовать вкладку"
@@ -170,7 +217,7 @@ export const OrderTabs: FC<Props> = ({ isCreating, onCreate, onDelete }) => {
       className={styles.tabs}
       activeKey={currentTabKey}
       addIcon={isCreating ? <LoadingOutlined spin /> : undefined}
-      onChange={setCurrentTabKey}
+      onChange={selectTab}
       removeIcon={<DeleteOutlined />}
       type="editable-card"
       size="small"

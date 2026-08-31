@@ -115,7 +115,9 @@ export class OrderGroupsService {
       throw new NotFoundException(`Order Group with ID "${id}" not found`);
     }
 
-    const orderIds = item.orders.map((order) => order.id);
+    const orderIds = item.orders
+      .sort((a, b) => a.documentNumber - b.documentNumber)
+      .map((order) => order.id);
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { orders: _, ...rest } = item;
@@ -128,7 +130,9 @@ export class OrderGroupsService {
 
   async findOrderIds(
     groupId: number,
-  ): Promise<{ id: string; name?: string; totalPrice: number }[]> {
+  ): Promise<
+    { id: string; name?: string; documentNumber: number; totalPrice: number }[]
+  > {
     const groupExists = await this.repository.existsBy({ id: groupId });
     if (!groupExists) {
       throw new NotFoundException(`Order Group with ID "${groupId}" not found`);
@@ -138,13 +142,16 @@ export class OrderGroupsService {
       .createQueryBuilder('order')
       .select('order.id', 'id')
       .addSelect('order.name', 'name')
+      .addSelect('order.documentNumber', 'documentNumber')
       .addSelect('order.totalPrice', 'totalPrice')
       .where('order.orderGroupId = :groupId', { groupId })
+      .orderBy('order.documentNumber', 'ASC')
       .getRawMany<Order>();
 
     return orders.map((order) => ({
       id: order.id,
       name: order.name,
+      documentNumber: Number(order.documentNumber),
       totalPrice: Number(order.totalPrice) || 0,
     }));
   }

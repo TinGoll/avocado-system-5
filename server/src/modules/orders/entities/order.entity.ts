@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -20,12 +21,20 @@ export enum OrderStatus {
 }
 
 @Entity('orders')
+@Index(
+  'IDX_orders_orderGroup_documentNumber',
+  ['orderGroup', 'documentNumber'],
+  { unique: true },
+)
 export class Order {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ type: 'text', nullable: true })
   name?: string;
+
+  @Column({ type: 'integer' })
+  documentNumber: number;
 
   @Column({ type: 'text', nullable: true })
   comment?: string;

@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { orderTabsStore } from './orderTabs.store';
 
 const tabs = [
-  { key: 'first', label: 'Документ 1' },
-  { key: 'second', label: 'Документ 2' },
-  { key: 'third', label: 'Документ 3' },
+  { key: 'first', label: 'Документ 1', documentNumber: 1 },
+  { key: 'second', label: 'Документ 2', documentNumber: 2 },
+  { key: 'third', label: 'Документ 3', documentNumber: 3 },
 ];
 
 describe('orderTabsStore.removeTab', () => {
@@ -35,6 +35,15 @@ describe('orderTabsStore.removeTab', () => {
     orderTabsStore.getState().setCurrentTabKey('first');
 
     orderTabsStore.getState().removeTab('second');
+
+    expect(orderTabsStore.getState().currentTabKey).toBe('first');
+  });
+});
+
+describe('orderTabsStore.setTabs', () => {
+  it('selects the first document by default', () => {
+    orderTabsStore.getState().reset();
+    orderTabsStore.getState().setTabs(tabs);
 
     expect(orderTabsStore.getState().currentTabKey).toBe('first');
   });

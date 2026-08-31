@@ -47,6 +47,8 @@ export class OrdersService {
       order.orderGroup = group;
     }
 
+    order.documentNumber = await this.getNextDocumentNumber(orderGroupId);
+
     order.items = await Promise.all(
       items.map(async (itemDto, position) => {
         const item = await this.createOrderItem(
@@ -81,6 +83,7 @@ export class OrdersService {
       characteristics: structuredClone(source.characteristics),
       totalPrice: source.totalPrice,
       orderGroup: source.orderGroup,
+      documentNumber: await this.getNextDocumentNumber(source.orderGroup?.id),
       items: source.items.map((item) =>
         this.orderItemsRepository.create({
           template: item.template,
@@ -348,6 +351,21 @@ export class OrdersService {
       (sum, item) => sum + item.calculatedCustomerPrice,
       0,
     );
+  }
+
+  private async getNextDocumentNumber(orderGroupId?: number): Promise<number> {
+    const query = this.ordersRepository
+      .createQueryBuilder('order')
+      .select('MAX(order.documentNumber)', 'max');
+
+    if (orderGroupId) {
+      query.where('order.orderGroupId = :orderGroupId', { orderGroupId });
+    } else {
+      query.where('order.orderGroupId IS NULL');
+    }
+
+    const result = await query.getRawOne<{ max: number | string | null }>();
+    return Number(result?.max ?? 0) + 1;
   }
 
   findAll(): Promise<Order[]> {

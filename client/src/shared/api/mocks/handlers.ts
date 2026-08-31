@@ -126,6 +126,18 @@ const entityHandlers = resources.flatMap((resource) => [
 
     const entityData = { ...body };
     delete entityData.priceModifierIds;
+    if (resource === 'orders') {
+      const groupOrders = getCollection('orders').filter(
+        (order) => String(order.orderGroupId) === String(body.orderGroupId),
+      );
+      entityData.documentNumber =
+        Math.max(
+          0,
+          ...groupOrders.map(
+            ({ documentNumber }) => Number(documentNumber) || 0,
+          ),
+        ) + 1;
+    }
     const now = new Date().toISOString();
     const entity: MockEntity = {
       ...entityData,
@@ -289,6 +301,14 @@ const orderHandlers = [
 
     order.id = crypto.randomUUID();
     order.name = body.name ?? `Копия ${String(source.name ?? 'документа')}`;
+    const groupOrders = getCollection('orders').filter(
+      (item) => String(item.orderGroupId) === String(source.orderGroupId),
+    );
+    order.documentNumber =
+      Math.max(
+        0,
+        ...groupOrders.map(({ documentNumber }) => Number(documentNumber) || 0),
+      ) + 1;
     order.items = ((order.items as MockEntity[]) ?? []).map((item) => ({
       ...item,
       id: crypto.randomUUID(),
@@ -302,7 +322,16 @@ const orderHandlers = [
   http.get('*/order-groups/:id/order-ids', ({ params }) => {
     const items = getCollection('orders')
       .filter((order) => String(order.orderGroupId) === String(params.id))
-      .map(({ id, name, totalPrice }) => ({ id, name, totalPrice }));
+      .sort(
+        (first, second) =>
+          Number(first.documentNumber) - Number(second.documentNumber),
+      )
+      .map(({ id, name, documentNumber, totalPrice }) => ({
+        id,
+        name,
+        documentNumber,
+        totalPrice,
+      }));
     return HttpResponse.json({ items });
   }),
   http.get('*/order-groups/:id/with-order-ids', ({ params }) => {

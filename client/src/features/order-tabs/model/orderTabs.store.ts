@@ -3,6 +3,7 @@ import { create } from 'zustand';
 type TabItem = {
   key: string;
   label: string;
+  documentNumber: number;
 };
 
 type OrderTabsState = {
@@ -62,7 +63,7 @@ export const orderTabsStore = create<OrderTabsState>((set) => ({
       let currentTabKey = state.currentTabKey;
 
       if (!stillExists) {
-        currentTabKey = tabs[tabs.length - 1].key;
+        currentTabKey = tabs[0].key;
       }
 
       return {

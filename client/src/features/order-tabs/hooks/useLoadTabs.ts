@@ -3,7 +3,7 @@ import { Endpoints, useEntityById } from '@shared/lib/swr';
 import { orderTabsStore } from '../model/orderTabs.store';
 
 type Response = {
-  items: { id: string; name?: string }[];
+  items: { id: string; name?: string; documentNumber: number }[];
 };
 
 export const useLoadTabs = (groupID: number | null) => {
@@ -13,12 +13,15 @@ export const useLoadTabs = (groupID: number | null) => {
     path: 'order-ids',
     transform: (data) => data,
     onSuccess: (data) => {
-      orderTabsStore.getState().setTabs(
-        data?.items?.map(({ id, name }, index) => ({
+      const tabs = [...(data?.items ?? [])]
+        .sort((first, second) => first.documentNumber - second.documentNumber)
+        .map(({ id, name, documentNumber }) => ({
           key: id,
-          label: name ?? `Документ ${index + 1}`,
-        })),
-      );
+          label: name ?? `Документ ${documentNumber}`,
+          documentNumber,
+        }));
+
+      orderTabsStore.getState().setTabs(tabs);
     },
   });
 };

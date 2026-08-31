@@ -95,7 +95,11 @@ export const EditOrderWidget: FC = () => {
             items: [],
           });
 
-      addTab({ key: order.id, label: order.name ?? name });
+      addTab({
+        key: order.id,
+        label: order.name ?? name,
+        documentNumber: order.documentNumber,
+      });
       message.success(copy ? 'Документ скопирован' : 'Документ создан');
     } catch {
       message.error(

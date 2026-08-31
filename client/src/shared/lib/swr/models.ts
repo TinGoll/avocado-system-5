@@ -204,6 +204,7 @@ export interface OrderGroup {
 
 export interface Order {
   id: string;
+  documentNumber: number;
   name?: string;
   comment?: string;
   characteristics: OrderCharacteristics;

@@ -201,6 +201,7 @@ export const mockData: Record<string, MockEntity[]> = {
     withDates({
       id: 'aa000000-0000-4000-8000-000000000001',
       name: 'Документ 1',
+      documentNumber: 1,
       orderGroupId: 1,
       characteristics: {
         material: { name: 'Дуб', type: 'hardwood' },
@@ -212,6 +213,7 @@ export const mockData: Record<string, MockEntity[]> = {
     withDates({
       id: 'aa000000-0000-4000-8000-000000000002',
       name: 'Фасады кухни',
+      documentNumber: 1,
       orderGroupId: 2,
       characteristics: {
         material: { name: 'Дуб', type: 'hardwood' },

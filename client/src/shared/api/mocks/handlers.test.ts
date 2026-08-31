@@ -232,6 +232,7 @@ describe('MSW API mocks', () => {
       {
         id: 'aa000000-0000-4000-8000-000000000001',
         name: 'Документ 1',
+        documentNumber: 1,
         totalPrice: 8500,
       },
     ]);
