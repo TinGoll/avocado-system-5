@@ -146,6 +146,7 @@ export const EditOrderWidget: FC = () => {
       >
         <div className={styles.documentFieldsContainer}>
           <EditOrderFields
+            key={orderID}
             orderID={orderID}
             renderCreateColor={(onCreated) => (
               <CreateColorButton
