@@ -1,5 +1,6 @@
 import {
   ArrowLeftOutlined,
+  FileExcelOutlined,
   FilePdfOutlined,
   PrinterOutlined,
 } from '@ant-design/icons';
@@ -16,6 +17,7 @@ import { useCurrentOrderGroupID } from '@shared/lib';
 import { fetcher } from '@shared/lib/swr';
 import { NotFound, ServerError } from '@shared/ui';
 
+import { exportOrderWorkbook } from '../lib/export-order-workbook';
 import { buildProductionOrderDocuments } from '../model/production-order';
 
 import { CustomerOrderPrintForm } from './CustomerOrderPrintForm';
@@ -64,6 +66,7 @@ const OrderPrintPage: FC = () => {
   const navigate = useNavigate();
   const [messageApi, messageContextHolder] = message.useMessage();
   const [isExporting, setIsExporting] = useState(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
   const { groupID } = useCurrentOrderGroupID();
   const {
     data: group,
@@ -195,6 +198,22 @@ const OrderPrintPage: FC = () => {
     })),
   ];
 
+  const exportToExcel = async () => {
+    setIsExportingExcel(true);
+
+    try {
+      await exportOrderWorkbook({
+        group,
+        orders: orders ?? [],
+        productionDocuments,
+      });
+    } catch {
+      messageApi.error('Не удалось экспортировать документ в Excel');
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
+
   return (
     <section className={`${styles.page} order-print-page`}>
       {messageContextHolder}
@@ -203,6 +222,13 @@ const OrderPrintPage: FC = () => {
           Вернуться назад
         </Button>
         <div className={styles.actions}>
+          <Button
+            icon={<FileExcelOutlined />}
+            loading={isExportingExcel}
+            onClick={exportToExcel}
+          >
+            Экспорт в Excel
+          </Button>
           <Button
             icon={<FilePdfOutlined />}
             loading={isExporting}
