@@ -148,6 +148,7 @@ type CustomerOrderPrintFormProps = {
   document: Order;
   documentCount: number;
   documentIndex: number;
+  showPrices?: boolean;
 };
 
 export const CustomerOrderPrintForm: FC<CustomerOrderPrintFormProps> = ({
@@ -155,9 +156,10 @@ export const CustomerOrderPrintForm: FC<CustomerOrderPrintFormProps> = ({
   document,
   documentCount,
   documentIndex,
+  showPrices = true,
 }) => {
   const rows = buildCustomerOrderRows(document);
-  const totals = buildCustomerOrderTotals(document);
+  const totals = showPrices ? buildCustomerOrderTotals(document) : null;
 
   return (
     <article className={`${styles.preview} order-print-document`}>
@@ -251,8 +253,8 @@ export const CustomerOrderPrintForm: FC<CustomerOrderPrintFormProps> = ({
               <th>№</th>
               <th>Название</th>
               <th>Кол-во</th>
-              <th>Цена, ₽</th>
-              <th>Сумма, ₽</th>
+              {showPrices && <th>Цена, ₽</th>}
+              {showPrices && <th>Сумма, ₽</th>}
               <th>Комментарий</th>
             </tr>
           </thead>
@@ -267,24 +269,28 @@ export const CustomerOrderPrintForm: FC<CustomerOrderPrintFormProps> = ({
                   })}{' '}
                   {row.unit}
                 </td>
-                <td>{row.unitPrice.toLocaleString('ru-RU')}</td>
-                <td>{row.totalPrice.toLocaleString('ru-RU')}</td>
+                {showPrices && <td>{row.unitPrice.toLocaleString('ru-RU')}</td>}
+                {showPrices && (
+                  <td>{row.totalPrice.toLocaleString('ru-RU')}</td>
+                )}
                 <td>{row.comment}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <div className={styles.totals}>
-        {totals.groups.map(({ group, amount }) => (
-          <div className="totalRow" key={group}>
-            {group}: {amount.toLocaleString('ru-RU')} ₽
+      {totals && (
+        <div className={styles.totals}>
+          {totals.groups.map(({ group, amount }) => (
+            <div className="totalRow" key={group}>
+              {group}: {amount.toLocaleString('ru-RU')} ₽
+            </div>
+          ))}
+          <div className="totalRow grandTotal">
+            Итого: {totals.total.toLocaleString('ru-RU')} ₽
           </div>
-        ))}
-        <div className="totalRow grandTotal">
-          Итого: {totals.total.toLocaleString('ru-RU')} ₽
         </div>
-      </div>
+      )}
     </article>
   );
 };

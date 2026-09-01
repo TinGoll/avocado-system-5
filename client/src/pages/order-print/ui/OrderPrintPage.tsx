@@ -185,6 +185,24 @@ const OrderPrintPage: FC = () => {
         </div>
       ),
     },
+    {
+      key: 'general-production',
+      label: 'Общий заказ',
+      children: (
+        <div>
+          {(orders ?? []).map((document, documentIndex) => (
+            <CustomerOrderPrintForm
+              key={document.id}
+              order={group}
+              document={document}
+              documentCount={orders?.length ?? 0}
+              documentIndex={documentIndex}
+              showPrices={false}
+            />
+          ))}
+        </div>
+      ),
+    },
     ...productionDocuments.map((document) => ({
       key: document.operationId,
       label: document.operationName,
