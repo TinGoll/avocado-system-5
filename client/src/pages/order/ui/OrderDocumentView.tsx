@@ -127,86 +127,102 @@ type Props = { order: Order };
 export const OrderDocumentView: FC<Props> = ({ order }) => (
   <div className="order-invoice-print-area">
     <div className={styles.characteristics}>
-      <Field>
-        <Field.Label>
-          <Typography.Text type="secondary">Материал</Typography.Text>
-        </Field.Label>
-        <Field.Value className={styles.fieldValue}>
-          <Typography.Text className={styles.fieldText} type="success">
-            {characteristicName(order.characteristics.material)}
-          </Typography.Text>
-        </Field.Value>
-      </Field>
-      <Field>
-        <Field.Label>
-          <Typography.Text type="secondary">Цвет</Typography.Text>
-        </Field.Label>
-        <Field.Value className={styles.fieldValue}>
-          <Typography.Text className={styles.fieldText} type="success">
-            {characteristicName(order.characteristics.color)}
-          </Typography.Text>
-        </Field.Value>
-      </Field>
-      <Field>
-        <Field.Label>
-          <Typography.Text type="secondary">Профиль</Typography.Text>
-        </Field.Label>
-        <Field.Value className={styles.fieldValue}>
-          <Typography.Text className={styles.fieldText} type="success">
-            {characteristicName(order.characteristics.profile)}
-          </Typography.Text>
-        </Field.Value>
-      </Field>
-      <Field>
-        <Field.Label>
-          <Typography.Text type="secondary">Филёнка</Typography.Text>
-        </Field.Label>
-        <Field.Value className={styles.fieldValue}>
-          <Typography.Text className={styles.fieldText} type="success">
-            {characteristicName(order.characteristics.panel)}
-          </Typography.Text>
-        </Field.Value>
-      </Field>
-      <Field>
-        <Field.Label>
-          <Typography.Text type="secondary">Патина</Typography.Text>
-        </Field.Label>
-        <Field.Value className={styles.fieldValue}>
-          <Typography.Text className={styles.fieldText} type="success">
-            {characteristicName(order.characteristics.patina)}
-          </Typography.Text>
-        </Field.Value>
-      </Field>
-      <Field>
-        <Field.Label>
-          <Typography.Text type="secondary">Лак</Typography.Text>
-        </Field.Label>
-        <Field.Value className={styles.fieldValue}>
-          <Typography.Text className={styles.fieldText} type="success">
-            {characteristicName(order.characteristics.varnish)}
-          </Typography.Text>
-        </Field.Value>
-      </Field>
-      <Field>
-        <Field.Label>
-          <Typography.Text type="secondary">Термошов</Typography.Text>
-        </Field.Label>
-        <Field.Value className={styles.fieldValue}>
-          <Typography.Text className={styles.fieldText} type="success">
-            {order.characteristics.thermalSeam ?? '—'}
-          </Typography.Text>
-        </Field.Value>
-      </Field>
-      <Field>
-        <Field.Label>
-          <Typography.Text type="secondary">Присадка</Typography.Text>
-        </Field.Label>
-        <Field.Value className={styles.fieldValue}>
-          <Typography.Text className={styles.fieldText} type="success">
-            {order.characteristics.drilling ?? '—'}
-          </Typography.Text>
-        </Field.Value>
-      </Field>
+      {order.characteristics.material !== undefined && (
+        <Field>
+          <Field.Label>
+            <Typography.Text type="secondary">Материал</Typography.Text>
+          </Field.Label>
+          <Field.Value className={styles.fieldValue}>
+            <Typography.Text className={styles.fieldText} type="success">
+              {characteristicName(order.characteristics.material)}
+            </Typography.Text>
+          </Field.Value>
+        </Field>
+      )}
+      {order.characteristics.color !== undefined && (
+        <Field>
+          <Field.Label>
+            <Typography.Text type="secondary">Цвет</Typography.Text>
+          </Field.Label>
+          <Field.Value className={styles.fieldValue}>
+            <Typography.Text className={styles.fieldText} type="success">
+              {characteristicName(order.characteristics.color)}
+            </Typography.Text>
+          </Field.Value>
+        </Field>
+      )}
+      {order.characteristics.profile !== undefined && (
+        <Field>
+          <Field.Label>
+            <Typography.Text type="secondary">Профиль</Typography.Text>
+          </Field.Label>
+          <Field.Value className={styles.fieldValue}>
+            <Typography.Text className={styles.fieldText} type="success">
+              {characteristicName(order.characteristics.profile)}
+            </Typography.Text>
+          </Field.Value>
+        </Field>
+      )}
+      {order.characteristics.panel !== undefined && (
+        <Field>
+          <Field.Label>
+            <Typography.Text type="secondary">Филёнка</Typography.Text>
+          </Field.Label>
+          <Field.Value className={styles.fieldValue}>
+            <Typography.Text className={styles.fieldText} type="success">
+              {characteristicName(order.characteristics.panel)}
+            </Typography.Text>
+          </Field.Value>
+        </Field>
+      )}
+      {order.characteristics.patina !== undefined && (
+        <Field>
+          <Field.Label>
+            <Typography.Text type="secondary">Патина</Typography.Text>
+          </Field.Label>
+          <Field.Value className={styles.fieldValue}>
+            <Typography.Text className={styles.fieldText} type="success">
+              {characteristicName(order.characteristics.patina)}
+            </Typography.Text>
+          </Field.Value>
+        </Field>
+      )}
+      {order.characteristics.varnish !== undefined && (
+        <Field>
+          <Field.Label>
+            <Typography.Text type="secondary">Лак</Typography.Text>
+          </Field.Label>
+          <Field.Value className={styles.fieldValue}>
+            <Typography.Text className={styles.fieldText} type="success">
+              {characteristicName(order.characteristics.varnish)}
+            </Typography.Text>
+          </Field.Value>
+        </Field>
+      )}
+      {order.characteristics.thermalSeam !== undefined && (
+        <Field>
+          <Field.Label>
+            <Typography.Text type="secondary">Термошов</Typography.Text>
+          </Field.Label>
+          <Field.Value className={styles.fieldValue}>
+            <Typography.Text className={styles.fieldText} type="success">
+              {order.characteristics.thermalSeam ?? '—'}
+            </Typography.Text>
+          </Field.Value>
+        </Field>
+      )}
+      {order.characteristics.drilling !== undefined && (
+        <Field>
+          <Field.Label>
+            <Typography.Text type="secondary">Присадка</Typography.Text>
+          </Field.Label>
+          <Field.Value className={styles.fieldValue}>
+            <Typography.Text className={styles.fieldText} type="success">
+              {order.characteristics.drilling ?? '—'}
+            </Typography.Text>
+          </Field.Value>
+        </Field>
+      )}
       <Field className={styles.fullWidthField}>
         <Field.Label>
           <Typography.Text type="secondary">Комментарий</Typography.Text>

@@ -127,7 +127,6 @@ const styles = {
   `,
   totals: css`
     border: 1px solid #cecece;
-    border-top: 0;
     font-size: 13px;
 
     & .totalRow {
@@ -176,37 +175,69 @@ export const CustomerOrderPrintForm: FC<CustomerOrderPrintFormProps> = ({
         </div>
       </div>
       <div className={styles.documentHeader}>
-        <div className="label">Модель фасада:</div>
-        <div className="value">
-          {document.characteristics?.profile?.name ?? '-'}
-        </div>
-        <div className="label">Материал:</div>
-        <div className="value">
-          {document.characteristics?.material?.name ?? '-'}
-        </div>
-
-        <div className="label">Цвет:</div>
-        <div className="value">
-          {document.characteristics?.color?.name ?? '-'}
-        </div>
-        <div className="label">Патина:</div>
-        <div className="value">
-          {document.characteristics?.patina?.name ?? '-'}
-        </div>
-
-        <div className="label">Лак:</div>
-        <div className="value">
-          {document.characteristics?.varnish?.name ?? '-'}
-        </div>
-        <div className="label">Филёнка:</div>
-        <div className="value">
-          {document.characteristics?.panel?.name ?? ''}
-        </div>
-        <div className="label">Дополнительно:</div>
-        <div className="value">
-          Присадка: {document.characteristics.drilling ?? 'Нет'}; Термошов:{' '}
-          {document.characteristics.thermalSeam ?? 'Нет'};
-        </div>
+        {document.characteristics.profile !== undefined && (
+          <>
+            <div className="label">Модель фасада:</div>
+            <div className="value">
+              {document.characteristics.profile.name ?? '-'}
+            </div>
+          </>
+        )}
+        {document.characteristics.material !== undefined && (
+          <>
+            <div className="label">Материал:</div>
+            <div className="value">
+              {document.characteristics.material.name ?? '-'}
+            </div>
+          </>
+        )}
+        {document.characteristics.color !== undefined && (
+          <>
+            <div className="label">Цвет:</div>
+            <div className="value">
+              {document.characteristics.color.name ?? '-'}
+            </div>
+          </>
+        )}
+        {document.characteristics.patina !== undefined && (
+          <>
+            <div className="label">Патина:</div>
+            <div className="value">
+              {document.characteristics.patina.name ?? '-'}
+            </div>
+          </>
+        )}
+        {document.characteristics.varnish !== undefined && (
+          <>
+            <div className="label">Лак:</div>
+            <div className="value">
+              {document.characteristics.varnish.name ?? '-'}
+            </div>
+          </>
+        )}
+        {document.characteristics.panel !== undefined && (
+          <>
+            <div className="label">Филёнка:</div>
+            <div className="value">
+              {document.characteristics.panel.name ?? '-'}
+            </div>
+          </>
+        )}
+        {(document.characteristics.drilling !== undefined ||
+          document.characteristics.thermalSeam !== undefined) && (
+          <>
+            <div className="label">Дополнительно:</div>
+            <div className="value">
+              {document.characteristics.drilling !== undefined &&
+                `Присадка: ${document.characteristics.drilling};`}
+              {document.characteristics.drilling !== undefined &&
+                document.characteristics.thermalSeam !== undefined &&
+                ' '}
+              {document.characteristics.thermalSeam !== undefined &&
+                `Термошов: ${document.characteristics.thermalSeam};`}
+            </div>
+          </>
+        )}
 
         <div className="footer">
           {order?.comment ?? ''}
