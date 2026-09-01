@@ -1,7 +1,10 @@
 import { css } from '@emotion/css';
+import dayjs from 'dayjs';
 import { type FC } from 'react';
 
 import type { Order, OrderGroup } from '@entities/order';
+
+import { buildCustomerOrderRows } from '../model/customer-order';
 
 const styles = {
   preview: css`
@@ -9,7 +12,7 @@ const styles = {
     width: min(210mm, 100%);
     min-height: 297mm;
     margin: 0 auto;
-    padding: 10mm;
+    padding: 7mm;
     overflow: auto;
     color: #111;
     background: #fff;
@@ -21,8 +24,98 @@ const styles = {
     overflow-wrap: anywhere;
     font: 12px/1.5 monospace;
   `,
-  title: css`
-    color: red;
+  orderHeader: css`
+    --order-border: #cecece;
+    display: flex;
+    border: 1px solid var(--order-border);
+    border-bottom: none;
+    > div:not(:last-of-type) {
+      border-right: 1px solid var(--order-border);
+    }
+    > div {
+      padding: 1px 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+    & .orderNumber,
+    .customer {
+      flex: 1;
+    }
+
+    & .orderID,
+    .customer {
+      font-weight: 700;
+    }
+  `,
+  documentHeader: css`
+    --order-border: #cecece;
+
+    display: grid;
+    grid-template-columns: 124px 1fr 124px 1fr;
+    grid-auto-rows: minmax(24px, auto);
+
+    border: 1px solid var(--order-border);
+    border-bottom: none;
+    background: var(--order-border);
+    gap: 1px;
+
+    & > div {
+      background: white;
+      padding: 1px 8px;
+
+      display: flex;
+      align-items: center;
+    }
+
+    & .label {
+      justify-content: flex-end;
+      text-align: right;
+      font-weight: 500;
+      background-color: #f0f0f0;
+    }
+
+    & .footer {
+      grid-column: 1 / -1;
+      justify-content: flex-start;
+      text-align: center;
+      font-weight: 500;
+    }
+  `,
+  elementsTable: css`
+    & .elementsTable {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+
+      th,
+      td {
+        padding: 4px;
+        border: 1px solid #cecece;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: #f2f2f2;
+      }
+
+      td:not(:first-child),
+      th:not(:first-child) {
+        white-space: nowrap;
+        text-align: left;
+      }
+
+      tr {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      thead {
+        display: table-header-group;
+      }
+    }
   `,
 };
 
@@ -34,11 +127,89 @@ type CustomerOrderPrintFormProps = {
 export const CustomerOrderPrintForm: FC<CustomerOrderPrintFormProps> = ({
   order,
   documents,
-}) => (
-  <article className={`${styles.preview} order-print-document`}>
-    <h3 className={styles.title}>Бланк для заказчика</h3>
-    <pre className={styles.data}>
-      {JSON.stringify({ order, documents }, null, 2)}
-    </pre>
-  </article>
-);
+}) => {
+  const documentCount = documents.length;
+  const document = documents[0];
+  const rows = buildCustomerOrderRows(document);
+
+  return (
+    <article className={`${styles.preview} order-print-document`}>
+      <div className={styles.orderHeader}>
+        <div className="orderID">
+          {`№ ${order.id}${documentCount > 1 ? '/' + document.documentNumber + ' (' + documentCount + ')' : order.orderCount}`}
+        </div>
+        <div className="orderNumber">{order.orderNumber}</div>
+        <div className="customer">{order.customer?.name}</div>
+        <div className="orderData">
+          {dayjs(order.startedAt).format('DD.MM.YYYY')}
+        </div>
+      </div>
+      <div className={styles.documentHeader}>
+        <div className="label">Модель фасада:</div>
+        <div className="value">
+          {document.characteristics?.profile?.name ?? '-'}
+        </div>
+        <div className="label">Материал:</div>
+        <div className="value">
+          {document.characteristics?.material?.name ?? '-'}
+        </div>
+
+        <div className="label">Цвет:</div>
+        <div className="value">
+          {document.characteristics?.color?.name ?? '-'}
+        </div>
+        <div className="label">Патина:</div>
+        <div className="value">
+          {document.characteristics?.patina?.name ?? '-'}
+        </div>
+
+        <div className="label">Лак:</div>
+        <div className="value">
+          {document.characteristics?.varnish?.name ?? '-'}
+        </div>
+        <div className="label">Филёнка:</div>
+        <div className="value">
+          {document.characteristics?.panel?.name ?? ''}
+        </div>
+        <div className="label">Дополнительно:</div>
+        <div className="value">Присадка: Нет; ТермоШов: Нет;</div>
+
+        <div className="footer">
+          {order?.comment ?? ''}
+          {document?.comment ? '\n' + document?.comment : ''}
+        </div>
+      </div>
+      <div className={styles.elementsTable}>
+        <table className="elementsTable">
+          <thead>
+            <tr>
+              <th>№</th>
+              <th>Название</th>
+              <th>Кол-во</th>
+              <th>Цена, ₽</th>
+              <th>Сумма, ₽</th>
+              <th>Комментарий</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.key}>
+                <td>{index + 1}</td>
+                <td>{row.dimensions}</td>
+                <td>
+                  {row.calculatedQuantity.toLocaleString('ru-RU', {
+                    maximumFractionDigits: 3,
+                  })}{' '}
+                  {row.unit}
+                </td>
+                <td>{row.unitPrice.toLocaleString('ru-RU')}</td>
+                <td>{row.totalPrice.toLocaleString('ru-RU')}</td>
+                <td>{row.comment}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  );
+};
