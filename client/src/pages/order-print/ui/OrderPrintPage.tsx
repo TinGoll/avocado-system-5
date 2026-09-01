@@ -185,7 +185,13 @@ const OrderPrintPage: FC = () => {
     ...productionDocuments.map((document) => ({
       key: document.operationId,
       label: document.operationName,
-      children: <ProductionOrderPrintForm group={group} document={document} />,
+      children: (
+        <ProductionOrderPrintForm
+          group={group}
+          document={document}
+          documentCount={orders?.length ?? 0}
+        />
+      ),
     })),
   ];
 

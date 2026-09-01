@@ -3,16 +3,25 @@ import type { Order } from '@entities/order';
 export type ProductionOrderRow = {
   key: string;
   renderedName: string;
+  height?: number;
+  width?: number;
+  thickness?: number;
   unit: string;
-  sourceQuantity: number;
   calculatedQuantity: number;
+  costPerUnit: number;
   totalCost: number;
+};
+
+export type ProductionOrderSheet = {
+  order: Order;
+  documentIndex: number;
+  rows: ProductionOrderRow[];
 };
 
 export type ProductionOrderDocument = {
   operationId: string;
   operationName: string;
-  rows: ProductionOrderRow[];
+  sheets: ProductionOrderSheet[];
 };
 
 const normalizeRenderedName = (name: string): string =>
@@ -23,57 +32,80 @@ const roundMoney = (value: number): number => Math.round(value * 100) / 100;
 export const buildProductionOrderDocuments = (
   orders: Order[],
 ): ProductionOrderDocument[] => {
-  const documents = new Map<
-    string,
-    ProductionOrderDocument & { rowsByKey: Map<string, ProductionOrderRow> }
-  >();
+  const documents = new Map<string, ProductionOrderDocument>();
 
-  orders.forEach((order) =>
+  orders.forEach((order, documentIndex) => {
+    const sheets = new Map<
+      string,
+      { operationName: string; rowsByKey: Map<string, ProductionOrderRow> }
+    >();
+
     order.items.forEach((item) =>
       item.productionOperationResults.forEach((result) => {
         const normalizedName = normalizeRenderedName(result.renderedName);
+        const height = result.calculatedHeight ?? item.characteristics.height;
+        const width = result.calculatedWidth ?? item.characteristics.width;
+        const thickness =
+          result.calculatedThickness === undefined
+            ? item.characteristics.thickness
+            : (result.calculatedThickness ?? undefined);
         const rowKey = [
-          result.operationId,
           normalizedName,
+          height,
+          width,
+          thickness,
           result.calculationMethod,
+          result.costPerUnit,
         ].join('\u0000');
-        let document = documents.get(result.operationId);
+        let sheet = sheets.get(result.operationId);
 
-        if (!document) {
-          document = {
-            operationId: result.operationId,
+        if (!sheet) {
+          sheet = {
             operationName: result.originalName,
-            rows: [],
             rowsByKey: new Map(),
           };
-          documents.set(result.operationId, document);
+          sheets.set(result.operationId, sheet);
         }
 
-        const row = document.rowsByKey.get(rowKey);
+        const row = sheet.rowsByKey.get(rowKey);
 
         if (row) {
-          row.sourceQuantity += item.quantity;
           row.calculatedQuantity += result.calculatedQuantity;
           row.totalCost += result.totalCost;
         } else {
-          document.rowsByKey.set(rowKey, {
+          sheet.rowsByKey.set(rowKey, {
             key: rowKey,
             renderedName: normalizedName,
+            height,
+            width,
+            thickness,
             unit: result.calculationMethod,
-            sourceQuantity: item.quantity,
             calculatedQuantity: result.calculatedQuantity,
+            costPerUnit: result.costPerUnit,
             totalCost: result.totalCost,
           });
         }
       }),
-    ),
-  );
+    );
 
-  return [...documents.values()].map(({ rowsByKey, ...document }) => ({
-    ...document,
-    rows: [...rowsByKey.values()].map((row) => ({
-      ...row,
-      totalCost: roundMoney(row.totalCost),
-    })),
-  }));
+    sheets.forEach(({ operationName, rowsByKey }, operationId) => {
+      let document = documents.get(operationId);
+
+      if (!document) {
+        document = { operationId, operationName, sheets: [] };
+        documents.set(operationId, document);
+      }
+
+      document.sheets.push({
+        order,
+        documentIndex,
+        rows: [...rowsByKey.values()].map((row) => ({
+          ...row,
+          totalCost: roundMoney(row.totalCost),
+        })),
+      });
+    });
+  });
+
+  return [...documents.values()];
 };

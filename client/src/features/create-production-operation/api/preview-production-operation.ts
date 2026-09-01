@@ -11,6 +11,9 @@ export type ProductionOperationPreview = {
   calculatedQuantity: number;
   calculatedCost: number;
   renderedName: string;
+  calculatedWidth?: number;
+  calculatedHeight?: number;
+  calculatedThickness?: number | null;
   panelWidth?: number;
   panelHeight?: number;
 };

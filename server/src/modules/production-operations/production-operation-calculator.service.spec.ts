@@ -45,10 +45,57 @@ describe('ProductionOperationCalculatorService', () => {
     expect(result).toEqual({
       panelWidth: 420,
       panelHeight: 780,
+      calculatedWidth: 420,
+      calculatedHeight: 780,
+      calculatedThickness: null,
       calculatedQuantity: result.calculatedQuantity,
       renderedName: 'Филёнка: 780х420 — 1 шт.',
     });
     expect(result.calculatedQuantity).toBeCloseTo(0.3276);
+  });
+
+  it('keeps original dimensions on axes that do not use panel geometry', () => {
+    const context = service.contextFromSnapshot(
+      { width: 540, height: 900, thickness: 21, quantity: 1 },
+      {
+        profile: {
+          characteristics: { width: 68, grooveDepth: 8 },
+        },
+      },
+    );
+
+    const result = service.calculate(
+      'panelWidth / 1000 * item.height / 1000 * item.quantity',
+      'Работа',
+      context,
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        calculatedWidth: 420,
+        calculatedHeight: 900,
+        calculatedThickness: null,
+      }),
+    );
+  });
+
+  it('keeps thickness when a panel formula explicitly uses it', () => {
+    const context = service.contextFromSnapshot(
+      { width: 540, height: 900, thickness: 21, quantity: 1 },
+      {
+        profile: {
+          characteristics: { width: 68, grooveDepth: 8 },
+        },
+      },
+    );
+
+    const result = service.calculate(
+      'panelWidth * panelHeight * item.thickness * item.quantity',
+      'Работа',
+      context,
+    );
+
+    expect(result.calculatedThickness).toBe(21);
   });
 
   it.each([

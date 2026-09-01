@@ -16,6 +16,9 @@ export type OrderItemProductionOperationResult = {
   calculationMethod: CalculationMethod;
   costPerUnit: number;
   calculatedQuantity: number;
+  calculatedWidth?: number;
+  calculatedHeight?: number;
+  calculatedThickness?: number | null;
   renderedName: string;
   totalCost: number;
 };

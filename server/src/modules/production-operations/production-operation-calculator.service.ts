@@ -31,6 +31,9 @@ type ExpressionNode =
 export interface ProductionOperationCalculationResult {
   calculatedQuantity: number;
   renderedName: string;
+  calculatedWidth?: number;
+  calculatedHeight?: number;
+  calculatedThickness?: number | null;
   panelWidth?: number;
   panelHeight?: number;
 }
@@ -54,6 +57,9 @@ export class ProductionOperationCalculatorService {
   ): ProductionOperationCalculationResult {
     const evaluationContext = this.deriveContext(context);
     const expression = this.parseFormula(calculationFormula);
+    const formulaVariables = this.collectVariables(expression);
+    const usesPanelGeometry =
+      formulaVariables.has('panelWidth') || formulaVariables.has('panelHeight');
     this.validateNameTemplate(displayNameTemplate);
     const calculatedQuantity = this.evaluate(expression, evaluationContext);
 
@@ -73,6 +79,16 @@ export class ProductionOperationCalculatorService {
     return {
       calculatedQuantity,
       renderedName: renderedName.value,
+      calculatedWidth: formulaVariables.has('panelWidth')
+        ? evaluationContext.panelWidth
+        : evaluationContext.item.width,
+      calculatedHeight: formulaVariables.has('panelHeight')
+        ? evaluationContext.panelHeight
+        : evaluationContext.item.height,
+      calculatedThickness:
+        usesPanelGeometry && !formulaVariables.has('item.thickness')
+          ? null
+          : evaluationContext.item.thickness,
       panelWidth: evaluationContext.panelWidth,
       panelHeight: evaluationContext.panelHeight,
     };
@@ -261,6 +277,19 @@ export class ProductionOperationCalculatorService {
       );
     }
     return result;
+  }
+
+  private collectVariables(
+    node: ExpressionNode,
+  ): Set<ProductionOperationFormulaVariable> {
+    if (node.type === 'variable') return new Set([node.name]);
+    if (node.type === 'number') return new Set();
+    if (node.type === 'unary') return this.collectVariables(node.operand);
+
+    return new Set([
+      ...this.collectVariables(node.left),
+      ...this.collectVariables(node.right),
+    ]);
   }
 
   private getValue(

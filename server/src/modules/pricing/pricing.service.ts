@@ -210,6 +210,9 @@ export class PricingService {
         calculationMethod: operation.calculationMethod,
         costPerUnit: Number(operation.costPerUnit),
         calculatedQuantity: calculation.calculatedQuantity,
+        calculatedWidth: calculation.calculatedWidth,
+        calculatedHeight: calculation.calculatedHeight,
+        calculatedThickness: calculation.calculatedThickness,
         renderedName: calculation.renderedName,
         totalCost,
       };

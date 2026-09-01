@@ -1,5 +1,6 @@
 import { css } from '@emotion/css';
-import { type FC } from 'react';
+import dayjs from 'dayjs';
+import { Fragment, type FC } from 'react';
 
 import type { OrderGroup } from '@entities/order';
 
@@ -26,21 +27,84 @@ const styles = {
     width: min(210mm, 100%);
     min-height: 297mm;
     margin: 0 auto;
-    padding: 10mm;
+    padding: 7mm;
     overflow: auto;
     color: #111;
     background: #fff;
     box-shadow: 0 2px 16px rgb(0 0 0 / 25%);
+
+    @media print {
+      &:not(:first-child) {
+        break-before: page;
+        page-break-before: always;
+      }
+    }
   `,
   title: css`
-    margin: 0 0 16px;
+    margin: 0 0 10px;
     text-align: center;
   `,
-  details: css`
+  orderHeader: css`
+    --order-border: #cecece;
+    display: flex;
+    border: 1px solid var(--order-border);
+    border-bottom: none;
+
+    > div:not(:last-of-type) {
+      border-right: 1px solid var(--order-border);
+    }
+
+    > div {
+      padding: 1px 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+
+    & .orderNumber,
+    .customer {
+      flex: 1;
+    }
+
+    & .orderID,
+    .customer {
+      font-weight: 700;
+    }
+
+    & .pageNumber {
+      min-width: 44px;
+    }
+  `,
+  documentHeader: css`
+    --order-border: #cecece;
     display: grid;
-    grid-template-columns: max-content 1fr;
-    gap: 4px 12px;
-    margin-bottom: 20px;
+    grid-template-columns: 124px 1fr 124px 1fr;
+    grid-auto-rows: minmax(24px, auto);
+    border: 1px solid var(--order-border);
+    border-bottom: none;
+    background: var(--order-border);
+    gap: 1px;
+
+    & > div {
+      background: white;
+      padding: 1px 8px;
+      display: flex;
+      align-items: center;
+    }
+
+    & .label {
+      justify-content: flex-end;
+      text-align: right;
+      font-weight: 500;
+      background-color: #f0f0f0;
+    }
+
+    & .footer {
+      grid-column: 1 / -1;
+      white-space: pre-line;
+      font-weight: 500;
+    }
   `,
   table: css`
     width: 100%;
@@ -49,8 +113,8 @@ const styles = {
 
     th,
     td {
-      padding: 6px;
-      border: 1px solid #333;
+      padding: 4px;
+      border: 1px solid #cecece;
       text-align: left;
       vertical-align: top;
     }
@@ -59,10 +123,9 @@ const styles = {
       background: #f2f2f2;
     }
 
-    td:not(:first-child),
-    th:not(:first-child) {
+    td:not(:nth-child(2)),
+    th:not(:nth-child(2)) {
       white-space: nowrap;
-      text-align: right;
     }
 
     tr {
@@ -74,48 +137,127 @@ const styles = {
       display: table-header-group;
     }
   `,
+  total: css`
+    padding: 3px 40px;
+    border: 1px solid #cecece;
+    border-top: none;
+    font-size: 13px;
+    font-weight: 700;
+  `,
 };
 
 type ProductionOrderPrintFormProps = {
   group: OrderGroup;
   document: ProductionOrderDocument;
+  documentCount: number;
 };
+
+const characteristicLabels = [
+  ['profile', 'Модель фасада'],
+  ['material', 'Материал'],
+  ['color', 'Цвет'],
+  ['patina', 'Патина'],
+  ['varnish', 'Лак'],
+  ['panel', 'Филёнка'],
+] as const;
 
 export const ProductionOrderPrintForm: FC<ProductionOrderPrintFormProps> = ({
   group,
   document,
+  documentCount,
 }) => (
-  <article className={`${styles.preview} order-print-document`}>
-    <h2 className={styles.title}>Производственный бланк-наряд</h2>
-    <dl className={styles.details}>
-      <dt>Заказчик:</dt>
-      <dd>{group.customer.name}</dd>
-      <dt>Группа заказов:</dt>
-      <dd>{group.orderNumber}</dd>
-      <dt>Работа:</dt>
-      <dd>{document.operationName}</dd>
-    </dl>
-    <table className={styles.table}>
-      <thead>
-        <tr>
-          <th>Производственная строка</th>
-          <th>Кол-во изделий</th>
-          <th>Расчётное кол-во</th>
-          <th>Ед.</th>
-          <th>Стоимость, ₽</th>
-        </tr>
-      </thead>
-      <tbody>
-        {document.rows.map((row) => (
-          <tr key={row.key}>
-            <td>{row.renderedName}</td>
-            <td>{quantityFormatter.format(row.sourceQuantity)}</td>
-            <td>{quantityFormatter.format(row.calculatedQuantity)}</td>
-            <td>{unitLabels[row.unit] ?? row.unit}</td>
-            <td>{moneyFormatter.format(row.totalCost)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </article>
+  <div>
+    {document.sheets.map(({ order, documentIndex, rows }) => {
+      const total = rows.reduce((sum, row) => sum + row.totalCost, 0);
+
+      return (
+        <article
+          className={`${styles.preview} order-print-document`}
+          key={order.id}
+        >
+          <h2 className={styles.title}>
+            Бланк-наряд: {document.operationName}
+          </h2>
+          <div className={styles.orderHeader}>
+            <div className="orderID">
+              {`№ ${group.id}${documentCount > 1 ? '/' + order.documentNumber + ' (' + documentCount + ')' : group.orderCount}`}
+            </div>
+            <div className="orderNumber">{group.orderNumber}</div>
+            <div className="customer">{group.customer?.name}</div>
+            <div className="orderData">
+              {dayjs(group.startedAt).format('DD.MM.YYYY')}
+            </div>
+            <div className="pageNumber">
+              {documentIndex + 1}/{documentCount}
+            </div>
+          </div>
+          <div className={styles.documentHeader}>
+            {characteristicLabels.map(([key, label]) =>
+              order.characteristics[key] !== undefined ? (
+                <Fragment key={key}>
+                  <div className="label">{label}:</div>
+                  <div className="value">
+                    {order.characteristics[key]?.name ?? '-'}
+                  </div>
+                </Fragment>
+              ) : null,
+            )}
+            {(order.characteristics.drilling !== undefined ||
+              order.characteristics.thermalSeam !== undefined) && (
+              <>
+                <div className="label">Дополнительно:</div>
+                <div className="value">
+                  {order.characteristics.drilling !== undefined &&
+                    `Присадка: ${order.characteristics.drilling};`}
+                  {order.characteristics.drilling !== undefined &&
+                    order.characteristics.thermalSeam !== undefined &&
+                    ' '}
+                  {order.characteristics.thermalSeam !== undefined &&
+                    `Термошов: ${order.characteristics.thermalSeam};`}
+                </div>
+              </>
+            )}
+            <div className="footer">
+              {group.comment ?? ''}
+              {order.comment ? `\n${order.comment}` : ''}
+            </div>
+          </div>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>№</th>
+                <th>Название</th>
+                <th>Высота</th>
+                <th>Ширина</th>
+                <th>Толщина</th>
+                <th>Расчётное кол-во, ед.</th>
+                <th>Стоимость, ₽</th>
+                <th>Сумма, ₽</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => (
+                <tr key={row.key}>
+                  <td>{index + 1}</td>
+                  <td>{row.renderedName}</td>
+                  <td>{row.height ?? '-'}</td>
+                  <td>{row.width ?? '-'}</td>
+                  <td>{row.thickness ?? '-'}</td>
+                  <td>
+                    {quantityFormatter.format(row.calculatedQuantity)}{' '}
+                    {unitLabels[row.unit] ?? row.unit}
+                  </td>
+                  <td>{moneyFormatter.format(row.costPerUnit)}</td>
+                  <td>{moneyFormatter.format(row.totalCost)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className={styles.total}>
+            Итого: {moneyFormatter.format(total)} ₽
+          </div>
+        </article>
+      );
+    })}
+  </div>
 );
