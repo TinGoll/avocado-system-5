@@ -5,5 +5,6 @@ export * from './FacadeProfileField';
 export * from './MaterialField';
 export * from './PatinaField';
 export * from './VarnishField';
+export * from './YesNoCharacteristicField';
 export * from './AddOrderFieldsButton';
 export * from './RecalculateOrderPricesButton';

@@ -187,6 +187,26 @@ export const OrderDocumentView: FC<Props> = ({ order }) => (
           </Typography.Text>
         </Field.Value>
       </Field>
+      <Field>
+        <Field.Label>
+          <Typography.Text type="secondary">Термошов</Typography.Text>
+        </Field.Label>
+        <Field.Value className={styles.fieldValue}>
+          <Typography.Text className={styles.fieldText} type="success">
+            {order.characteristics.thermalSeam ?? '—'}
+          </Typography.Text>
+        </Field.Value>
+      </Field>
+      <Field>
+        <Field.Label>
+          <Typography.Text type="secondary">Присадка</Typography.Text>
+        </Field.Label>
+        <Field.Value className={styles.fieldValue}>
+          <Typography.Text className={styles.fieldText} type="success">
+            {order.characteristics.drilling ?? '—'}
+          </Typography.Text>
+        </Field.Value>
+      </Field>
       <Field className={styles.fullWidthField}>
         <Field.Label>
           <Typography.Text type="secondary">Комментарий</Typography.Text>

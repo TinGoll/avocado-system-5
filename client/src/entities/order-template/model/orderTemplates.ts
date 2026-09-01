@@ -12,6 +12,8 @@ export const orderTemplatesMap = {
       patina: {},
       profile: {},
       varnish: {},
+      thermalSeam: 'Нет',
+      drilling: 'Нет',
     }),
   },
   basic: {
@@ -41,6 +43,8 @@ export const orderTemplatesMap = {
       panel: {},
       patina: {},
       varnish: {},
+      thermalSeam: 'Нет',
+      drilling: 'Нет',
     }),
   },
 } satisfies Record<string, OrderTemplate>;

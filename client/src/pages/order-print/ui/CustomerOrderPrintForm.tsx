@@ -203,7 +203,10 @@ export const CustomerOrderPrintForm: FC<CustomerOrderPrintFormProps> = ({
           {document.characteristics?.panel?.name ?? ''}
         </div>
         <div className="label">Дополнительно:</div>
-        <div className="value">Присадка: Нет; ТермоШов: Нет;</div>
+        <div className="value">
+          Присадка: {document.characteristics.drilling ?? 'Нет'}; Термошов:{' '}
+          {document.characteristics.thermalSeam ?? 'Нет'};
+        </div>
 
         <div className="footer">
           {order?.comment ?? ''}

@@ -28,6 +28,8 @@ export const priceModifierConditionPathSchemas = {
   },
   order: {
     characteristics: group('Параметры документа', {
+      thermalSeam: enumField('Термошов', ['Да', 'Нет']),
+      drilling: enumField('Присадка', ['Да', 'Нет']),
       color: group('Краситель', {
         name: field('Название', 'string'),
         type: enumField('Тип', ['stain', 'enamel']),

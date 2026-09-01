@@ -18,6 +18,7 @@ import {
   VarnishField,
   PatinaField,
   CommentField,
+  YesNoCharacteristicField,
 } from './ui';
 
 const styles = {
@@ -90,6 +91,8 @@ export const EditOrderFields: FC<Props> = ({
       <FacadePanelField renderCreateAction={renderCreateFacadePanel} />
       <VarnishField renderCreateAction={renderCreateVarnish} />
       <PatinaField renderCreateAction={renderCreatePatina} />
+      <YesNoCharacteristicField characteristic="thermalSeam" label="Термошов" />
+      <YesNoCharacteristicField characteristic="drilling" label="Присадка" />
       <CommentField />
     </div>
   );

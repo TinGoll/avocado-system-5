@@ -179,6 +179,8 @@ export interface OrderCharacteristics {
   panel?: OrderFacadePanel;
   profile?: OrderFacadeProfile;
   varnish?: OrderVarnish;
+  thermalSeam?: 'Да' | 'Нет';
+  drilling?: 'Да' | 'Нет';
 }
 
 export interface OrderItemCharacteristics {

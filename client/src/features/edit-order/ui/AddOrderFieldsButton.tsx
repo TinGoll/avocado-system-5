@@ -13,6 +13,8 @@ const fieldLabels: Record<keyof OrderCharacteristics, string> = {
   panel: 'Филёнка',
   profile: 'Профиль',
   varnish: 'Лак',
+  thermalSeam: 'Термошов',
+  drilling: 'Присадка',
 };
 
 export const AddOrderFieldsButton: FC = () => {
@@ -34,9 +36,14 @@ export const AddOrderFieldsButton: FC = () => {
       return;
     }
 
+    const characteristic = key as keyof OrderCharacteristics;
+    const initialValue =
+      characteristic === 'thermalSeam' || characteristic === 'drilling'
+        ? 'Нет'
+        : {};
     updateCharacteristic(
-      key as keyof OrderCharacteristics,
-      {} as OrderCharacteristics[keyof OrderCharacteristics],
+      characteristic,
+      initialValue as OrderCharacteristics[keyof OrderCharacteristics],
     );
   };
 

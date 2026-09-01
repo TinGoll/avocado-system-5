@@ -66,6 +66,8 @@ export const EditOrderWidget: FC = () => {
           ['Филёнка', currentOrder.characteristics.panel?.name],
           ['Патина', currentOrder.characteristics.patina?.name],
           ['Лак', currentOrder.characteristics.varnish?.name],
+          ['Термошов', currentOrder.characteristics.thermalSeam],
+          ['Присадка', currentOrder.characteristics.drilling],
         ]
           .filter((characteristic): characteristic is [string, string] =>
             Boolean(characteristic[1]),

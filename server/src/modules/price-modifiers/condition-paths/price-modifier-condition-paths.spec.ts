@@ -82,4 +82,18 @@ describe('price modifier condition path contract', () => {
       isConditionOperatorAllowedForField(field!, ConditionOperator.LT),
     ).toBe(false);
   });
+
+  it.each([
+    ['characteristics.thermalSeam', 'Да'],
+    ['characteristics.drilling', 'Нет'],
+  ])('allows document option %s=%s', (path, value) => {
+    const field = getPriceModifierConditionPathField(
+      ConditionSource.ORDER,
+      path,
+    );
+    expect(field).toEqual(
+      expect.objectContaining({ type: 'enum', options: ['Да', 'Нет'] }),
+    );
+    expect(isConditionValueValidForField(field!, value)).toBe(true);
+  });
 });
