@@ -44,6 +44,10 @@ export default defineConfig({
             return undefined;
           }
 
+          if (/node_modules\/@protobi\/exceljs\//.test(id)) {
+            return 'vendor-excel';
+          }
+
           if (/node_modules\/(react|react-dom|react-router)\//.test(id)) {
             return 'vendor-react';
           }

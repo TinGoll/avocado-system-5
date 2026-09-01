@@ -25,6 +25,7 @@
     "@emotion/css": "^11.13.5",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@protobi/exceljs": "^4.4.0-protobi.10",
     "@uiw/react-markdown-preview": "^5.2.1",
     "@uiw/react-md-editor": "^4.1.1",
     "antd": "^6.6.0",
