@@ -272,4 +272,39 @@ describe('OrdersService price recalculation', () => {
     ]);
     expect(item.calculatedProductionCost).toBe(30);
   });
+
+  it('keeps production results for a legacy draft item without a template', async () => {
+    const item = {
+      id: 'item-1',
+      quantity: 1,
+      template: null,
+      snapshot: {
+        baseCustomerPrice: 100,
+        customerPricingMethod: CustomerPricingMethod.PER_ITEM,
+      },
+      productionOperationResults: [{ operationId: 'saved-operation' }],
+      calculatedProductionCost: 75,
+      calculatedCustomerPrice: 100,
+    } as OrderItem;
+    const order = {
+      id: 'order-1',
+      items: [item],
+      orderGroup: { status: OrderStatus.DRAFT },
+      totalPrice: 100,
+    } as Order;
+
+    findOne.mockResolvedValue(order);
+    calculateCustomerPrices.mockResolvedValue([200]);
+    save.mockImplementation((entity: Order) => Promise.resolve(entity));
+
+    const result = await service.update(order.id, { characteristics: {} });
+
+    expect(calculateProductionCost).not.toHaveBeenCalled();
+    expect(item.productionOperationResults).toEqual([
+      { operationId: 'saved-operation' },
+    ]);
+    expect(item.calculatedProductionCost).toBe(75);
+    expect(item.calculatedCustomerPrice).toBe(200);
+    expect(result.totalPrice).toBe(200);
+  });
 });

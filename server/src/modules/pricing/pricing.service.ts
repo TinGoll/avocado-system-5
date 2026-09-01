@@ -85,7 +85,7 @@ export class PricingService {
 
       if (isScopedToProducts) {
         const isApplicableToCurrentProduct = modifier.productTemplates.some(
-          (template) => template.id === item.template.id,
+          (template) => template.id === item.template?.id,
         );
 
         if (!isApplicableToCurrentProduct) {

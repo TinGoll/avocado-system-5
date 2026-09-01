@@ -202,6 +202,10 @@ export class OrderGroupsService {
         for (const order of group.orders) {
           for (const item of order.items) {
             try {
+              if (!item.template) {
+                throw new Error('Шаблон товара удалён');
+              }
+
               const productionCost =
                 this.pricingService.calculateProductionCost(
                   item,

@@ -153,7 +153,7 @@ export class OrdersService {
     const { templateId, attributes, customerPricingMethod, ...itemUpdates } =
       updateItemDto;
 
-    if (templateId && templateId !== itemToUpdate.template.id) {
+    if (templateId && templateId !== itemToUpdate.template?.id) {
       const template = await this.productsRepository.findOne({
         where: { id: templateId },
         relations: { operations: true },
@@ -280,7 +280,7 @@ export class OrdersService {
     );
 
     order.items.forEach((item, index) => {
-      if (recalculateProduction) {
+      if (recalculateProduction && item.template) {
         const productionCost = this.pricingService.calculateProductionCost(
           item,
           item.template,

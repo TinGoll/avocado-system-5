@@ -88,7 +88,7 @@ const styles = {
     & .footer {
       grid-column: 1 / -1;
       justify-content: flex-start;
-      text-align: center;
+      text-align: left;
 
       & .wmde-markdown > p {
         margin: 6px 0;

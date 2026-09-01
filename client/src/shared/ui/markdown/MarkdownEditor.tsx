@@ -3,6 +3,9 @@ import type { FC } from 'react';
 
 import '@uiw/react-md-editor/markdown-editor.css';
 
+import { removeMarkdownColorComments } from './markdown-color';
+import { markdownColorCommand } from './MarkdownColorCommand';
+
 type Props = {
   value?: string;
   onChange?: (value: string) => void;
@@ -13,6 +16,7 @@ const editorCommands = [
   commands.bold,
   commands.italic,
   commands.strikethrough,
+  markdownColorCommand,
   commands.divider,
   commands.link,
   commands.quote,
@@ -26,6 +30,7 @@ export const MarkdownEditor: FC<Props> = ({ value, onChange, className }) => (
       commands={editorCommands}
       height={200}
       preview="edit"
+      previewOptions={{ rehypePlugins: [removeMarkdownColorComments] }}
       value={value ?? ''}
       onChange={(nextValue) => onChange?.(nextValue ?? '')}
       visibleDragbar={false}

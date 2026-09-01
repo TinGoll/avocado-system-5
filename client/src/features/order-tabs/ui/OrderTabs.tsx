@@ -209,7 +209,7 @@ export const OrderTabs: FC<Props> = ({ isCreating, onCreate, onDelete }) => {
   };
 
   if (isLoading) {
-    return <Skeleton.Input block active size="default" />;
+    return <Skeleton.Input block active size="medium" />;
   }
 
   return (

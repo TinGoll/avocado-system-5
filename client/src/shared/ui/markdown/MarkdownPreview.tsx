@@ -4,6 +4,8 @@ import type { FC } from 'react';
 
 import '@uiw/react-markdown-preview/markdown.css';
 
+import { removeMarkdownColorComments } from './markdown-color';
+
 const preview = css`
   &.wmde-markdown {
     color: inherit;
@@ -38,7 +40,11 @@ export const MarkdownPreview: FC<Props> = ({
 
   return (
     <div className={className} data-color-mode="dark">
-      <MDEditor.Markdown className={preview} source={value} />
+      <MDEditor.Markdown
+        className={preview}
+        rehypePlugins={[removeMarkdownColorComments]}
+        source={value}
+      />
     </div>
   );
 };

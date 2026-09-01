@@ -40,7 +40,7 @@ export class OrderItem {
   order: Order;
 
   @ManyToOne(() => ProductTemplate, { nullable: true, onDelete: 'SET NULL' })
-  template: ProductTemplate;
+  template: ProductTemplate | null;
 
   @Column({ type: 'int' })
   quantity: number;
