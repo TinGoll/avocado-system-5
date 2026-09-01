@@ -4,7 +4,10 @@ import { type FC } from 'react';
 
 import type { Order, OrderGroup } from '@entities/order';
 
-import { buildCustomerOrderRows } from '../model/customer-order';
+import {
+  buildCustomerOrderRows,
+  buildCustomerOrderTotals,
+} from '../model/customer-order';
 
 const styles = {
   preview: css`
@@ -17,12 +20,13 @@ const styles = {
     color: #111;
     background: #fff;
     box-shadow: 0 2px 16px rgb(0 0 0 / 25%);
-  `,
-  data: css`
-    margin: 16px 0 0;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    font: 12px/1.5 monospace;
+
+    @media print {
+      &:not(:first-child) {
+        break-before: page;
+        page-break-before: always;
+      }
+    }
   `,
   orderHeader: css`
     --order-border: #cecece;
@@ -47,6 +51,10 @@ const styles = {
     & .orderID,
     .customer {
       font-weight: 700;
+    }
+
+    & .pageNumber {
+      min-width: 44px;
     }
   `,
   documentHeader: css`
@@ -117,20 +125,40 @@ const styles = {
       }
     }
   `,
+  totals: css`
+    border: 1px solid #cecece;
+    border-top: 0;
+    font-size: 13px;
+
+    & .totalRow {
+      padding: 3px 40px;
+    }
+
+    & .totalRow + .totalRow {
+      border-top: 1px solid #cecece;
+    }
+
+    & .grandTotal {
+      font-weight: 700;
+    }
+  `,
 };
 
 type CustomerOrderPrintFormProps = {
   order: OrderGroup;
-  documents: Order[];
+  document: Order;
+  documentCount: number;
+  documentIndex: number;
 };
 
 export const CustomerOrderPrintForm: FC<CustomerOrderPrintFormProps> = ({
   order,
-  documents,
+  document,
+  documentCount,
+  documentIndex,
 }) => {
-  const documentCount = documents.length;
-  const document = documents[0];
   const rows = buildCustomerOrderRows(document);
+  const totals = buildCustomerOrderTotals(document);
 
   return (
     <article className={`${styles.preview} order-print-document`}>
@@ -142,6 +170,9 @@ export const CustomerOrderPrintForm: FC<CustomerOrderPrintFormProps> = ({
         <div className="customer">{order.customer?.name}</div>
         <div className="orderData">
           {dayjs(order.startedAt).format('DD.MM.YYYY')}
+        </div>
+        <div className="pageNumber">
+          {documentIndex + 1}/{documentCount}
         </div>
       </div>
       <div className={styles.documentHeader}>
@@ -209,6 +240,16 @@ export const CustomerOrderPrintForm: FC<CustomerOrderPrintFormProps> = ({
             ))}
           </tbody>
         </table>
+      </div>
+      <div className={styles.totals}>
+        {totals.groups.map(({ group, amount }) => (
+          <div className="totalRow" key={group}>
+            {group}: {amount.toLocaleString('ru-RU')} ₽
+          </div>
+        ))}
+        <div className="totalRow grandTotal">
+          Итого: {totals.total.toLocaleString('ru-RU')} ₽
+        </div>
       </div>
     </article>
   );

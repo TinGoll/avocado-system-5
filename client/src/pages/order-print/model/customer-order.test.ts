@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import type { Order } from '@entities/order';
 
-import { buildCustomerOrderRows } from './customer-order';
+import {
+  buildCustomerOrderRows,
+  buildCustomerOrderTotals,
+} from './customer-order';
 
 describe('buildCustomerOrderRows', () => {
   it('builds printable rows from items of all documents', () => {
@@ -41,5 +44,32 @@ describe('buildCustomerOrderRows', () => {
         comment: 'Срочно',
       },
     ]);
+  });
+
+  it('groups totals by product group', () => {
+    const order = {
+      items: [
+        {
+          template: { group: 'Фасады' },
+          calculatedCustomerPrice: 1000,
+        },
+        {
+          template: { group: 'Карнизы' },
+          calculatedCustomerPrice: 2000,
+        },
+        {
+          template: { group: 'Фасады' },
+          calculatedCustomerPrice: 500,
+        },
+      ],
+    } as Order;
+
+    expect(buildCustomerOrderTotals(order)).toEqual({
+      groups: [
+        { group: 'Фасады', amount: 1500 },
+        { group: 'Карнизы', amount: 2000 },
+      ],
+      total: 3500,
+    });
   });
 });

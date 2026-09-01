@@ -15,6 +15,11 @@ export type CustomerOrderRow = {
   comment: string;
 };
 
+export type CustomerOrderTotal = {
+  group: string;
+  amount: number;
+};
+
 const roundMoney = (value: number): number => Math.round(value * 100) / 100;
 
 const unitLabels: Record<CustomerPricingMethod, string> = {
@@ -100,3 +105,27 @@ export const buildCustomerOrderRows = (order: Order): CustomerOrderRow[] =>
       comment: item.characteristics.comment || '',
     };
   });
+
+export const buildCustomerOrderTotals = (
+  order: Order,
+): { groups: CustomerOrderTotal[]; total: number } => {
+  const totalsByGroup = new Map<string, number>();
+
+  order.items.forEach((item) => {
+    const group = item.template?.group?.trim() || 'Без группы';
+    totalsByGroup.set(
+      group,
+      (totalsByGroup.get(group) ?? 0) + item.calculatedCustomerPrice,
+    );
+  });
+
+  const groups = [...totalsByGroup].map(([group, amount]) => ({
+    group,
+    amount: roundMoney(amount),
+  }));
+
+  return {
+    groups,
+    total: roundMoney(groups.reduce((sum, { amount }) => sum + amount, 0)),
+  };
+};

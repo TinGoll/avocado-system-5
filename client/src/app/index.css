@@ -158,8 +158,7 @@ button:hover {
   }
 
   body:has(.order-print-document) .order-print-document {
-    position: fixed;
-    inset: 0;
+    position: static;
     box-sizing: border-box;
     width: 210mm;
     min-height: 297mm;

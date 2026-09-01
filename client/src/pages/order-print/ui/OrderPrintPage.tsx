@@ -112,11 +112,11 @@ const OrderPrintPage: FC = () => {
   if (!group || groupError || ordersError) return <ServerError />;
 
   const exportToPdf = async () => {
-    const documentElement = document.querySelector<HTMLElement>(
+    const documentElements = document.querySelectorAll<HTMLElement>(
       '[role="tabpanel"][aria-hidden="false"] .order-print-document',
     );
 
-    if (!documentElement) {
+    if (!documentElements.length) {
       messageApi.error('Не удалось найти документ для экспорта');
       return;
     }
@@ -124,26 +124,36 @@ const OrderPrintPage: FC = () => {
     setIsExporting(true);
 
     try {
-      const canvas = await html2canvas(documentElement, {
-        backgroundColor: '#ffffff',
-        scale: 2,
-        useCORS: true,
-      });
       const pdf = new jsPDF({ format: 'a4', unit: 'mm' });
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const imageHeight = (canvas.height * pageWidth) / canvas.width;
-      const image = canvas.toDataURL('image/jpeg', 0.95);
-      const pageCount = Math.max(
-        1,
-        Math.ceil((imageHeight - 0.5) / pageHeight),
-      );
+      let isFirstPage = true;
 
-      for (let page = 0; page < pageCount; page += 1) {
-        const offset = page * pageHeight;
+      for (const documentElement of documentElements) {
+        const canvas = await html2canvas(documentElement, {
+          backgroundColor: '#ffffff',
+          scale: 2,
+          useCORS: true,
+        });
+        const imageHeight = (canvas.height * pageWidth) / canvas.width;
+        const image = canvas.toDataURL('image/jpeg', 0.95);
+        const pageCount = Math.max(
+          1,
+          Math.ceil((imageHeight - 0.5) / pageHeight),
+        );
 
-        if (page > 0) pdf.addPage();
-        pdf.addImage(image, 'JPEG', 0, -offset, pageWidth, imageHeight);
+        for (let page = 0; page < pageCount; page += 1) {
+          if (!isFirstPage) pdf.addPage();
+          pdf.addImage(
+            image,
+            'JPEG',
+            0,
+            -page * pageHeight,
+            pageWidth,
+            imageHeight,
+          );
+          isFirstPage = false;
+        }
       }
 
       pdf.save(`order-${group.id}.pdf`);
@@ -159,7 +169,17 @@ const OrderPrintPage: FC = () => {
       key: 'customer',
       label: 'Бланк для заказчика',
       children: (
-        <CustomerOrderPrintForm order={group} documents={orders ?? []} />
+        <div>
+          {(orders ?? []).map((document, documentIndex) => (
+            <CustomerOrderPrintForm
+              key={document.id}
+              order={group}
+              document={document}
+              documentCount={orders?.length ?? 0}
+              documentIndex={documentIndex}
+            />
+          ))}
+        </div>
       ),
     },
     ...productionDocuments.map((document) => ({
