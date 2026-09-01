@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import { type FC } from 'react';
 
 import type { Order, OrderGroup } from '@entities/order';
+import { MarkdownPreview } from '@shared/ui/markdown';
 
 import {
   buildCustomerOrderRows,
@@ -88,7 +89,10 @@ const styles = {
       grid-column: 1 / -1;
       justify-content: flex-start;
       text-align: center;
-      font-weight: 500;
+
+      & .wmde-markdown > p {
+        margin: 6px 0;
+      }
     }
   `,
   elementsTable: css`
@@ -242,8 +246,12 @@ export const CustomerOrderPrintForm: FC<CustomerOrderPrintFormProps> = ({
         )}
 
         <div className="footer">
-          {order?.comment ?? ''}
-          {document?.comment ? '\n' + document?.comment : ''}
+          <MarkdownPreview
+            emptyText=""
+            value={[order.comment, document.comment]
+              .filter(Boolean)
+              .join('\n\n')}
+          />
         </div>
       </div>
       <div className={styles.elementsTable}>

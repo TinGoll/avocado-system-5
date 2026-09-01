@@ -17,7 +17,7 @@ export const styles = {
   input: css`
     color: inherit;
     font-size: inherit;
-    font-weight: inherit;
+    font-weight: 400;
     width: 100%;
   `,
   title: css`

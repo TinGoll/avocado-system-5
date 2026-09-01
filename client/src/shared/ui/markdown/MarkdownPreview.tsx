@@ -9,6 +9,7 @@ const preview = css`
     color: inherit;
     font-family: inherit;
     font-size: inherit;
+    font-weight: 400;
     line-height: inherit;
     background: transparent;
   }
