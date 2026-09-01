@@ -14,7 +14,7 @@ const unitLabels: Record<string, string> = {
 };
 
 const quantityFormatter = new Intl.NumberFormat('ru-RU', {
-  maximumFractionDigits: 6,
+  maximumFractionDigits: 2,
 });
 const moneyFormatter = new Intl.NumberFormat('ru-RU', {
   minimumFractionDigits: 2,
@@ -230,7 +230,7 @@ export const ProductionOrderPrintForm: FC<ProductionOrderPrintFormProps> = ({
                 <th>Высота</th>
                 <th>Ширина</th>
                 <th>Толщина</th>
-                <th>Расчётное кол-во, ед.</th>
+                <th>Кол-во, ед.</th>
                 <th>Стоимость, ₽</th>
                 <th>Сумма, ₽</th>
               </tr>
