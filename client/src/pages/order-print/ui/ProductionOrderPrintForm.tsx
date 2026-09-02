@@ -172,7 +172,7 @@ export const ProductionOrderPrintForm: FC<ProductionOrderPrintFormProps> = ({
   documentCount,
 }) => (
   <div>
-    {document.sheets.map(({ order, documentIndex, rows }) => {
+    {document.sheets.map(({ order, rows }) => {
       const total = rows.reduce((sum, row) => sum + row.totalCost, 0);
 
       return (
@@ -196,9 +196,9 @@ export const ProductionOrderPrintForm: FC<ProductionOrderPrintFormProps> = ({
             <div className="orderData">
               {dayjs(group.startedAt).format('DD.MM.YYYY')}
             </div>
-            <div className="pageNumber">
+            {/* <div className="pageNumber">
               {documentIndex + 1}/{documentCount}
-            </div>
+            </div> */}
           </div>
           <div className={styles.documentHeader}>
             {characteristicLabels.map(([key, label]) =>
