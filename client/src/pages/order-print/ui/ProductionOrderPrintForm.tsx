@@ -104,7 +104,6 @@ const styles = {
 
     & .footer {
       grid-column: 1 / -1;
-      white-space: pre-line;
 
       & .wmde-markdown > p {
         margin: 6px 0;
