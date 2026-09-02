@@ -178,6 +178,7 @@ describe('SQLite database', () => {
     const order = await orderRepository.save(
       orderRepository.create({
         name: 'Cascade order',
+        documentNumber: 1,
         items: [
           {
             quantity: 1,
@@ -201,5 +202,12 @@ describe('SQLite database', () => {
       [order.id],
     );
     expect(rows[0].templateId).toBeNull();
+
+    await orderRepository.remove(order);
+    await expect(
+      dataSource.query('SELECT 1 FROM "order_items" WHERE "orderId" = ?', [
+        order.id,
+      ]),
+    ).resolves.toEqual([]);
   });
 });

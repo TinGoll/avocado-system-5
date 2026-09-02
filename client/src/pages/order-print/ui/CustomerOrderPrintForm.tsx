@@ -9,6 +9,7 @@ import {
   buildCustomerOrderRows,
   buildCustomerOrderTotals,
 } from '../model/customer-order';
+import { formatOrderPrintNumber } from '../model/order-print-number';
 
 const styles = {
   preview: css`
@@ -151,7 +152,6 @@ type CustomerOrderPrintFormProps = {
   order: OrderGroup;
   document: Order;
   documentCount: number;
-  documentIndex: number;
   showPrices?: boolean;
 };
 
@@ -159,7 +159,6 @@ export const CustomerOrderPrintForm: FC<CustomerOrderPrintFormProps> = ({
   order,
   document,
   documentCount,
-  documentIndex,
   showPrices = true,
 }) => {
   const rows = buildCustomerOrderRows(document);
@@ -169,16 +168,20 @@ export const CustomerOrderPrintForm: FC<CustomerOrderPrintFormProps> = ({
     <article className={`${styles.preview} order-print-document`}>
       <div className={styles.orderHeader}>
         <div className="orderID">
-          {`№ ${order.id}${documentCount > 1 ? '/' + document.documentNumber + ' (' + documentCount + ')' : order.orderCount}`}
+          {formatOrderPrintNumber(
+            order.id,
+            document.documentNumber,
+            documentCount,
+          )}
         </div>
         <div className="orderNumber">{order.orderNumber}</div>
         <div className="customer">{order.customer?.name}</div>
         <div className="orderData">
           {dayjs(order.startedAt).format('DD.MM.YYYY')}
         </div>
-        <div className="pageNumber">
+        {/* <div className="pageNumber">
           {documentIndex + 1}/{documentCount}
-        </div>
+        </div> */}
       </div>
       <div className={styles.documentHeader}>
         {document.characteristics.profile !== undefined && (

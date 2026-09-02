@@ -5,6 +5,7 @@ import { Fragment, type FC } from 'react';
 import type { OrderGroup } from '@entities/order';
 import { MarkdownPreview } from '@shared/ui/markdown';
 
+import { formatOrderPrintNumber } from '../model/order-print-number';
 import type { ProductionOrderDocument } from '../model/production-order';
 
 const unitLabels: Record<string, string> = {
@@ -184,7 +185,11 @@ export const ProductionOrderPrintForm: FC<ProductionOrderPrintFormProps> = ({
           </h2>
           <div className={styles.orderHeader}>
             <div className="orderID">
-              {`№ ${group.id}${documentCount > 1 ? '/' + order.documentNumber + ' (' + documentCount + ')' : group.orderCount}`}
+              {formatOrderPrintNumber(
+                group.id,
+                order.documentNumber,
+                documentCount,
+              )}
             </div>
             <div className="orderNumber">{group.orderNumber}</div>
             <div className="customer">{group.customer?.name}</div>

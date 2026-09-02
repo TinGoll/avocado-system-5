@@ -173,13 +173,12 @@ const OrderPrintPage: FC = () => {
       label: 'Бланк для заказчика',
       children: (
         <div>
-          {(orders ?? []).map((document, documentIndex) => (
+          {(orders ?? []).map((document) => (
             <CustomerOrderPrintForm
               key={document.id}
               order={group}
               document={document}
               documentCount={orders?.length ?? 0}
-              documentIndex={documentIndex}
             />
           ))}
         </div>
@@ -190,13 +189,12 @@ const OrderPrintPage: FC = () => {
       label: 'Общий заказ',
       children: (
         <div>
-          {(orders ?? []).map((document, documentIndex) => (
+          {(orders ?? []).map((document) => (
             <CustomerOrderPrintForm
               key={document.id}
               order={group}
               document={document}
               documentCount={orders?.length ?? 0}
-              documentIndex={documentIndex}
               showPrices={false}
             />
           ))}
