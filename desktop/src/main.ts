@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { app, BrowserWindow, dialog } from 'electron';
+import { app, BrowserWindow, dialog, Menu } from 'electron';
 
 type LocalServer = {
   close: () => Promise<void>;
@@ -74,6 +74,7 @@ const createMainWindow = async (apiPort: number): Promise<void> => {
 
 const startApplication = async (): Promise<void> => {
   try {
+    Menu.setApplicationMenu(null);
     const apiPort = await startLocalServer();
     await createMainWindow(apiPort);
   } catch (error) {
