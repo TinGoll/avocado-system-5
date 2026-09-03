@@ -26,6 +26,7 @@ describe('CustomersService', () => {
     const customer: Customer = {
       id: '8c54a536-3c04-4f1a-b914-458b98bf47ee',
       name: 'Премиум клиент',
+      attributes: {},
       level: CustomerLevel.GOLD,
     };
     preload.mockResolvedValue(customer);

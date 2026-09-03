@@ -53,6 +53,8 @@ export const PRICE_MODIFIER_CONDITION_PATH_SCHEMAS = {
     orderNumber: field('Номер заказа', 'string'),
     customer: group('Заказчик', {
       name: field('Имя заказчика', 'string'),
+      companyName: field('Название компании', 'string'),
+      address: field('Адрес', 'string'),
       level: enumField('Уровень лояльности', Object.values(CustomerLevel)),
     }),
     status: enumField('Статус заказа', Object.values(OrderStatus)),

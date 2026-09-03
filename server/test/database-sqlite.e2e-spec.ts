@@ -89,9 +89,11 @@ describe('SQLite database', () => {
       const customer = await repository.save(
         repository.create({ name: `Customer ${level}`, level }),
       );
-      expect(
-        (await repository.findOneByOrFail({ id: customer.id })).level,
-      ).toBe(level);
+      const savedCustomer = await repository.findOneByOrFail({
+        id: customer.id,
+      });
+      expect(savedCustomer.level).toBe(level);
+      expect(savedCustomer.attributes).toEqual({});
     }
 
     const enumCases = [

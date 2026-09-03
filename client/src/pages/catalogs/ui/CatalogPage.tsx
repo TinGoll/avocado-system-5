@@ -68,6 +68,44 @@ const requiredName = {
 const customerFields: CatalogField<Customer>[] = [
   { title: 'Название', dataIndex: 'name', ...requiredName },
   {
+    title: 'Альтернативное название / компания',
+    dataIndex: 'companyName',
+    editor: { kind: 'text' },
+    width: 260,
+  },
+  {
+    title: 'Адрес',
+    dataIndex: 'address',
+    editor: { kind: 'text' },
+    width: 240,
+  },
+  {
+    title: 'Телефон',
+    dataIndex: 'phone',
+    editor: { kind: 'text' },
+    width: 180,
+  },
+  {
+    title: 'Почта',
+    dataIndex: 'email',
+    editor: { kind: 'text' },
+    rules: [{ type: 'email', message: 'Введите корректную почту' }],
+    width: 220,
+  },
+  {
+    title: 'Комментарий',
+    dataIndex: 'comment',
+    editor: { kind: 'text' },
+    width: 260,
+  },
+  {
+    title: 'Атрибуты (JSON)',
+    dataIndex: 'attributes',
+    editor: { kind: 'json', rows: 9 },
+    inline: false,
+    table: false,
+  },
+  {
     title: 'Уровень',
     dataIndex: 'level',
     editor: {
@@ -266,15 +304,33 @@ const productFields: CatalogField<ProductTemplate>[] = [
   },
 ];
 
+type CustomerCreateValues = Omit<
+  Pick<
+    Customer,
+    | 'name'
+    | 'companyName'
+    | 'address'
+    | 'phone'
+    | 'email'
+    | 'comment'
+    | 'attributes'
+    | 'level'
+  >,
+  'attributes'
+> & { attributes?: string };
+
 const CustomerCreateButton: FC = () => {
   const { create } = useCustomers();
   const { message } = App.useApp();
   const [open, setOpen] = useState(false);
-  const [form] = Form.useForm<Pick<Customer, 'name' | 'level'>>();
+  const [form] = Form.useForm<CustomerCreateValues>();
 
-  const handleCreate = async (values: Pick<Customer, 'name' | 'level'>) => {
+  const handleCreate = async (values: CustomerCreateValues) => {
     try {
-      await create.trigger(values);
+      await create.trigger({
+        ...values,
+        attributes: values.attributes ? JSON.parse(values.attributes) : {},
+      });
       message.success('Клиент добавлен');
       setOpen(false);
       form.resetFields();
@@ -318,6 +374,54 @@ const CustomerCreateButton: FC = () => {
                 { value: 'gold', label: 'Золотой' },
               ]}
             />
+          </Form.Item>
+          <Form.Item
+            label="Альтернативное название / компания"
+            name="companyName"
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item label="Адрес" name="address">
+            <Input />
+          </Form.Item>
+          <Form.Item label="Телефон" name="phone">
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Почта"
+            name="email"
+            rules={[{ type: 'email', message: 'Введите корректную почту' }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item label="Комментарий" name="comment">
+            <Input.TextArea rows={3} />
+          </Form.Item>
+          <Form.Item
+            label="Атрибуты (JSON)"
+            name="attributes"
+            initialValue="{}"
+            rules={[
+              {
+                validator: async (_rule, value?: string) => {
+                  if (!value) return;
+                  try {
+                    const attributes = JSON.parse(value) as unknown;
+                    if (
+                      typeof attributes !== 'object' ||
+                      attributes === null ||
+                      Array.isArray(attributes)
+                    ) {
+                      throw new Error();
+                    }
+                  } catch {
+                    throw new Error('Введите корректный JSON-объект');
+                  }
+                },
+              },
+            ]}
+          >
+            <Input.TextArea rows={5} placeholder='{"ключ": "значение"}' />
           </Form.Item>
         </Form>
       </Modal>

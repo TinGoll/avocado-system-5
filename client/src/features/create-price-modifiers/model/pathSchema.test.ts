@@ -10,6 +10,13 @@ import {
 
 const serverContract = {
   order_group: {
+    customer: {
+      label: 'Заказчик',
+      children: {
+        companyName: { label: 'Название компании', type: 'string' },
+        address: { label: 'Адрес', type: 'string' },
+      },
+    },
     status: {
       label: 'Статус заказа',
       type: 'enum',
@@ -47,6 +54,11 @@ describe('price modifier condition path schema', () => {
       'quantity',
       'snapshot.baseCustomerPrice',
     ]);
+    expect(getSelectablePaths(serverContract.order_group)).toEqual([
+      'customer.companyName',
+      'customer.address',
+      'status',
+    ]);
   });
 
   it.each([
@@ -61,6 +73,8 @@ describe('price modifier condition path schema', () => {
     ['item', 'quantity', 'number'],
     ['order', 'characteristics.material.name', 'string'],
     ['order_group', 'status', 'enum'],
+    ['order_group', 'customer.address', 'string'],
+    ['order_group', 'customer.companyName', 'string'],
   ] as const)(
     'selects the %s.%s editor from the server field type',
     (source, path, editor) => {
