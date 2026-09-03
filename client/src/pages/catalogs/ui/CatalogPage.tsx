@@ -251,15 +251,6 @@ const productFields: CatalogField<ProductTemplate>[] = [
       }).format(Number(value) || 0),
   },
   {
-    title: 'Работы',
-    dataIndex: 'operations',
-    form: false,
-    render: (value) =>
-      ((value as ProductTemplate['operations']) ?? [])
-        .map(({ name }) => name)
-        .join(', ') || '—',
-  },
-  {
     title: 'Характеристики по умолчанию (JSON)',
     dataIndex: 'defaultCharacteristics',
     editor: { kind: 'json', rows: 9 },
