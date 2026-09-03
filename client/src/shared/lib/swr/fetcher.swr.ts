@@ -3,7 +3,14 @@ import axios, { AxiosError, type AxiosRequestConfig, type Method } from 'axios';
 import { showErrorMessage } from '@shared/lib';
 
 export const resolveApiBaseUrl = (configuredBaseUrl?: string): string => {
-  const baseUrl = configuredBaseUrl?.trim().replace(/\/+$/, '') || '/api';
+  const desktopBaseUrl =
+    typeof window === 'undefined'
+      ? undefined
+      : window.avocadoDesktop?.apiBaseUrl;
+  const baseUrl =
+    desktopBaseUrl?.replace(/\/+$/, '') ||
+    configuredBaseUrl?.trim().replace(/\/+$/, '') ||
+    '/api';
 
   return /(?:^|\/)api$/.test(baseUrl) ? baseUrl : `${baseUrl}/api`;
 };

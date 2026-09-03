@@ -1,5 +1,5 @@
 import { type FC, useCallback, useState } from 'react';
-import { BrowserRouter } from 'react-router';
+import { BrowserRouter, HashRouter } from 'react-router';
 
 import { AntdConfigProvider } from './providers/AntdConfigProvider.tsx';
 import { initializeDayjsConf } from './providers/dayjs.conf';
@@ -8,6 +8,8 @@ import { routesElements } from './routes/routesElements';
 import { ServerConnectionScreen } from './ui/ServerConnectionScreen';
 
 initializeDayjsConf();
+
+const Router = window.avocadoDesktop ? HashRouter : BrowserRouter;
 
 export const App: FC = () => {
   const [isServerReady, setIsServerReady] = useState(false);
@@ -23,7 +25,7 @@ export const App: FC = () => {
       <GlobalErrorBoundary>
         {isServerReady && (
           <div className="app-entry-animation">
-            <BrowserRouter>{routesElements()}</BrowserRouter>
+            <Router>{routesElements()}</Router>
           </div>
         )}
         {!isTransitionComplete && (
