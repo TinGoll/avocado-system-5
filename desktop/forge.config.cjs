@@ -1,7 +1,12 @@
+const path = require('node:path');
+
+const iconPath = path.join(__dirname, 'assets', 'icon');
+
 module.exports = {
   packagerConfig: {
     asar: true,
     executableName: 'Avocado',
+    icon: iconPath,
     name: 'Avocado',
   },
   rebuildConfig: {},
@@ -10,6 +15,7 @@ module.exports = {
       name: '@electron-forge/maker-squirrel',
       config: {
         name: 'avocado',
+        setupIcon: `${iconPath}.ico`,
       },
     },
   ],

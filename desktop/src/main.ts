@@ -46,6 +46,7 @@ const startLocalServer = async (): Promise<number> => {
 const createMainWindow = async (apiPort: number): Promise<void> => {
   mainWindow = new BrowserWindow({
     height: 900,
+    icon: path.join(app.getAppPath(), 'build', 'client', 'favicon.png'),
     minHeight: 600,
     minWidth: 900,
     show: false,
