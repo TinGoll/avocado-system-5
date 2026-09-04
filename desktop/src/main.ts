@@ -19,6 +19,8 @@ let mainWindow: BrowserWindow | null = null;
 let localServer: LocalServer | null = null;
 let isClosingServer = false;
 
+app.setPath('userData', path.join(app.getPath('appData'), 'Avocado v5'));
+
 const clearApplicationCache = (): void => {
   const userDataPath = app.getPath('userData');
   const cacheDirectories = [
@@ -77,7 +79,7 @@ const createMainWindow = async (apiPort: number): Promise<void> => {
     minHeight: 600,
     minWidth: 900,
     show: false,
-    title: 'Avocado',
+    title: 'Avocado 5',
     width: 1440,
     webPreferences: {
       additionalArguments: [`--avocado-api-port=${apiPort}`],
@@ -106,7 +108,7 @@ const startApplication = async (): Promise<void> => {
     await createMainWindow(apiPort);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    dialog.showErrorBox('Не удалось запустить Avocado', message);
+    dialog.showErrorBox('Не удалось запустить Avocado 5', message);
     app.quit();
   }
 };

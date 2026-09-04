@@ -5,9 +5,9 @@ const iconPath = path.join(__dirname, 'assets', 'icon');
 module.exports = {
   packagerConfig: {
     asar: true,
-    executableName: 'Avocado',
+    executableName: 'Avocado 5',
     icon: iconPath,
-    name: 'Avocado',
+    name: 'Avocado 5',
   },
   rebuildConfig: {},
   makers: [
@@ -16,7 +16,7 @@ module.exports = {
       config: {
         iconUrl:
           'https://raw.githubusercontent.com/TinGoll/avocado-system-5/main/desktop/assets/icon.ico',
-        name: 'avocado',
+        name: 'avocado-v5',
         setupIcon: `${iconPath}.ico`,
       },
     },

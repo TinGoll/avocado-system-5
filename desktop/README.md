@@ -50,4 +50,4 @@ npm run make:desktop
 ```
 
 Electron Forge writes the versioned installer, for example
-`Avocado-5.0.1 Setup.exe`, to `desktop/out/make/`.
+`Avocado 5-5.0.1 Setup.exe`, to `desktop/out/make/`.
