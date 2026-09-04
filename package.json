@@ -17,6 +17,8 @@
     "build:all": "npm run build:desktop",
     "package:desktop": "npm --prefix desktop run package",
     "make:desktop": "npm --prefix desktop run make",
+    "version:patch": "npm --prefix desktop version patch --no-git-tag-version",
+    "version:minor": "npm --prefix desktop version minor --no-git-tag-version",
     "test": "npm run test:client && npm run test:server",
     "test:client": "npm --prefix client test",
     "test:server": "npm --prefix server test"

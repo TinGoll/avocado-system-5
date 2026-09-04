@@ -36,8 +36,18 @@ it so that the native SQLite driver uses the correct Electron ABI.
 
 ## Packaging for Windows
 
+Increase the application version before a release. Use `version:patch` for a
+regular release, or `version:minor` for a larger release within version 5:
+
+```powershell
+npm run version:patch
+```
+
+Then build the installer:
+
 ```powershell
 npm run make:desktop
 ```
 
-Electron Forge writes the installer to `desktop/out/make/`.
+Electron Forge writes the versioned installer, for example
+`Avocado-5.0.1 Setup.exe`, to `desktop/out/make/`.
