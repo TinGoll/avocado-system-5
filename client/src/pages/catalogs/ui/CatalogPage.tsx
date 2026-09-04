@@ -66,37 +66,47 @@ const requiredName = {
 };
 
 const customerFields: CatalogField<Customer>[] = [
-  { title: 'Название', dataIndex: 'name', ...requiredName },
+  {
+    title: 'Название',
+    dataIndex: 'name',
+    ...requiredName,
+    width: 160,
+    ellipsis: true,
+  },
   {
     title: 'Альтернативное название / компания',
     dataIndex: 'companyName',
     editor: { kind: 'text' },
-    width: 260,
+    width: 190,
+    ellipsis: true,
   },
   {
     title: 'Адрес',
     dataIndex: 'address',
     editor: { kind: 'text' },
-    width: 240,
+    width: 220,
+    ellipsis: true,
   },
   {
     title: 'Телефон',
     dataIndex: 'phone',
     editor: { kind: 'text' },
-    width: 180,
+    width: 150,
+    ellipsis: true,
   },
   {
     title: 'Почта',
     dataIndex: 'email',
     editor: { kind: 'text' },
     rules: [{ type: 'email', message: 'Введите корректную почту' }],
-    width: 220,
+    width: 210,
+    ellipsis: true,
   },
   {
     title: 'Комментарий',
     dataIndex: 'comment',
     editor: { kind: 'text' },
-    width: 260,
+    ellipsis: true,
   },
   {
     title: 'Атрибуты (JSON)',

@@ -286,61 +286,66 @@ export const EditableCatalogTable = <T extends CatalogRecord>({
     }
   };
 
+  const tableFields = fields.filter((field) => field.table !== false);
+  const flexibleFieldIndex = tableFields.reduce(
+    (lastIndex, field, index) =>
+      field.width === undefined ? index : lastIndex,
+    -1,
+  );
+
   const columns: TableColumnsType<T> = [
-    ...fields
-      .filter((field) => field.table !== false)
-      .map(
-        (field): TableColumnType<T> => ({
-          title: field.title,
-          dataIndex:
-            typeof field.dataIndex === 'string'
-              ? field.dataIndex
-              : [...field.dataIndex],
-          width: field.width,
-          align: field.align,
-          render: (value: unknown, record: T) => {
-            const path = toCatalogPath(field.dataIndex);
-            const cellKey = `${record.id}:${path.join('.')}`;
-            const editor = field.editor;
-            const inlineEditor =
-              field.inline !== false && editor && editor.kind !== 'json'
-                ? editor
-                : undefined;
+    ...tableFields.map(
+      (field, index): TableColumnType<T> => ({
+        title: field.title,
+        dataIndex:
+          typeof field.dataIndex === 'string'
+            ? field.dataIndex
+            : [...field.dataIndex],
+        width: field.width ?? (index === flexibleFieldIndex ? undefined : 180),
+        ellipsis: field.ellipsis ?? true,
+        align: field.align,
+        render: (value: unknown, record: T) => {
+          const path = toCatalogPath(field.dataIndex);
+          const cellKey = `${record.id}:${path.join('.')}`;
+          const editor = field.editor;
+          const inlineEditor =
+            field.inline !== false && editor && editor.kind !== 'json'
+              ? editor
+              : undefined;
 
-            if (inlineEditor && editingCell === cellKey) {
-              return (
-                <InlineEditor
-                  editor={inlineEditor}
-                  value={value}
-                  onCancel={() => setEditingCell(undefined)}
-                  onSave={(nextValue) => saveInline(record, field, nextValue)}
-                />
-              );
-            }
-
-            const content = field.render
-              ? field.render(value, record)
-              : formatValue(value);
-
-            return inlineEditor ? (
-              <div
-                className="editable-catalog-cell"
-                title="Нажмите, чтобы изменить"
-                onClick={() => setEditingCell(cellKey)}
-              >
-                {content}
-              </div>
-            ) : (
-              content
+          if (inlineEditor && editingCell === cellKey) {
+            return (
+              <InlineEditor
+                editor={inlineEditor}
+                value={value}
+                onCancel={() => setEditingCell(undefined)}
+                onSave={(nextValue) => saveInline(record, field, nextValue)}
+              />
             );
-          },
-        }),
-      ),
+          }
+
+          const content = field.render
+            ? field.render(value, record)
+            : formatValue(value);
+
+          return inlineEditor ? (
+            <div
+              className="editable-catalog-cell"
+              title="Нажмите, чтобы изменить"
+              onClick={() => setEditingCell(cellKey)}
+            >
+              {content}
+            </div>
+          ) : (
+            content
+          );
+        },
+      }),
+    ),
     {
       title: 'Действия',
       key: 'actions',
       width: 112,
-      fixed: 'right',
       render: (_value: unknown, record: T) => {
         const recordName = String(
           getCatalogValue(record, ['name']) ?? record.id,
@@ -409,8 +414,8 @@ export const EditableCatalogTable = <T extends CatalogRecord>({
           locale={{ emptyText }}
           pagination={{ pageSize: 20, hideOnSinglePage: true }}
           rowKey="id"
-          scroll={{ x: 800 }}
           size="small"
+          tableLayout="fixed"
         />
       )}
 

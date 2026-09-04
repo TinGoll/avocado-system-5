@@ -39,6 +39,7 @@ export type CatalogField<T extends CatalogRecord> = {
   required?: boolean;
   rules?: Rule[];
   width?: number;
+  ellipsis?: boolean;
   align?: 'left' | 'right' | 'center';
   render?: (value: unknown, record: T) => ReactNode;
 };
