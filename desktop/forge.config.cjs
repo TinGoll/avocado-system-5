@@ -14,6 +14,8 @@ module.exports = {
     {
       name: '@electron-forge/maker-squirrel',
       config: {
+        iconUrl:
+          'https://raw.githubusercontent.com/TinGoll/avocado-system-5/main/desktop/assets/icon.ico',
         name: 'avocado',
         setupIcon: `${iconPath}.ico`,
       },

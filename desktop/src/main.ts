@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 
 import { app, BrowserWindow, dialog, Menu } from 'electron';
@@ -17,6 +18,32 @@ type LocalServerModule = {
 let mainWindow: BrowserWindow | null = null;
 let localServer: LocalServer | null = null;
 let isClosingServer = false;
+
+const clearApplicationCache = (): void => {
+  const userDataPath = app.getPath('userData');
+  const cacheDirectories = [
+    'Cache',
+    'Code Cache',
+    'DawnGraphiteCache',
+    'DawnWebGPUCache',
+    'GPUCache',
+  ];
+
+  for (const directory of cacheDirectories) {
+    try {
+      fs.rmSync(path.join(userDataPath, directory), {
+        force: true,
+        recursive: true,
+      });
+    } catch {
+      // Uninstallation must continue even if Windows is still releasing a cache file.
+    }
+  }
+};
+
+if (process.argv.includes('--squirrel-uninstall')) {
+  clearApplicationCache();
+}
 
 if (require('electron-squirrel-startup')) {
   app.quit();
