@@ -25,7 +25,7 @@ export const App: FC = () => {
       <GlobalErrorBoundary>
         {isServerReady && (
           <div className="app-entry-animation">
-            <Router>{routesElements()}</Router>
+            <Router useTransitions={false}>{routesElements()}</Router>
           </div>
         )}
         {!isTransitionComplete && (
