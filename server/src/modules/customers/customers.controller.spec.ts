@@ -27,14 +27,21 @@ describe('CustomersController', () => {
       {
         id: 'customer-1',
         name: 'Bronze customer',
+        attributes: {},
         level: CustomerLevel.BRONZE,
       },
       {
         id: 'customer-2',
         name: 'Silver customer',
+        attributes: {},
         level: CustomerLevel.SILVER,
       },
-      { id: 'customer-3', name: 'Gold customer', level: CustomerLevel.GOLD },
+      {
+        id: 'customer-3',
+        name: 'Gold customer',
+        attributes: {},
+        level: CustomerLevel.GOLD,
+      },
     ];
     service.findAll.mockResolvedValue(customers);
 
@@ -51,6 +58,41 @@ describe('CustomersController', () => {
 
     expect(errors).toEqual(
       expect.arrayContaining([expect.objectContaining({ property: 'level' })]),
+    );
+  });
+
+  it('accepts optional customer details and validates email', async () => {
+    const dto = new CreateCustomerDto();
+    dto.name = 'Customer with details';
+    dto.level = CustomerLevel.GOLD;
+    dto.companyName = 'Avocado LLC';
+    dto.address = 'Moscow';
+    dto.phone = '+7 999 123-45-67';
+    dto.email = 'customer@example.com';
+    dto.comment = 'Preferred customer';
+    dto.attributes = { source: 'website', ordersCount: 3, isPartner: true };
+
+    await expect(validate(dto)).resolves.toHaveLength(0);
+
+    dto.email = 'invalid-email';
+    await expect(validate(dto)).resolves.toEqual(
+      expect.arrayContaining([expect.objectContaining({ property: 'email' })]),
+    );
+  });
+
+  it('rejects a non-object customer attributes value', async () => {
+    const dto = new CreateCustomerDto();
+    dto.name = 'Customer with invalid attributes';
+    dto.level = CustomerLevel.BRONZE;
+    dto.attributes = [] as unknown as Record<
+      string,
+      string | number | boolean
+    >;
+
+    await expect(validate(dto)).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ property: 'attributes' }),
+      ]),
     );
   });
 });

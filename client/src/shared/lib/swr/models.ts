@@ -16,6 +16,12 @@ export type Color = {
 export interface Customer {
   id: string;
   name: string;
+  companyName?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  comment?: string | null;
+  attributes?: Record<string, string | number | boolean>;
   level: 'bronze' | 'silver' | 'gold';
 }
 

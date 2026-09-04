@@ -17,6 +17,8 @@ export const priceModifierConditionPathSchemas = {
     orderNumber: field('Номер заказа', 'string'),
     customer: group('Заказчик', {
       name: field('Имя заказчика', 'string'),
+      companyName: field('Название компании', 'string'),
+      address: field('Адрес', 'string'),
       level: enumField('Уровень лояльности', ['bronze', 'silver', 'gold']),
     }),
     status: enumField('Статус заказа', [

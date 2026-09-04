@@ -1,0 +1,29 @@
+{
+  "name": "avocado-system",
+  "version": "5.0.0",
+  "private": true,
+  "scripts": {
+    "setup": "npm install --prefix client && npm install --prefix server && npm install --prefix desktop",
+    "dev": "npm run dev:web",
+    "dev:web": "concurrently --kill-others --names client,server --prefix-colors cyan,yellow \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:client": "npm --prefix client run dev",
+    "dev:server": "npm --prefix server run start:dev",
+    "start:desktop": "npm --prefix desktop start",
+    "build": "npm run build:web",
+    "build:web": "npm run build:client && npm run build:server",
+    "build:client": "npm --prefix client run build",
+    "build:server": "npm --prefix server run build",
+    "build:desktop": "npm --prefix desktop run build",
+    "build:all": "npm run build:desktop",
+    "package:desktop": "npm --prefix desktop run package",
+    "make:desktop": "npm --prefix desktop run make",
+    "version:patch": "npm --prefix desktop version patch --no-git-tag-version",
+    "version:minor": "npm --prefix desktop version minor --no-git-tag-version",
+    "test": "npm run test:client && npm run test:server",
+    "test:client": "npm --prefix client test",
+    "test:server": "npm --prefix server test"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}

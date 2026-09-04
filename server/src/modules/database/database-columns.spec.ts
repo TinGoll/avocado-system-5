@@ -14,6 +14,7 @@ describe('PostgreSQL column metadata', () => {
     const jsonColumns = getMetadataArgsStorage()
       .columns.filter(({ target }) =>
         [
+          Customer,
           FacadeProfile,
           OrderGroup,
           Order,
@@ -25,7 +26,7 @@ describe('PostgreSQL column metadata', () => {
       )
       .filter(({ options }) => options.type === 'jsonb');
 
-    expect(jsonColumns).toHaveLength(10);
+    expect(jsonColumns).toHaveLength(11);
   });
 
   it('uses simple-enum with stable legacy-compatible PostgreSQL names', () => {

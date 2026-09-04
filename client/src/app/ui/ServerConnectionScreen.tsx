@@ -1,7 +1,9 @@
 import { Progress, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 
-const HEALTH_URL = '/api/health';
+import { resolveApiBaseUrl } from '@shared/lib/swr';
+
+const HEALTH_URL = `${resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL)}/health`;
 const REQUEST_TIMEOUT_MS = 3_000;
 const RETRY_DELAY_MS = 1_000;
 const SLOW_START_MS = 10_000;

@@ -18,6 +18,8 @@ import type { FieldType } from '../model/create-varnish';
 const styles = {
   form: css`
     box-sizing: border-box;
+    width: 100%;
+
     & .ant-form-item {
       margin-bottom: 16px;
     }

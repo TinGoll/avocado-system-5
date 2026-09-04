@@ -70,6 +70,22 @@ describe('price modifier condition path contract', () => {
     ).toBe(false);
   });
 
+  it.each(['customer.address', 'customer.companyName'])(
+    'allows customer field order_group.%s',
+    (path) => {
+      const field = getPriceModifierConditionPathField(
+        ConditionSource.ORDER_GROUP,
+        path,
+      );
+
+      expect(field).toEqual(expect.objectContaining({ type: 'string' }));
+      expect(isConditionValueValidForField(field!, 'Авокадо')).toBe(true);
+      expect(
+        isConditionOperatorAllowedForField(field!, ConditionOperator.EQ),
+      ).toBe(true);
+    },
+  );
+
   it('validates enum options and equality only', () => {
     const field = getPriceModifierConditionPathField(
       ConditionSource.ORDER_GROUP,
