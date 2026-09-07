@@ -21,6 +21,7 @@ describe('createDatabaseOptions', () => {
       type: 'better-sqlite3',
       database: process.env.DB_PATH,
       enableWAL: true,
+      migrationsTransactionMode: 'each',
       synchronize: false,
       migrationsRun: true,
       migrations: [expect.stringContaining('/migrations/sqlite/')],

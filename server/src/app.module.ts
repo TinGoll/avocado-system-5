@@ -1,3 +1,4 @@
+import { OrderManagementModule } from './modules/order-management/order-management.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './modules/database/database.module';
@@ -39,6 +40,7 @@ import { HealthModule } from './modules/health/health.module';
     CustomersModule,
     ClientErrorsModule,
     HealthModule,
+    OrderManagementModule,
   ],
   controllers: [],
   providers: [],

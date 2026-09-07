@@ -31,6 +31,7 @@ export function createDatabaseOptions(
     return {
       ...sharedOptions,
       type: 'better-sqlite3',
+      migrationsTransactionMode: 'each',
       database,
       enableWAL: true,
       prepareDatabase: (sqliteDatabase: Database.Database) => {
