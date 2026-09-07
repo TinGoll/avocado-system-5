@@ -1,3 +1,4 @@
+import { runDatabaseTransaction } from '../database/database-transaction';
 import {
   BadRequestException,
   ConflictException,
@@ -31,8 +32,6 @@ type GroupDetails = Pick<
 
 @Injectable()
 export class OrderManagementService {
-  private sqliteWrites: Promise<void> = Promise.resolve();
-
   constructor(
     private readonly source: DataSource,
     private readonly journal: OrderManagementEventService,
@@ -41,33 +40,7 @@ export class OrderManagementService {
   private transaction<T>(
     work: (manager: EntityManager) => Promise<T>,
   ): Promise<T> {
-    if (this.source.options.type !== 'better-sqlite3')
-      return this.source.transaction(work);
-    // better-sqlite3 has one connection; concurrent request transactions must
-    // not become interleaved savepoints. Other processes can still hold a lock.
-    const task = this.sqliteWrites.then(async () => {
-      for (let attempt = 0; ; attempt += 1) {
-        try {
-          return await this.source.transaction(work);
-        } catch (error) {
-          const code = (error as { driverError?: { code?: string } })
-            .driverError?.code;
-          if (
-            attempt >= 2 ||
-            !['SQLITE_BUSY', 'SQLITE_BUSY_SNAPSHOT'].includes(code ?? '')
-          )
-            throw error;
-          await new Promise((resolve) =>
-            setTimeout(resolve, 20 * (attempt + 1)),
-          );
-        }
-      }
-    });
-    this.sqliteWrites = task.then(
-      () => undefined,
-      () => undefined,
-    );
-    return task;
+    return runDatabaseTransaction(this.source, work);
   }
 
   private async group(manager: EntityManager, id: number) {

@@ -1,6 +1,6 @@
 # Управление заказами: задачи для AI-агента
 
-Основа: [архитектура фичи](order-management-architecture.md), включая согласованные решения MVP в разделе 13. OM-01 и OM-02 реализованы; проверка PostgreSQL остаётся открытой. Остальные задачи пока не выполнены. Это задания на реализацию, а не создание отдельных задач в приложении Codex.
+Основа: [архитектура фичи](order-management-architecture.md), включая согласованные решения MVP в разделе 13. OM-01–OM-03 реализованы; проверка PostgreSQL остаётся открытой. Остальные задачи пока не выполнены. Это задания на реализацию, а не создание отдельных задач в приложении Codex.
 
 ## Как передавать задачу агенту
 
@@ -230,6 +230,75 @@ HTTP-проверки охватывают наследование сроков
 **Приёмка:** невалидная доска не сохраняется частично; начальная колонка принадлежит доске и активна; её архивация требует выбора другой очереди; версия защищает конкурентные изменения. Все операции работают на SQLite и PostgreSQL.
 
 **Передать дальше:** board/stage DTO, семантику version, архивирования и начальной колонки. Карточки не входят в эту задачу.
+
+### Результат OM-03 (7 сентября 2026)
+
+Добавлен `ProductionBoardsModule` в `AppModule`; сущности находятся в `server/src/modules/production-boards/entities/`:
+
+- `ProductionBoard` / `production_boards`: UUID id, name, nullable description, UUID initialStageId, version = 0, nullable archivedAt. FK initialStageId → production_stages.id с RESTRICT. В SQL поле initialStageId nullable для создания циклической связи, но API заполняет его до commit; частично созданная доска наружу не возвращается.
+- `ProductionStage` / `production_stages`: UUID id, обязательный boardId (FK CASCADE), name, color, kind (`queue | active | done`), integer progressPercent и position, nullable usedAt/archivedAt. Индекс `(boardId, position)`, CHECK согласованности kind/progressPercent. Времена — timestamptz в PostgreSQL и datetime в SQLite.
+- Миграции `1788900000000-AddProductionBoards.ts` / `AddProductionBoards1788900000000` в обеих цепочках. Они создают только новые таблицы и индекс; существующим заказам доски/колонки не назначаются. В PostgreSQL циклический FK добавляется после создания обеих таблиц; SQLite допускает ссылку в CREATE TABLE до создания второй таблицы.
+
+Контракт API (все пути с `/api`):
+
+| Endpoint | Тело и результат |
+| --- | --- |
+| `GET /production-boards` | `{ items: ProductionBoard[], meta: { count } }`, без stages; включает архивные доски, сортировка name/id |
+| `POST /production-boards` | `{ name, description?, stages: StageDefinitionDto[], initialStageIndex }`; полный board со stages, HTTP 201 |
+| `GET /production-boards/:id` | Полный board со всеми stages, включая архивные; сортировка колонок position/id |
+| `PATCH /production-boards/:id` | `{ expectedVersion, name?, description?, initialStageId? }`; полный board |
+| `POST /production-boards/:id/archive` | `{ expectedVersion }`; полный board с archivedAt, HTTP 201 |
+| `POST /production-boards/:id/stages` | `{ expectedVersion, name, color, kind, progressPercent }`; полный board, новая колонка в конце активного порядка, HTTP 201 |
+| `PATCH /production-boards/:id/stages/:stageId` | `{ expectedVersion, name?, color?, kind?, progressPercent? }`; полный board |
+| `POST /production-boards/:id/stages/:stageId/archive` | `{ expectedVersion, initialStageId? }`; полный board, HTTP 201 |
+| `DELETE /production-boards/:id/stages/:stageId` | Тело `{ expectedVersion, initialStageId? }`; полный board, HTTP 200 |
+| `PUT /production-boards/:id/stage-order` | `{ expectedVersion, stageIds: string[] }`; полный board |
+
+`StageDefinitionDto` содержит `{ name, color, kind, progressPercent }`. Имя доски/колонки — после trim 1–100 символов; description — null или строка до 2000 символов; цвет — `#RRGGBB`. Создание принимает 3–100 колонок; их позиции соответствуют порядку массива. `initialStageIndex` — обязательный индекс с нуля в этом массиве, указывающий на queue. IDs генерирует сервер.
+
+```http
+POST /api/production-boards
+Content-Type: application/json
+
+{
+  "name": "Мебель",
+  "initialStageIndex": 0,
+  "stages": [
+    { "name": "Очередь", "color": "#999999", "kind": "queue", "progressPercent": 0 },
+    { "name": "Работа", "color": "#1677ff", "kind": "active", "progressPercent": 50 },
+    { "name": "Готово", "color": "#52c41a", "kind": "done", "progressPercent": 100 }
+  ]
+}
+```
+
+Ответ имеет `{ id, name, description: null, initialStageId: <UUID первой колонки>, version: 0, archivedAt: null, stages: [...] }`. Каждая колонка содержит id, boardId, name, color, kind, progressPercent, position, usedAt и archivedAt.
+
+Все команды настройки уже существующей доски требуют expectedVersion (целое >= 0). Одна успешная команда увеличивает board.version ровно на 1, в том числе запрос без фактических изменений полей. Колонки отдельной версии не имеют. Сначала выполняется условный UPDATE версии доски, затем проверки и запись в той же транзакции. При несовпадении — 409; при ошибке валидации/записи версия и данные откатываются. Несуществующая доска или чужая/несуществующая колонка — 404; неверная конфигурация — 400; архивный объект или изменение смысла использованной колонки — 409.
+
+Инварианты после каждой команды:
+
+- Среди неархивных колонок остаются queue, active и done; начальная колонка принадлежит этой доске, неархивна и имеет kind queue.
+- Проценты целочисленные: queue = 0, active = 1–99, done = 100. Изменение kind/progress разрешено только до usedAt; после использования допускаются имя, цвет и перестановка. Пустое или неизменившееся значение kind/progress не сбрасывает usedAt.
+- Удаление использованной колонки запрещено. Архивирование сохраняет строку, usedAt и смысл колонки. Для удаления/архивирования начальной колонки передать initialStageId другой неархивной queue этой же доски в том же запросе; альтернативно предварительно сменить initialStageId через PATCH доски.
+- Reorder должен содержать все и только неархивные колонки ровно по одному разу. Их позиции записываются как 0..N-1. Архивные колонки в этот список не включаются; после удаления/архивирования активный порядок также нормализуется. position не уникален, поскольку архивные строки сохраняют старую позицию.
+- Архивная доска доступна для чтения, но её настройка заблокирована; восстановление и физическое удаление доски в OM-03 не реализованы. Повторное архивирование возвращает 409, не меняя версию.
+
+Для OM-04: устанавливать usedAt при первом использовании колонки и не очищать его; назначения/перемещения должны захватывать и увеличивать ту же board.version. Проверки незавершённых карточек при архивировании доски и карточек при архивировании/удалении колонки отмечены в сервисе и должны быть добавлены на реальной модели карточек. Проверки ссылок включённых notification rules добавляет OM-08. Сейчас фиктивных репозиториев этих сущностей нет.
+
+`runDatabaseTransaction(source, work)` в `modules/database/database-transaction.ts` вынесен из OM-02 и используется обоими сервисами. Для SQLite очередь теперь общая на DataSource, чтобы параллельные команды разных модулей не превращались во вложенные savepoint на единственном соединении. Сохранены две ограниченные повторные попытки SQLITE_BUSY/SQLITE_BUSY_SNAPSHOT; PostgreSQL использует обычную транзакцию. OM-04 следует использовать этот helper для своих внешних транзакций, а журналу передавать уже полученный manager, не открывая вложенную транзакцию.
+
+Проверки из `server/`:
+
+- `npm run test:cov -- --config ./test/jest-production-boards.config.cjs --runInBand` — 12 тестов (9 HTTP и 3 миграционных), успешно. Покрытие строк ProductionBoardsService — 98,09%; SQLite-миграции — 100%.
+- `npm run test:cov -- --config ./test/jest-order-management.config.cjs --runInBand` — 11 тестов OM-02, успешно после переноса транзакционной очереди.
+- `npm run test:cov -- --runInBand add-order-management.migration.spec.ts database-options.spec.ts --collectCoverageFrom=modules/database/migrations/sqlite/1788800000000-AddOrderManagement.ts` — 9 тестов, успешно.
+- `npm run test:e2e:sqlite` — 4 теста; полная цепочка на пустой SQLite, 21 сущность без расхождений схемы и проверка FK.
+- `npm run build`, локальный ESLint TypeScript-файлов без `--fix` и `node --check test/jest-production-boards.config.cjs` — успешно.
+
+Проверены обновление старой SQLite с сохранением статуса/цен/связей, отсутствие начальных досок, ограничения FK и прогресса, down/up на одноразовой заполненной БД, откат невалидной доски целиком, конкуренция версий, принадлежность колонок, смена начальной очереди, reorder, usedAt, архивирование и параллельные транзакции двух модулей.
+
+Ограничение приёмки: PostgreSQL недоступен (`127.0.0.1:5432`), его миграция и транзакции не проверены исполнением; ограничение baseline остаётся из OM-01. UI и производственные карточки не добавлены. OM-04 не начата.
+
 
 <a id="om-04"></a>
 ## OM-04. Карточки, транзакционные перемещения и прогресс

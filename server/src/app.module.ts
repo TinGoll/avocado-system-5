@@ -1,4 +1,5 @@
 import { OrderManagementModule } from './modules/order-management/order-management.module';
+import { ProductionBoardsModule } from './modules/production-boards/production-boards.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './modules/database/database.module';
@@ -41,6 +42,7 @@ import { HealthModule } from './modules/health/health.module';
     ClientErrorsModule,
     HealthModule,
     OrderManagementModule,
+    ProductionBoardsModule,
   ],
   controllers: [],
   providers: [],

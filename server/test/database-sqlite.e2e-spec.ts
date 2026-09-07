@@ -30,7 +30,7 @@ describe('SQLite database', () => {
   });
 
   it('applies the baseline once and supports all entity metadata', async () => {
-    expect(dataSource.entityMetadatas).toHaveLength(19);
+    expect(dataSource.entityMetadatas).toHaveLength(21);
     expect(await dataSource.runMigrations()).toEqual([]);
     const schemaChanges = await dataSource.driver.createSchemaBuilder().log();
     expect(schemaChanges.upQueries).toEqual([]);

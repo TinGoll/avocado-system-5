@@ -273,11 +273,13 @@ Target документа содержит ID группы и документа
 
 | Endpoint | Назначение |
 | --- | --- |
-| `GET/POST /production-boards` | Список и создание доски |
+| `GET/POST /production-boards` | Реализовано в OM-03: список; создание со stages и initialStageIndex |
 | `GET/PATCH /production-boards/:id` | Настройки, колонки, версия; PATCH с expectedVersion |
 | `POST /production-boards/:id/stages` | Создание колонки |
-| `PATCH /production-boards/:id/stages/:stageId` | Имя, цвет, архивирование, разрешённые настройки |
-| `PUT /production-boards/:id/stage-order` | Полный список ID колонок и expectedVersion, без пропусков/дублей |
+| `PATCH /production-boards/:id/stages/:stageId` | Реализовано в OM-03: имя, цвет, разрешённые kind/progressPercent, expectedVersion |
+| `POST /production-boards/:id/archive` | Архивирование доски с expectedVersion |
+| `POST /production-boards/:id/stages/:stageId/archive`, `DELETE /production-boards/:id/stages/:stageId` | Архивирование/удаление колонки с expectedVersion и initialStageId для замены начальной очереди |
+| `PUT /production-boards/:id/stage-order` | Реализовано в OM-03: полный stageIds неархивных колонок и expectedVersion, без пропусков/дублей |
 | `GET /production-boards/:id/cards?stageId=&cursor=&limit=` | Лёгкие карточки, счётчики отдельно, без позиций заказа |
 | `POST /production-boards/:id/cards` | Назначить документ в начальную очередь |
 | `POST /production-cards/:id/move` | Целевой этап, `beforeCardId?`, ожидаемые версии карточки/доски/группы |
