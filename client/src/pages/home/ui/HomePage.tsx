@@ -1,5 +1,13 @@
+import { ArrowRightOutlined, FileTextOutlined } from '@ant-design/icons';
 import { css } from '@emotion/css';
-import { Alert, Table, Typography, type TableColumnsType } from 'antd';
+import {
+  Alert,
+  Table,
+  Tag,
+  Typography,
+  theme,
+  type TableColumnsType,
+} from 'antd';
 import dayjs from 'dayjs';
 import type { FC } from 'react';
 import { Link, useNavigate } from 'react-router';
@@ -20,12 +28,8 @@ const pageStyles = css`
   }
 `;
 
-const expandedTableStyles = css`
-  margin: -8px 0;
-
-  .ant-table {
-    background: transparent;
-  }
+const orderRowStyles = css`
+  cursor: pointer;
 `;
 
 const formatPrice = (price: number): string =>
@@ -43,56 +47,145 @@ const getOrderPath = (group: OrderGroup): string =>
     ? `/order/${group.id}/editing`
     : `/order/${group.id}`;
 
-const documentColumns: TableColumnsType<Order> = [
-  {
-    title: 'Документ',
-    dataIndex: 'name',
-    render: (name: string | undefined, order) =>
-      name?.trim() || `Документ ${order.id.slice(0, 8)}`,
-  },
-  {
-    title: 'Цвет',
-    dataIndex: ['characteristics', 'color', 'name'],
-    render: (value?: string) => value || '—',
-  },
-  {
-    title: 'Материал',
-    dataIndex: ['characteristics', 'material', 'name'],
-    render: (value?: string) => value || '—',
-  },
-  {
-    title: 'Профиль',
-    dataIndex: ['characteristics', 'profile', 'name'],
-    render: (value?: string) => value || '—',
-  },
-  {
-    title: 'Филёнка',
-    dataIndex: ['characteristics', 'panel', 'name'],
-    render: (value?: string) => value || '—',
-  },
-  {
-    title: 'Патина',
-    dataIndex: ['characteristics', 'patina', 'name'],
-    render: (value?: string) => value || '—',
-  },
-  {
-    title: 'Лак',
-    dataIndex: ['characteristics', 'varnish', 'name'],
-    render: (value?: string) => value || '—',
-  },
-  {
-    title: 'Позиций',
-    dataIndex: 'items',
-    align: 'right',
-    render: (items: Order['items']) => items?.length ?? 0,
-  },
-  {
-    title: 'Сумма',
-    dataIndex: 'totalPrice',
-    align: 'right',
-    render: (price: number) => formatPrice(Number(price) || 0),
-  },
-];
+const documentCharacteristics = [
+  ['color', 'Цвет'],
+  ['material', 'Материал'],
+  ['profile', 'Профиль'],
+  ['panel', 'Филёнка'],
+  ['patina', 'Патина'],
+  ['varnish', 'Лак'],
+] as const;
+
+const OrderDocuments: FC<{ group: OrderGroup }> = ({ group }) => {
+  const { token } = theme.useToken();
+  const documents = group.orders ?? [];
+  return (
+    <section
+      aria-label="Документы заказа"
+      className={css`
+        padding: 10px;
+        border: 1px solid ${token.colorBorderSecondary};
+        border-radius: ${token.borderRadiusLG}px;
+        background: ${token.colorBgContainer};
+        .documents-heading {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 8px;
+        }
+        .documents-list {
+          display: grid;
+          gap: 6px;
+          margin: 0;
+          padding: 0;
+          list-style: none;
+        }
+        .document-row {
+          display: grid;
+          grid-template-columns:
+            minmax(150px, 1.5fr) repeat(6, minmax(80px, 1fr))
+            65px minmax(110px, 1fr) 28px;
+          align-items: center;
+          padding: 8px 10px;
+          border: 1px solid ${token.colorBorderSecondary};
+          border-radius: ${token.borderRadius}px;
+          background: ${token.colorFillAlter};
+          gap: 10px;
+        }
+        .document-name {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-width: 0;
+          font-weight: 600;
+          overflow-wrap: anywhere;
+        }
+        .document-icon {
+          display: grid;
+          place-items: center;
+          flex-shrink: 0;
+          width: 30px;
+          height: 34px;
+          border-radius: ${token.borderRadiusSM}px;
+          background: ${token.colorFillSecondary};
+          color: ${token.colorTextSecondary};
+          font-size: 20px;
+        }
+        .document-field {
+          margin: 0;
+          padding-left: 10px;
+          border-left: 1px solid ${token.colorBorderSecondary};
+          min-width: 0;
+          overflow-wrap: anywhere;
+        }
+        dt {
+          color: ${token.colorTextSecondary};
+          font-size: 11px;
+          margin-bottom: 2px;
+        }
+        dd {
+          margin: 0;
+        }
+        .document-price {
+          white-space: nowrap;
+        }
+        .document-link {
+          display: grid;
+          place-items: center;
+          width: 28px;
+          height: 28px;
+          border-radius: ${token.borderRadiusSM}px;
+        }
+        .document-link:hover {
+          background: ${token.colorFillSecondary};
+        }
+      `}
+    >
+      <div className="documents-heading">
+        <Typography.Text strong>Документы заказа</Typography.Text>
+        <Tag>{documents.length}</Tag>
+      </div>
+      <ul className="documents-list">
+        {documents.map((document) => {
+          const name =
+            document.name?.trim() || `Документ ${document.documentNumber}`;
+          return (
+            <li className="document-row" key={document.id}>
+              <div className="document-name">
+                <span className="document-icon">
+                  <FileTextOutlined />
+                </span>
+                {name}
+              </div>
+              {documentCharacteristics.map(([key, label]) => (
+                <dl className="document-field" key={key}>
+                  <dt>{label}</dt>
+                  <dd>{document.characteristics?.[key]?.name || '—'}</dd>
+                </dl>
+              ))}
+              <dl className="document-field">
+                <dt>Позиций</dt>
+                <dd>{document.items?.length ?? 0}</dd>
+              </dl>
+              <dl className="document-field document-price">
+                <dt>Сумма</dt>
+                <dd>{formatPrice(Number(document.totalPrice) || 0)}</dd>
+              </dl>
+              <Link
+                className="document-link"
+                to={`${getOrderPath(group)}?document=${document.documentNumber}`}
+                aria-label={`Открыть ${name}`}
+                title={`Открыть ${name}`}
+              >
+                <ArrowRightOutlined />
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+};
 
 const orderColumns: TableColumnsType<OrderGroup> = [
   {
@@ -169,6 +262,7 @@ export const HomePage: FC = () => {
           locale={{ emptyText: 'Заказов пока нет' }}
           pagination={{ pageSize: 20, hideOnSinglePage: true }}
           rowKey="id"
+          rowClassName={orderRowStyles}
           onRow={(group) => ({
             onClick: (event) => {
               const target = event.target as HTMLElement;
@@ -176,23 +270,12 @@ export const HomePage: FC = () => {
 
               navigate(getOrderPath(group));
             },
-            style: { cursor: 'pointer' },
           })}
-          scroll={{ x: 900 }}
+          scroll={{ x: 1200 }}
           size="small"
           expandable={{
             rowExpandable: (group) => (group.orders?.length ?? 0) > 0,
-            expandedRowRender: (group) => (
-              <Table<Order>
-                className={expandedTableStyles}
-                columns={documentColumns}
-                dataSource={group.orders ?? []}
-                pagination={false}
-                rowKey="id"
-                scroll={{ x: 1100 }}
-                size="small"
-              />
-            ),
+            expandedRowRender: (group) => <OrderDocuments group={group} />,
           }}
         />
       )}
