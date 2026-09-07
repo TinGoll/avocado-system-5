@@ -6,6 +6,8 @@ import { DataSource, Repository } from 'typeorm';
 import { OrderGroup } from './entities/order-group.entity';
 import { Order } from '../orders/entities/order.entity';
 import { PricingService } from '../pricing/pricing.service';
+import { OrderManagementService } from '../order-management/order-management.service';
+import { OrderItem } from '../orders/entities/order-item.entity';
 
 export type OrderGroupRecalculationError = {
   orderId: string;
@@ -33,6 +35,7 @@ export class OrderGroupsService {
     private readonly orderRepository: Repository<Order>,
     private readonly dataSource: DataSource,
     private readonly pricingService: PricingService,
+    private readonly management: OrderManagementService,
   ) {}
 
   create(createDto: CreateOrderGroupDto) {
@@ -157,14 +160,30 @@ export class OrderGroupsService {
   }
 
   async update(id: number, updateDto: UpdateOrderGroupDto) {
-    const item = await this.repository.preload({
-      id,
-      ...updateDto,
-    });
-    if (!item) {
-      throw new NotFoundException(`Order Group with ID "${id}" not found`);
+    const {
+      status,
+      expectedVersion,
+      reason,
+      confirmIncompleteProduction,
+      ...details
+    } = updateDto;
+    if (status !== undefined) {
+      await this.management.updateGroup(
+        id,
+        {
+          status,
+          expectedVersion: expectedVersion!,
+          reason,
+          confirmIncompleteProduction,
+        },
+        details,
+      );
+    } else {
+      await this.findOne(id);
+      if (Object.values(details).some((value) => value !== undefined))
+        await this.repository.update(id, details);
     }
-    return this.repository.save(item);
+    return this.findOne(id);
   }
 
   async recalculateProduction(
@@ -230,7 +249,15 @@ export class OrderGroupsService {
           throw new RecalculationFailedError(errors);
         }
 
-        await manager.getRepository(Order).save(group.orders);
+        await manager.getRepository(OrderItem).save(
+          group.orders.flatMap((order) =>
+            order.items.map((item) => ({
+              id: item.id,
+              productionOperationResults: item.productionOperationResults,
+              calculatedProductionCost: item.calculatedProductionCost,
+            })),
+          ),
+        );
         return { updatedItems, errors: [] };
       });
     } catch (error) {
@@ -242,8 +269,6 @@ export class OrderGroupsService {
   }
 
   async remove(id: number) {
-    const item = await this.findOne(id);
-    await this.repository.remove(item);
-    return item;
+    return this.management.removeGroup(id);
   }
 }

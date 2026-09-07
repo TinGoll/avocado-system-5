@@ -1,3 +1,4 @@
+import type { OrderManagementService } from '../order-management/order-management.service';
 import { NotFoundException } from '@nestjs/common';
 import type { Repository } from 'typeorm';
 
@@ -32,6 +33,7 @@ describe('OrdersService price recalculation', () => {
     } as unknown as PricingService,
     {} as Repository<OrderGroup>,
     {} as Repository<OrderItem>,
+    {} as OrderManagementService,
   );
 
   beforeEach(() => {
@@ -89,7 +91,15 @@ describe('OrdersService price recalculation', () => {
     expect(firstItem.calculatedCustomerPrice).toBe(125);
     expect(secondItem.calculatedCustomerPrice).toBe(275);
     expect(result.totalPrice).toBe(400);
-    expect(save).toHaveBeenCalledWith(order);
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: order.id,
+        items: order.items,
+        totalPrice: 400,
+      }),
+    );
+    const [savedOrder] = save.mock.calls[0] as [Partial<Order>];
+    expect(savedOrder).not.toHaveProperty('orderGroup');
   });
 
   it('does not create prices for a missing order', async () => {

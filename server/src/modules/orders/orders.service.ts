@@ -17,6 +17,7 @@ import {
   OrderStatus,
 } from '../order-groups/entities/order-group.entity';
 import { UpdateOrderItemDto } from './dto/update-order-item.dto';
+import { OrderManagementService } from '../order-management/order-management.service';
 
 @Injectable()
 export class OrdersService {
@@ -30,6 +31,7 @@ export class OrdersService {
     private readonly groupsRepository: Repository<OrderGroup>,
     @InjectRepository(OrderItem)
     private readonly orderItemsRepository: Repository<OrderItem>,
+    private readonly management: OrderManagementService,
   ) {}
 
   async create(createDto: CreateOrderDto): Promise<Order> {
@@ -125,7 +127,7 @@ export class OrdersService {
     order.items.push(newOrderItem);
     this.recalculateOrderTotal(order);
 
-    return this.ordersRepository.save(order);
+    return this.saveEditedOrder(order);
   }
 
   async updateItemInOrder(
@@ -199,7 +201,7 @@ export class OrdersService {
       order.orderGroup?.status === OrderStatus.DRAFT,
     );
 
-    return this.ordersRepository.save(order);
+    return this.saveEditedOrder(order);
   }
 
   async removeItemFromOrder(orderId: string, itemId: string): Promise<Order> {
@@ -227,7 +229,7 @@ export class OrdersService {
     });
     this.recalculateOrderTotal(order);
 
-    return this.ordersRepository.save(order);
+    return this.saveEditedOrder(order);
   }
 
   async reorderItems(orderId: string, itemIds: string[]): Promise<Order> {
@@ -410,7 +412,7 @@ export class OrdersService {
     }
 
     await this.recalculatePricesForOrder(order);
-    return this.ordersRepository.save(order);
+    return this.saveEditedOrder(order);
   }
 
   async update(id: string, updateDto: UpdateOrderDto): Promise<Order> {
@@ -434,12 +436,35 @@ export class OrdersService {
       order,
       order.orderGroup?.status === OrderStatus.DRAFT,
     );
-    return this.ordersRepository.save(order);
+    return this.saveEditedOrder(order);
   }
 
   async remove(id: string): Promise<Order> {
-    const order = await this.findOne(id);
-    await this.ordersRepository.remove(order);
-    return order;
+    return this.management.removeDocument(id);
+  }
+
+  private async saveEditedOrder(order: Order): Promise<Order> {
+    // Do not write stale management fields loaded before a concurrent PATCH.
+    await this.ordersRepository.save({
+      id: order.id,
+      name: order.name,
+      comment: order.comment,
+      characteristics: order.characteristics,
+      totalPrice: order.totalPrice,
+      items: order.items,
+    });
+    const management = await this.ordersRepository.findOne({
+      where: { id: order.id },
+      select: {
+        id: true,
+        dueDate: true,
+        customStatusId: true,
+        managementVersion: true,
+      },
+      loadEagerRelations: false,
+    });
+    if (!management)
+      throw new NotFoundException(`Order with ID "${order.id}" not found`);
+    return Object.assign(order, management);
   }
 }

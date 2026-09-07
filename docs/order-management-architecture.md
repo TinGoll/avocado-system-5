@@ -282,11 +282,11 @@ Target документа содержит ID группы и документа
 | `POST /production-boards/:id/cards` | Назначить документ в начальную очередь |
 | `POST /production-cards/:id/move` | Целевой этап, `beforeCardId?`, ожидаемые версии карточки/доски/группы |
 | `POST /production-cards/:id/transfer` | Явный перенос на другую доску с ожидаемыми версиями обеих досок |
-| `GET/POST/PATCH /order-statuses[/:id]` | Справочник custom status, scope и архивирование |
-| `PATCH /order-groups/:id/management` | Срок, custom status, ожидаемая managementVersion |
-| `PATCH /orders/:id/management` | Срок документа, custom status, ожидаемая managementVersion |
+| `GET/POST /order-management/statuses`, `PATCH/DELETE /order-management/statuses/:id`, `POST /order-management/statuses/:id/archive` | Реализовано в OM-02: справочник custom status, scope и архивирование |
+| `GET/PATCH /order-groups/:id/management` | Реализовано в OM-02: срок, custom status, lifecycle; PATCH с expectedVersion |
+| `GET/PATCH /orders/:id/management` | Реализовано в OM-02: срок документа, effectiveDueDate, custom status; PATCH с expectedVersion |
 | `GET /order-groups/:id/production` | Сводка этапов и прогресса всех документов |
-| `GET /order-groups/:id/management-history` | История с курсором |
+| `GET /order-management/history?orderGroupId=&orderId=&offset=&limit=` | Реализовано в OM-02: история с offset/limit и meta.nextOffset |
 | `GET/POST/PATCH /notification-rules[/:id]` | Настройка и отключение правил |
 | `POST /notification-rules/preview` | Валидация, пример текста и ограниченный список совпадений, без отправки |
 | `GET /notifications?cursor=&unreadOnly=&limit=` | Сохранённая лента |

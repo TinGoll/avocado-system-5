@@ -1,6 +1,6 @@
 # Управление заказами: задачи для AI-агента
 
-Основа: [архитектура фичи](order-management-architecture.md), включая согласованные решения MVP в разделе 13. OM-01 реализована; проверка PostgreSQL остаётся открытой. Остальные задачи пока не выполнены. Это задания на реализацию, а не создание отдельных задач в приложении Codex.
+Основа: [архитектура фичи](order-management-architecture.md), включая согласованные решения MVP в разделе 13. OM-01 и OM-02 реализованы; проверка PostgreSQL остаётся открытой. Остальные задачи пока не выполнены. Это задания на реализацию, а не создание отдельных задач в приложении Codex.
 
 ## Как передавать задачу агенту
 
@@ -124,6 +124,92 @@
 **Приёмка:** неправильный scope/дата/зона отклоняется; статус не меняет ценовую семантику; два изменения одной версии не затирают друг друга; старый endpoint не обходит lifecycle; изменение срока группы корректно влияет на наследуемый срок документа.
 
 **Передать дальше:** примеры запросов/ответов management, lifecycle, history и settings, включая версии и подтверждение закрытия. Не реализовывать UI.
+
+### Результат OM-02 (7 сентября 2026)
+
+`OrderManagementService` и три контроллера зарегистрированы в `OrderManagementModule`. Модуль экспортирует сервис, импортируется модулями заказов и документов без обратных импортов. Новых колонок и миграций нет. Фактические endpoints имеют префикс `/api`:
+
+| Endpoint | Контракт |
+| --- | --- |
+| `GET /order-management/statuses?scope=group` | Все статусы выбранного scope, включая архивные, `{ items, meta: { count } }`; scope необязателен, порядок position/id |
+| `POST /order-management/statuses` | `{ scope: "group" или "document", name, color, position? }`; ответ — сущность, HTTP 201 |
+| `PATCH /order-management/statuses/:id` | `{ name?, color?, position? }`; scope неизменяемый, ответ — сущность |
+| `POST /order-management/statuses/:id/archive` | Идемпотентная архивация, ответ — сущность, HTTP 201 |
+| `DELETE /order-management/statuses/:id` | Только неиспользованный статус; назначение или запись custom_status_changed в истории → 409; ответ `{ id }` |
+| `GET/PATCH /order-groups/:id/management` | Представление/изменение полей группы, включая lifecycle |
+| `GET/PATCH /orders/:id/management` | Представление/изменение полей документа, без собственного lifecycle |
+| `GET/PATCH /order-management/settings` | `{ id: 1, timeZone }`; PATCH принимает `{ timeZone: "Europe/Moscow" }` |
+| `GET /order-management/history?orderGroupId=1&orderId=<uuid>&offset=0&limit=50` | Фильтры необязательны, вместе означают AND; `{ items: OrderManagementEvent[], meta: { nextOffset: number или null } }` |
+
+Имя статуса обрезается по краям, длина 1–100; цвет — `#RRGGBB`; position — целое 0–1 000 000. Архивный статус остаётся в представлении назначенного объекта. Его повторное указание без изменения назначения разрешено; новое назначение запрещено. При очистке назначения или собственного срока передавать `null`; отсутствие поля означает «не менять». Даты валидируются как реальные `YYYY-MM-DD`, включая високосные годы, без времени и преобразования через UTC. Зона — поддерживаемое IANA-имя или `UTC`. Boolean и expectedVersion в JSON не приводятся из строк.
+
+Пример изменения группы:
+
+```http
+PATCH /api/order-groups/1/management
+Content-Type: application/json
+
+{ "expectedVersion": 0, "dueDate": "2026-09-10", "customStatusId": null }
+```
+
+```json
+{
+  "id": 1,
+  "dueDate": "2026-09-10",
+  "effectiveDueDate": "2026-09-10",
+  "customStatusId": null,
+  "customStatus": null,
+  "managementVersion": 1,
+  "status": "draft"
+}
+```
+
+Пример изменения документа:
+
+```http
+PATCH /api/orders/<uuid>/management
+Content-Type: application/json
+
+{ "expectedVersion": 0, "dueDate": null }
+```
+
+Ответ: `{ id: <uuid>, orderGroupId: 1, dueDate: null, effectiveDueDate: "2026-09-10", customStatusId: null, customStatus: null, managementVersion: 1 }`. Собственный срок имеет приоритет; наследуемый вычисляется при чтении, не записывается в документ. Изменение срока группы не создаёт искусственные события для каждого наследующего документа.
+
+`expectedVersion` обязателен для обоих management PATCH, целое >= 0. Используется условный UPDATE версии, затем чтение заблокированного объекта и запись событий в той же транзакции. Несовпадение — 409; отсутствие объекта — 404. Каждый успешный management PATCH, включая отсутствие фактических изменений, увеличивает версию; события создаются только для изменившихся полей. Изменение документа также атомарно увеличивает managementVersion его группы: клиенту нужно обновить представление группы. Порядок блокировок — группа, документ, назначаемый статус. Назначение статуса сериализуется с архивированием/удалением.
+
+Lifecycle передаётся полем `status` в management PATCH группы. Старый `PATCH /order-groups/:id` при наличии status требует тот же expectedVersion, допускает reason/confirmIncompleteProduction и вызывает ту же проверку; обычные поля в смешанном запросе сохраняются атомарно с переходом.
+
+```json
+{ "expectedVersion": 1, "status": "in_production" }
+```
+
+```json
+{ "expectedVersion": 2, "status": "completed", "confirmIncompleteProduction": true, "reason": "Производство закрыто без полного учёта" }
+```
+
+```json
+{ "expectedVersion": 3, "status": "in_production", "reason": "Возобновление для переделки" }
+```
+
+Переход назад в draft запрещён. Из completed/cancelled допустим только переход в in_production с непустой причиной. Причина после trim — 1–1000 символов. Пока карточек нет, каждое фактическое закрытие требует `confirmIncompleteProduction: true` и reason. OM-04 должна заменить это условие фактической проверкой готовности; текущая реализация не считает документы готовыми. Смена статуса сама по себе не пересчитывает цены и не переписывает startedAt, как и прежний серверный PATCH. Существующие явные команды пересчёта сохранены.
+
+Старые endpoints не принимают dueDate/customStatusId/managementVersion. Не сохранявшийся ранее `status` исключён из DTO документа: теперь такой PATCH даёт 400. Обычное сохранение документа и пересчёт производства группы записывают только редактируемые поля, не переносят загруженные ранее management-поля в UPDATE. Копия документа получает null срок/статус, версию 0, без истории; наследование срока группы действует и для копии.
+
+Удаление документа/группы записывает событие в той же транзакции. FK истории обнуляются, JSON-снимки остаются. Удаление группы сохраняет прежнюю семантику: документы не удаляются, а становятся без группы; их версии увеличиваются, поскольку меняется наследуемый срок. История удалённых объектов доступна в общей ленте без фильтра по живому FK. Пагинация истории использует offset/limit (limit 1–100), порядок occurredAt DESC/id DESC; при появлении новых событий клиенту следует обновить первую страницу.
+
+Для SQLite команды управления последовательно используют единственное соединение better-sqlite3; для SQLITE_BUSY/SQLITE_BUSY_SNAPSHOT предусмотрены максимум две повторные попытки всей транзакции. PostgreSQL использует транзакции и условные UPDATE без локальной очереди. Внешних вызовов внутри транзакций нет.
+
+Проверки из `server/`:
+
+- `npm run test:cov -- --config ./test/jest-order-management.config.cjs --runInBand` — успешно: 11 HTTP-тестов с настоящим AppModule, ValidationPipe, TypeORM и одноразовой SQLite; покрытие строк OrderManagementService — 95%, модуля управления в целом — 96,38%. Отдельный конфиг сохраняет настройки e2e и включает серверные исходники в корень coverage.
+- `npm run test:cov -- --runInBand orders.service.spec.ts order-groups.service.spec.ts add-order-management.migration.spec.ts database-options.spec.ts --collectCoverageFrom=modules/orders/orders.service.ts --collectCoverageFrom=modules/order-groups/order-groups.service.ts` — успешно: 19 тестов регрессии.
+- `npm run test:e2e:sqlite` — успешно: 4 теста существующей схемы/миграций и FK.
+- `npm run build` — успешно. ESLint без `--fix` для затронутых TypeScript-файлов — успешно; CJS-конфиг проверен `node --check test/jest-order-management.config.cjs` (он вне TypeScript project service ESLint).
+
+HTTP-проверки охватывают наследование сроков, конкурентные PATCH (один успех и один 409), откат журнала/версий, scope и архивацию статусов, сохранение исторических названий, lifecycle через старый endpoint, строгую валидацию, копирование и удаление, а также гонку обычного редактирования документа с management PATCH во время расчёта цены.
+
+Ограничения: PostgreSQL по-прежнему недоступен и не проверен исполнением; отсутствие его baseline отмечено в OM-01. UI не менялся; клиентский вызов смены lifecycle должен начать передавать expectedVersion в OM-05. Производственные карточки, проверка ссылок включённых правил и предпросмотр влияния зоны на уведомления добавляются соответствующими последующими задачами. OM-03 не начата.
+
 
 <a id="om-03"></a>
 ## OM-03. Доски и колонки: модель и API настройки
