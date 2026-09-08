@@ -55,4 +55,24 @@ describe('Sidebar', () => {
         ?.classList.contains('ant-menu-item-selected'),
     ).toBe(true);
   });
+
+  it('links to the order management settings', () => {
+    act(() =>
+      root.render(
+        <MemoryRouter initialEntries={['/order-management/settings']}>
+          <Sidebar />
+        </MemoryRouter>,
+      ),
+    );
+
+    const link = container.querySelector<HTMLAnchorElement>(
+      'a[href="/order-management/settings"]',
+    );
+    expect(link?.textContent).toBe('Управление заказами');
+    expect(
+      link
+        ?.closest('.ant-menu-item')
+        ?.classList.contains('ant-menu-item-selected'),
+    ).toBe(true);
+  });
 });

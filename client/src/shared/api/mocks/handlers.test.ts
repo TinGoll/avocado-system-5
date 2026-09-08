@@ -330,4 +330,30 @@ describe('MSW API mocks', () => {
     });
     expect(updatedItem?.characteristics).toEqual({ height: 800, holes: 4 });
   });
+
+  it('preserves date-only management values and rejects a stale version', async () => {
+    const url = 'http://localhost/order-groups/1/management';
+    const update = await fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ expectedVersion: 0, dueDate: '2026-09-10' }),
+    });
+    const updated = (await update.json()) as {
+      dueDate: string;
+      managementVersion: number;
+    };
+
+    expect(updated).toMatchObject({
+      dueDate: '2026-09-10',
+      managementVersion: 1,
+    });
+
+    const conflict = await fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ expectedVersion: 0, dueDate: null }),
+    });
+
+    expect(conflict.status).toBe(409);
+  });
 });

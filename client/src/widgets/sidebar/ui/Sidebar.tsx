@@ -69,6 +69,13 @@ export const Sidebar: FC = () => {
             label: <Link to="/price-modifiers">Модификаторы цен</Link>,
           },
           {
+            key: '/order-management/settings',
+            icon: <SettingOutlined />,
+            label: (
+              <Link to="/order-management/settings">Управление заказами</Link>
+            ),
+          },
+          {
             key: 'catalogs',
             icon: <DatabaseOutlined />,
             label: 'Справочники',

@@ -1,0 +1,91 @@
+import { fetcher } from '@shared/lib/swr';
+
+export type ManagementScope = 'group' | 'document';
+export type CustomOrderStatus = {
+  id: string;
+  scope: ManagementScope;
+  name: string;
+  color: string;
+  position: number;
+  archivedAt: string | null;
+};
+export type OrderManagementSettings = { id: 1; timeZone: string };
+export type ManagementView = {
+  id: number | string;
+  orderGroupId?: number | null;
+  dueDate: string | null;
+  effectiveDueDate?: string | null;
+  customStatusId: string | null;
+  customStatus: CustomOrderStatus | null;
+  managementVersion: number;
+};
+export type UpdateManagementDto = {
+  expectedVersion: number;
+  dueDate?: string | null;
+  customStatusId?: string | null;
+};
+
+export const orderManagementKeys = {
+  statuses: (scope: ManagementScope) =>
+    `order-management/statuses?scope=${scope}`,
+  settings: 'order-management/settings',
+  group: (id: number) => `order-groups/${id}/management`,
+  document: (id: string) => `orders/${id}/management`,
+  groupView: (id: number) => `order-groups/${id}/with-order-ids`,
+  documentView: (id: string) => `orders/${id}/with-items`,
+  history: (groupId: number, orderId?: string) =>
+    `order-management/history?orderGroupId=${groupId}${orderId ? `&orderId=${orderId}` : ''}&offset=0&limit=50`,
+};
+
+export const getCustomStatuses = (scope: ManagementScope) =>
+  fetcher<{ items: CustomOrderStatus[]; meta: { count: number } }>({
+    url: orderManagementKeys.statuses(scope),
+  });
+export const createCustomStatus = (
+  data: Pick<CustomOrderStatus, 'scope' | 'name' | 'color'> & {
+    position?: number;
+  },
+) =>
+  fetcher<CustomOrderStatus, typeof data>({
+    url: 'order-management/statuses',
+    method: 'POST',
+    data,
+  });
+export const updateCustomStatus = (
+  id: string,
+  data: Partial<Pick<CustomOrderStatus, 'name' | 'color' | 'position'>>,
+) =>
+  fetcher<CustomOrderStatus, typeof data>({
+    url: `order-management/statuses/${id}`,
+    method: 'PATCH',
+    data,
+  });
+export const archiveCustomStatus = (id: string) =>
+  fetcher<CustomOrderStatus>({
+    url: `order-management/statuses/${id}/archive`,
+    method: 'POST',
+  });
+export const deleteCustomStatus = (id: string) =>
+  fetcher<{ id: string }>({
+    url: `order-management/statuses/${id}`,
+    method: 'DELETE',
+  });
+export const updateOrderManagementSettings = (timeZone: string) =>
+  fetcher<OrderManagementSettings, { timeZone: string }>({
+    url: orderManagementKeys.settings,
+    method: 'PATCH',
+    data: { timeZone },
+  });
+export const updateManagement = (
+  scope: ManagementScope,
+  id: number | string,
+  data: UpdateManagementDto,
+) =>
+  fetcher<ManagementView, UpdateManagementDto>({
+    url:
+      scope === 'group'
+        ? orderManagementKeys.group(Number(id))
+        : orderManagementKeys.document(String(id)),
+    method: 'PATCH',
+    data,
+  });

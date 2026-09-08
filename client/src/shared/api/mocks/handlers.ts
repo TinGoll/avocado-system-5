@@ -20,6 +20,9 @@ export const isFrontendAssetRequest = (request: Request) => {
 
 const getCollection = (resource: string) => mockData[resource] ?? [];
 
+const customStatuses: MockEntity[] = [];
+let managementTimeZone = 'Europe/Moscow';
+
 const getCollectionResponse = (resource: string) => {
   const items = getCollection(resource);
 
@@ -467,6 +470,114 @@ const orderHandlers = [
   }),
 ];
 
+const managementView = (
+  resource: 'order-groups' | 'orders',
+  entity: MockEntity,
+) => {
+  const group =
+    resource === 'orders'
+      ? findById('order-groups', String(entity.orderGroupId))
+      : entity;
+  const dueDate = typeof entity.dueDate === 'string' ? entity.dueDate : null;
+  const groupDueDate =
+    typeof group?.dueDate === 'string' ? group.dueDate : null;
+  const customStatusId =
+    typeof entity.customStatusId === 'string' ? entity.customStatusId : null;
+  return {
+    id: entity.id,
+    ...(resource === 'orders'
+      ? {
+          orderGroupId: entity.orderGroupId ?? null,
+          effectiveDueDate: dueDate ?? groupDueDate,
+        }
+      : {}),
+    dueDate,
+    customStatusId,
+    customStatus: customStatusId
+      ? (customStatuses.find(({ id }) => id === customStatusId) ?? null)
+      : null,
+    managementVersion: Number(entity.managementVersion) || 0,
+    ...(resource === 'order-groups' ? { status: entity.status } : {}),
+  };
+};
+
+const managementHandlers = [
+  http.get('*/order-management/statuses', ({ request }) => {
+    const scope = new URL(request.url).searchParams.get('scope');
+    const items = customStatuses.filter(
+      (status) => !scope || status.scope === scope,
+    );
+    return HttpResponse.json({ items, meta: { count: items.length } });
+  }),
+  http.post('*/order-management/statuses', async ({ request }) => {
+    const body = (await request.json()) as MockEntity;
+    const status = {
+      ...body,
+      id: crypto.randomUUID(),
+      archivedAt: null,
+      position: body.position ?? customStatuses.length,
+    };
+    customStatuses.push(status);
+    return HttpResponse.json(status, { status: 201 });
+  }),
+  http.patch('*/order-management/statuses/:id', async ({ params, request }) => {
+    const status = customStatuses.find(({ id }) => id === params.id);
+    if (!status) return notFound('custom status', String(params.id));
+    Object.assign(status, (await request.json()) as object);
+    return HttpResponse.json(status);
+  }),
+  http.post('*/order-management/statuses/:id/archive', ({ params }) => {
+    const status = customStatuses.find(({ id }) => id === params.id);
+    if (!status) return notFound('custom status', String(params.id));
+    status.archivedAt = new Date().toISOString();
+    return HttpResponse.json(status, { status: 201 });
+  }),
+  http.delete('*/order-management/statuses/:id', ({ params }) => {
+    const index = customStatuses.findIndex(({ id }) => id === params.id);
+    if (index === -1) return notFound('custom status', String(params.id));
+    const [status] = customStatuses.splice(index, 1);
+    return HttpResponse.json({ id: status.id });
+  }),
+  http.get('*/order-management/settings', () =>
+    HttpResponse.json({ id: 1, timeZone: managementTimeZone }),
+  ),
+  http.patch('*/order-management/settings', async ({ request }) => {
+    const body = (await request.json()) as { timeZone: string };
+    managementTimeZone = body.timeZone;
+    return HttpResponse.json({ id: 1, timeZone: managementTimeZone });
+  }),
+  ...(['order-groups', 'orders'] as const).flatMap((resource) => [
+    http.get(`*/${resource}/:id/management`, ({ params }) => {
+      const entity = findById(resource, String(params.id));
+      return entity
+        ? HttpResponse.json(managementView(resource, entity))
+        : notFound(resource, String(params.id));
+    }),
+    http.patch(`*/${resource}/:id/management`, async ({ params, request }) => {
+      const entity = findById(resource, String(params.id));
+      if (!entity) return notFound(resource, String(params.id));
+      const body = (await request.json()) as Record<string, unknown>;
+      if (
+        Number(body.expectedVersion) !== (Number(entity.managementVersion) || 0)
+      ) {
+        return HttpResponse.json(
+          {
+            error: {
+              message: 'Order management data changed',
+              code: 'CONFLICT',
+            },
+          },
+          { status: 409 },
+        );
+      }
+      if ('dueDate' in body) entity.dueDate = body.dueDate;
+      if ('customStatusId' in body) entity.customStatusId = body.customStatusId;
+      entity.managementVersion = (Number(entity.managementVersion) || 0) + 1;
+      return HttpResponse.json(managementView(resource, entity));
+    }),
+  ]),
+];
+
 const templateVariables = [
   {
     path: 'item.quantity',
@@ -530,6 +641,7 @@ export const handlers = [
     return HttpResponse.json({ renderedValue: body.displayTemplate });
   }),
   ...priceModifierHandlers,
+  ...managementHandlers,
   ...orderHandlers,
   ...entityHandlers,
 ];

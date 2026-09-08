@@ -30,6 +30,7 @@ import {
   useOrderGroupByIDWithOrderIDs,
   useRecalculateOrderGroupProductionMutation,
 } from '@entities/order';
+import { ChangeOrderManagementForm } from '@features/change-order-management';
 import { DATE_DEFAULT_FORMAT, useCurrentOrderGroupID } from '@shared/lib';
 import { Field, NotFound, ServerError } from '@shared/ui';
 import { MarkdownPreview } from '@shared/ui/markdown';
@@ -153,6 +154,9 @@ const styles = {
   `,
   empty: css`
     padding: 40px 16px;
+  `,
+  management: css`
+    margin-bottom: 12px;
   `,
 };
 
@@ -439,6 +443,14 @@ const OrderPage: FC = () => {
         </div>
       </div>
 
+      <div className={styles.management}>
+        <ChangeOrderManagementForm
+          groupId={group.id}
+          scope="group"
+          targetId={group.id}
+        />
+      </div>
+
       {documentsError && documents.length > 0 && (
         <Alert
           className={styles.alert}
@@ -473,7 +485,7 @@ const OrderPage: FC = () => {
                   type="error"
                 />
               ) : (
-                <OrderDocumentView order={order} />
+                <OrderDocumentView groupId={group.id} order={order} />
               ),
           }))}
           onChange={selectDocument}

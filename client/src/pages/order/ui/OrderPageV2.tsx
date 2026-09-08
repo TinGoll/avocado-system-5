@@ -257,7 +257,7 @@ const OrderPage: FC = () => {
                   type="error"
                 />
               ) : (
-                <OrderDocumentView order={order} />
+                <OrderDocumentView groupId={group.id} order={order} />
               ),
           }))}
           onChange={setActiveOrderID}

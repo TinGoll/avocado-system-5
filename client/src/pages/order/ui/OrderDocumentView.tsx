@@ -4,6 +4,7 @@ import type { ColumnsType } from 'antd/es/table';
 import type { FC } from 'react';
 
 import type { Order, OrderItem } from '@entities/order';
+import { ChangeOrderManagementForm } from '@features/change-order-management';
 import { Field } from '@shared/ui';
 import { MarkdownPreview } from '@shared/ui/markdown';
 
@@ -61,6 +62,9 @@ const styles = {
     border-end-end-radius: 6px;
     border-end-start-radius: 6px;
     border-top: 0;
+  `,
+  management: css`
+    margin-bottom: 8px;
   `,
 };
 
@@ -122,134 +126,146 @@ const columns: ColumnsType<OrderItem> = [
   },
 ];
 
-type Props = { order: Order };
+type Props = { order: Order; groupId: number };
 
-export const OrderDocumentView: FC<Props> = ({ order }) => (
-  <div className="order-invoice-print-area">
-    <div className={styles.characteristics}>
-      {order.characteristics.material !== undefined && (
-        <Field>
-          <Field.Label>
-            <Typography.Text type="secondary">Материал</Typography.Text>
-          </Field.Label>
-          <Field.Value className={styles.fieldValue}>
-            <Typography.Text className={styles.fieldText} type="success">
-              {characteristicName(order.characteristics.material)}
-            </Typography.Text>
-          </Field.Value>
-        </Field>
-      )}
-      {order.characteristics.color !== undefined && (
-        <Field>
-          <Field.Label>
-            <Typography.Text type="secondary">Цвет</Typography.Text>
-          </Field.Label>
-          <Field.Value className={styles.fieldValue}>
-            <Typography.Text className={styles.fieldText} type="success">
-              {characteristicName(order.characteristics.color)}
-            </Typography.Text>
-          </Field.Value>
-        </Field>
-      )}
-      {order.characteristics.profile !== undefined && (
-        <Field>
-          <Field.Label>
-            <Typography.Text type="secondary">Профиль</Typography.Text>
-          </Field.Label>
-          <Field.Value className={styles.fieldValue}>
-            <Typography.Text className={styles.fieldText} type="success">
-              {characteristicName(order.characteristics.profile)}
-            </Typography.Text>
-          </Field.Value>
-        </Field>
-      )}
-      {order.characteristics.panel !== undefined && (
-        <Field>
-          <Field.Label>
-            <Typography.Text type="secondary">Филёнка</Typography.Text>
-          </Field.Label>
-          <Field.Value className={styles.fieldValue}>
-            <Typography.Text className={styles.fieldText} type="success">
-              {characteristicName(order.characteristics.panel)}
-            </Typography.Text>
-          </Field.Value>
-        </Field>
-      )}
-      {order.characteristics.patina !== undefined && (
-        <Field>
-          <Field.Label>
-            <Typography.Text type="secondary">Патина</Typography.Text>
-          </Field.Label>
-          <Field.Value className={styles.fieldValue}>
-            <Typography.Text className={styles.fieldText} type="success">
-              {characteristicName(order.characteristics.patina)}
-            </Typography.Text>
-          </Field.Value>
-        </Field>
-      )}
-      {order.characteristics.varnish !== undefined && (
-        <Field>
-          <Field.Label>
-            <Typography.Text type="secondary">Лак</Typography.Text>
-          </Field.Label>
-          <Field.Value className={styles.fieldValue}>
-            <Typography.Text className={styles.fieldText} type="success">
-              {characteristicName(order.characteristics.varnish)}
-            </Typography.Text>
-          </Field.Value>
-        </Field>
-      )}
-      {order.characteristics.thermalSeam !== undefined && (
-        <Field>
-          <Field.Label>
-            <Typography.Text type="secondary">Термошов</Typography.Text>
-          </Field.Label>
-          <Field.Value className={styles.fieldValue}>
-            <Typography.Text className={styles.fieldText} type="success">
-              {order.characteristics.thermalSeam ?? '—'}
-            </Typography.Text>
-          </Field.Value>
-        </Field>
-      )}
-      {order.characteristics.drilling !== undefined && (
-        <Field>
-          <Field.Label>
-            <Typography.Text type="secondary">Присадка</Typography.Text>
-          </Field.Label>
-          <Field.Value className={styles.fieldValue}>
-            <Typography.Text className={styles.fieldText} type="success">
-              {order.characteristics.drilling ?? '—'}
-            </Typography.Text>
-          </Field.Value>
-        </Field>
-      )}
-      <Field className={styles.fullWidthField}>
-        <Field.Label>
-          <Typography.Text type="secondary">Комментарий</Typography.Text>
-        </Field.Label>
-        <Field.Value className={styles.fieldValue}>
-          <MarkdownPreview className={styles.fieldText} value={order.comment} />
-        </Field.Value>
-      </Field>
-    </div>
-    <div className={styles.table}>
-      <Table
-        rowKey="id"
-        columns={columns}
-        dataSource={order.items}
-        pagination={false}
-        locale={{
-          emptyText: <Empty description="В документе пока нет позиций" />,
-        }}
-        scroll={{ x: 900 }}
-        size="small"
+export const OrderDocumentView: FC<Props> = ({ order, groupId }) => (
+  <>
+    <div className={styles.management}>
+      <ChangeOrderManagementForm
+        groupId={groupId}
+        scope="document"
+        targetId={order.id}
       />
     </div>
-    <div className={styles.documentTotal}>
-      <Typography.Text type="secondary">Сумма документа</Typography.Text>
-      <Typography.Title level={5} style={{ margin: 0 }}>
-        {formatCurrency(order.totalPrice)}
-      </Typography.Title>
+    <div className="order-invoice-print-area">
+      <div className={styles.characteristics}>
+        {order.characteristics.material !== undefined && (
+          <Field>
+            <Field.Label>
+              <Typography.Text type="secondary">Материал</Typography.Text>
+            </Field.Label>
+            <Field.Value className={styles.fieldValue}>
+              <Typography.Text className={styles.fieldText} type="success">
+                {characteristicName(order.characteristics.material)}
+              </Typography.Text>
+            </Field.Value>
+          </Field>
+        )}
+        {order.characteristics.color !== undefined && (
+          <Field>
+            <Field.Label>
+              <Typography.Text type="secondary">Цвет</Typography.Text>
+            </Field.Label>
+            <Field.Value className={styles.fieldValue}>
+              <Typography.Text className={styles.fieldText} type="success">
+                {characteristicName(order.characteristics.color)}
+              </Typography.Text>
+            </Field.Value>
+          </Field>
+        )}
+        {order.characteristics.profile !== undefined && (
+          <Field>
+            <Field.Label>
+              <Typography.Text type="secondary">Профиль</Typography.Text>
+            </Field.Label>
+            <Field.Value className={styles.fieldValue}>
+              <Typography.Text className={styles.fieldText} type="success">
+                {characteristicName(order.characteristics.profile)}
+              </Typography.Text>
+            </Field.Value>
+          </Field>
+        )}
+        {order.characteristics.panel !== undefined && (
+          <Field>
+            <Field.Label>
+              <Typography.Text type="secondary">Филёнка</Typography.Text>
+            </Field.Label>
+            <Field.Value className={styles.fieldValue}>
+              <Typography.Text className={styles.fieldText} type="success">
+                {characteristicName(order.characteristics.panel)}
+              </Typography.Text>
+            </Field.Value>
+          </Field>
+        )}
+        {order.characteristics.patina !== undefined && (
+          <Field>
+            <Field.Label>
+              <Typography.Text type="secondary">Патина</Typography.Text>
+            </Field.Label>
+            <Field.Value className={styles.fieldValue}>
+              <Typography.Text className={styles.fieldText} type="success">
+                {characteristicName(order.characteristics.patina)}
+              </Typography.Text>
+            </Field.Value>
+          </Field>
+        )}
+        {order.characteristics.varnish !== undefined && (
+          <Field>
+            <Field.Label>
+              <Typography.Text type="secondary">Лак</Typography.Text>
+            </Field.Label>
+            <Field.Value className={styles.fieldValue}>
+              <Typography.Text className={styles.fieldText} type="success">
+                {characteristicName(order.characteristics.varnish)}
+              </Typography.Text>
+            </Field.Value>
+          </Field>
+        )}
+        {order.characteristics.thermalSeam !== undefined && (
+          <Field>
+            <Field.Label>
+              <Typography.Text type="secondary">Термошов</Typography.Text>
+            </Field.Label>
+            <Field.Value className={styles.fieldValue}>
+              <Typography.Text className={styles.fieldText} type="success">
+                {order.characteristics.thermalSeam ?? '—'}
+              </Typography.Text>
+            </Field.Value>
+          </Field>
+        )}
+        {order.characteristics.drilling !== undefined && (
+          <Field>
+            <Field.Label>
+              <Typography.Text type="secondary">Присадка</Typography.Text>
+            </Field.Label>
+            <Field.Value className={styles.fieldValue}>
+              <Typography.Text className={styles.fieldText} type="success">
+                {order.characteristics.drilling ?? '—'}
+              </Typography.Text>
+            </Field.Value>
+          </Field>
+        )}
+        <Field className={styles.fullWidthField}>
+          <Field.Label>
+            <Typography.Text type="secondary">Комментарий</Typography.Text>
+          </Field.Label>
+          <Field.Value className={styles.fieldValue}>
+            <MarkdownPreview
+              className={styles.fieldText}
+              value={order.comment}
+            />
+          </Field.Value>
+        </Field>
+      </div>
+      <div className={styles.table}>
+        <Table
+          rowKey="id"
+          columns={columns}
+          dataSource={order.items}
+          pagination={false}
+          locale={{
+            emptyText: <Empty description="В документе пока нет позиций" />,
+          }}
+          scroll={{ x: 900 }}
+          size="small"
+        />
+      </div>
+      <div className={styles.documentTotal}>
+        <Typography.Text type="secondary">Сумма документа</Typography.Text>
+        <Typography.Title level={5} style={{ margin: 0 }}>
+          {formatCurrency(order.totalPrice)}
+        </Typography.Title>
+      </div>
     </div>
-  </div>
+  </>
 );
