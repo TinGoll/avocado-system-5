@@ -208,6 +208,7 @@ export interface OrderGroup {
   orders: Order[];
   createdAt: Date;
   updatedAt: Date;
+  managementVersion?: number;
 }
 
 export interface Order {
@@ -220,6 +221,7 @@ export interface Order {
   items: OrderItem[];
   createdAt: Date;
   updatedAt: Date;
+  managementVersion?: number;
 }
 
 export interface OrderItem {

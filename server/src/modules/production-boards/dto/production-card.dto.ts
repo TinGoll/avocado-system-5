@@ -1,4 +1,4 @@
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
 
 const RawValue = () =>
@@ -12,7 +12,7 @@ export class CardsQueryDto {
   @IsOptional()
   cursor?: string;
 
-  @RawValue()
+  @Type(() => Number)
   @IsOptional()
   @IsInt()
   @Min(1)

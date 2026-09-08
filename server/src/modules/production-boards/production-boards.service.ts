@@ -657,6 +657,7 @@ export class ProductionBoardsService {
         'COALESCE(orders.dueDate, groups.dueDate) AS "effectiveDueDate"',
         'orders.customStatusId AS "customStatusId"',
         'status.name AS "customStatusName"',
+        'status.color AS "customStatusColor"',
         'groups.id AS "orderGroupId"',
         'groups.orderNumber AS "orderNumber"',
         'groups.managementVersion AS "groupVersion"',

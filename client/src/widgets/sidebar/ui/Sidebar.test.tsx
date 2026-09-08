@@ -75,4 +75,24 @@ describe('Sidebar', () => {
         ?.classList.contains('ant-menu-item-selected'),
     ).toBe(true);
   });
+
+  it('links to the production board', () => {
+    act(() =>
+      root.render(
+        <MemoryRouter initialEntries={['/production']}>
+          <Sidebar />
+        </MemoryRouter>,
+      ),
+    );
+
+    const link = container.querySelector<HTMLAnchorElement>(
+      'a[href="/production"]',
+    );
+    expect(link?.textContent).toBe('Производство');
+    expect(
+      link
+        ?.closest('.ant-menu-item')
+        ?.classList.contains('ant-menu-item-selected'),
+    ).toBe(true);
+  });
 });

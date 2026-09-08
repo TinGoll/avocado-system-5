@@ -15,4 +15,5 @@ export const ROUTES = {
   products: '/products',
   orderSearch: '/search',
   orderManagementSettings: '/order-management/settings',
+  productionBoard: '/production',
 };

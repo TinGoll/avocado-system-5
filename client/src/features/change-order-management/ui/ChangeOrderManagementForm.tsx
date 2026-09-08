@@ -2,9 +2,7 @@ import { css } from '@emotion/css';
 import {
   Alert,
   App,
-  Button,
   DatePicker,
-  Form,
   Select,
   Skeleton,
   Space,
@@ -13,7 +11,7 @@ import {
 } from 'antd';
 import type { AxiosError } from 'axios';
 import dayjs, { type Dayjs } from 'dayjs';
-import { type FC, useEffect } from 'react';
+import { type FC, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 
 import type { ManagementScope, ManagementView } from '@entities/order';
@@ -23,26 +21,37 @@ import {
   updateManagement,
 } from '@shared/api';
 import { fetcher } from '@shared/lib/swr';
+import { Editable } from '@shared/ui';
 
 import { toManagementDate } from '../model/management-date';
 
 const styles = {
-  panel: css`
-    padding: 10px;
-    border: 1px solid var(--app-devider-color);
-    border-radius: 6px;
-    background: var(--app-surface-1-background-color);
-  `,
-  form: css`
+  fields: css`
     display: flex;
-    align-items: flex-end;
-    gap: 8px;
+    align-items: center;
+    gap: 18px;
     flex-wrap: wrap;
-
-    .ant-form-item {
-      min-width: 210px;
-      margin-bottom: 0;
-    }
+  `,
+  field: css`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+  `,
+  label: css`
+    white-space: nowrap;
+  `,
+  value: css`
+    min-width: 110px;
+  `,
+  datePicker: css`
+    width: 160px;
+  `,
+  statusSelect: css`
+    min-width: 160px;
+  `,
+  alert: css`
+    margin-top: 8px;
   `,
 };
 
@@ -50,16 +59,20 @@ type Props = {
   scope: ManagementScope;
   targetId: number | string;
   groupId: number;
+  onSaved?: () => void | Promise<void>;
 };
-type Values = { dueDate: Dayjs | null; customStatusId: string | null };
 
 export const ChangeOrderManagementForm: FC<Props> = ({
   scope,
   targetId,
   groupId,
+  onSaved,
 }) => {
   const { message } = App.useApp();
   const { mutate: mutateGlobal } = useSWRConfig();
+  const [savingField, setSavingField] = useState<'dueDate' | 'status' | null>(
+    null,
+  );
   const key =
     scope === 'group'
       ? orderManagementKeys.group(Number(targetId))
@@ -71,15 +84,6 @@ export const ChangeOrderManagementForm: FC<Props> = ({
   const statuses = useSWR(orderManagementKeys.statuses(scope), () =>
     getCustomStatuses(scope),
   );
-  const [form] = Form.useForm<Values>();
-
-  useEffect(() => {
-    if (!data) return;
-    form.setFieldsValue({
-      dueDate: data.dueDate ? dayjs(data.dueDate) : null,
-      customStatusId: data.customStatusId,
-    });
-  }, [data, form]);
 
   if (isLoading || !data) {
     return error ? (
@@ -106,22 +110,34 @@ export const ChangeOrderManagementForm: FC<Props> = ({
     ]);
   };
 
-  const save = async (values: Values) => {
+  const save = async (
+    field: 'dueDate' | 'status',
+    update: { dueDate: string | null } | { customStatusId: string | null },
+  ) => {
+    setSavingField(field);
     try {
       await updateManagement(scope, targetId, {
         expectedVersion: data.managementVersion,
-        dueDate: toManagementDate(values.dueDate),
-        customStatusId: values.customStatusId ?? null,
+        ...update,
       });
       await revalidateRelated();
-      message.success('Срок и отметка сохранены');
+      await onSaved?.();
+      message.success(
+        field === 'dueDate' ? 'Срок сохранён' : 'Отметка сохранена',
+      );
     } catch (caught) {
       if ((caught as AxiosError).response?.status === 409) {
         await revalidateRelated();
         message.warning('Данные уже изменились. Показана актуальная версия.');
         return;
       }
-      message.error('Не удалось сохранить срок и отметку');
+      message.error(
+        field === 'dueDate'
+          ? 'Не удалось сохранить срок'
+          : 'Не удалось сохранить отметку',
+      );
+    } finally {
+      setSavingField(null);
     }
   };
 
@@ -130,64 +146,95 @@ export const ChangeOrderManagementForm: FC<Props> = ({
     disabled: Boolean(status.archivedAt),
     label: (
       <Space size={4}>
-        <Tag color={status.color}>{status.name}</Tag>
+        <Tag color={status.color} variant="solid">
+          {status.name}
+        </Tag>
         {status.archivedAt && (
           <Typography.Text type="secondary">архив</Typography.Text>
         )}
       </Space>
     ),
   }));
+  const dueDateText = data.dueDate
+    ? dayjs(data.dueDate).format('DD.MM.YYYY')
+    : scope === 'document' && data.effectiveDueDate
+      ? `Срок заказа: ${dayjs(data.effectiveDueDate).format('DD.MM.YYYY')}`
+      : 'Без срока';
 
   return (
-    <div className={styles.panel}>
-      <Form<Values>
-        className={styles.form}
-        form={form}
-        initialValues={{
-          dueDate: data.dueDate ? dayjs(data.dueDate, 'YYYY-MM-DD') : null,
-          customStatusId: data.customStatusId,
-        }}
-        key={`${data.managementVersion}-${data.dueDate}-${data.customStatusId}`}
-        onFinish={save}
-      >
-        <Form.Item
-          label={scope === 'group' ? 'Срок заказа' : 'Срок документа'}
-          name="dueDate"
-        >
-          <DatePicker
-            allowClear
-            format="DD.MM.YYYY"
-            placeholder={
-              scope === 'document' && !data.dueDate && data.effectiveDueDate
-                ? `Срок заказа: ${dayjs(data.effectiveDueDate).format('DD.MM.YYYY')}`
-                : 'Без срока'
+    <div>
+      <div className={styles.fields}>
+        <div className={styles.field}>
+          <Typography.Text className={styles.label}>
+            {scope === 'group' ? 'Срок заказа:' : 'Срок документа:'}
+          </Typography.Text>
+          <Editable<Dayjs | null>
+            className={styles.value}
+            control={(props) => (
+              <DatePicker
+                {...props}
+                allowClear
+                autoFocus
+                className={styles.datePicker}
+                format="DD.MM.YYYY"
+                placeholder="Без срока"
+                size="small"
+              />
+            )}
+            defaultValue={data.dueDate ? dayjs(data.dueDate) : null}
+            key={`due-date-${data.managementVersion}`}
+            loading={savingField === 'dueDate'}
+            name={`${scope}-${targetId}-due-date`}
+            onSave={(_, value) =>
+              void save('dueDate', { dueDate: toManagementDate(value ?? null) })
             }
-          />
-        </Form.Item>
-        <Form.Item label="Пользовательская отметка" name="customStatusId">
-          <Select
-            allowClear
-            loading={statuses.isLoading}
-            options={options}
-            placeholder="Без отметки"
-          />
-        </Form.Item>
-        {scope === 'document' && data.dueDate && (
-          <Button
-            onClick={() => {
-              form.setFieldValue('dueDate', null);
-              form.submit();
-            }}
           >
-            Снять свой срок
-          </Button>
-        )}
-        <Button htmlType="submit" type="primary">
-          Сохранить
-        </Button>
-      </Form>
+            <Typography.Text type={data.dueDate ? undefined : 'secondary'}>
+              {dueDateText}
+            </Typography.Text>
+          </Editable>
+        </div>
+
+        <div className={styles.field}>
+          <Typography.Text className={styles.label}>
+            Пользовательская отметка:
+          </Typography.Text>
+          <Editable<string | null>
+            className={styles.value}
+            control={(props) => (
+              <Select
+                {...props}
+                allowClear
+                autoFocus
+                className={styles.statusSelect}
+                loading={statuses.isLoading}
+                options={options}
+                placeholder="Без отметки"
+                size="small"
+              />
+            )}
+            defaultValue={data.customStatusId}
+            key={`status-${data.managementVersion}`}
+            loading={savingField === 'status'}
+            name={`${scope}-${targetId}-status`}
+            onSave={(_, value) =>
+              void save('status', { customStatusId: value ?? null })
+            }
+          >
+            {data.customStatus ? (
+              <Tag color={data.customStatus.color} variant="solid">
+                {data.customStatus.name}
+              </Tag>
+            ) : (
+              <Typography.Text type="secondary">Без отметки</Typography.Text>
+            )}
+          </Editable>
+        </div>
+      </div>
+
       {statuses.error && (
         <Alert
+          className={styles.alert}
           type="warning"
           showIcon
           title="Список отметок временно недоступен"

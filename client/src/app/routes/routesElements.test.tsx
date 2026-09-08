@@ -12,6 +12,9 @@ vi.mock('@pages/price-modifiers', () => ({
 vi.mock('@pages/order-management-settings', () => ({
   default: () => <div>Маршрут управления заказами</div>,
 }));
+vi.mock('@pages/production-board', () => ({
+  default: () => <div>Маршрут производства</div>,
+}));
 vi.mock('@pages/catalogs', () => ({
   CatalogPage: ({ catalog }: { catalog: string }) => (
     <div>Маршрут справочника: {catalog}</div>
@@ -73,5 +76,18 @@ describe('routesElements', () => {
     });
 
     expect(container.textContent).toContain('Маршрут управления заказами');
+  });
+
+  it('renders the production board page by its URL', async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={['/production']}>
+          {routesElements()}
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain('Маршрут производства');
   });
 });

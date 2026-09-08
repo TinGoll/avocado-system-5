@@ -10,6 +10,7 @@ import {
   MenuUnfoldOutlined,
   PercentageOutlined,
   ProfileOutlined,
+  ProjectOutlined,
   SettingOutlined,
   ShoppingCartOutlined,
   TeamOutlined,
@@ -74,6 +75,11 @@ export const Sidebar: FC = () => {
             label: (
               <Link to="/order-management/settings">Управление заказами</Link>
             ),
+          },
+          {
+            key: '/production',
+            icon: <ProjectOutlined />,
+            label: <Link to="/production">Производство</Link>,
           },
           {
             key: 'catalogs',

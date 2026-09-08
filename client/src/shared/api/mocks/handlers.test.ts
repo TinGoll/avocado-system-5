@@ -356,4 +356,122 @@ describe('MSW API mocks', () => {
 
     expect(conflict.status).toBe(409);
   });
+
+  it('creates a board, assigns a card and rejects a stale move', async () => {
+    const statusResponse = await fetch(
+      'http://localhost/order-management/statuses',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scope: 'document',
+          name: 'Тест-1',
+          color: '#eb2f96',
+        }),
+      },
+    );
+    const status = (await statusResponse.json()) as { id: string };
+    const managementResponse = await fetch(
+      'http://localhost/orders/aa000000-0000-4000-8000-000000000001/management',
+    );
+    const management = (await managementResponse.json()) as {
+      managementVersion: number;
+    };
+    await fetch(
+      'http://localhost/orders/aa000000-0000-4000-8000-000000000001/management',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          expectedVersion: management.managementVersion,
+          customStatusId: status.id,
+        }),
+      },
+    );
+
+    const create = await fetch('http://localhost/production-boards', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Основная',
+        initialStageIndex: 0,
+        stages: [
+          {
+            name: 'Очередь',
+            color: '#888888',
+            kind: 'queue',
+            progressPercent: 0,
+          },
+          {
+            name: 'Работа',
+            color: '#1677ff',
+            kind: 'active',
+            progressPercent: 50,
+          },
+          {
+            name: 'Готово',
+            color: '#52c41a',
+            kind: 'done',
+            progressPercent: 100,
+          },
+        ],
+      }),
+    });
+    const board = (await create.json()) as {
+      id: string;
+      version: number;
+      stages: { id: string }[];
+    };
+    const assignedResponse = await fetch(
+      `http://localhost/production-boards/${board.id}/cards`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: 'aa000000-0000-4000-8000-000000000001',
+          expectedBoardVersion: 0,
+          expectedGroupVersion: 0,
+        }),
+      },
+    );
+    const card = (await assignedResponse.json()) as {
+      id: string;
+      version: number;
+      customStatusName: string;
+      customStatusColor: string;
+    };
+    expect(card).toMatchObject({
+      customStatusName: 'Тест-1',
+      customStatusColor: '#eb2f96',
+    });
+    const move = await fetch(
+      `http://localhost/production-cards/${card.id}/move`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetStageId: board.stages[1].id,
+          expectedCardVersion: 0,
+          expectedBoardVersion: 1,
+          expectedGroupVersion: 0,
+        }),
+      },
+    );
+    expect(move.ok).toBe(true);
+
+    const staleMove = await fetch(
+      `http://localhost/production-cards/${card.id}/move`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetStageId: board.stages[2].id,
+          expectedCardVersion: 0,
+          expectedBoardVersion: 1,
+          expectedGroupVersion: 0,
+        }),
+      },
+    );
+    expect(staleMove.status).toBe(409);
+  });
 });
