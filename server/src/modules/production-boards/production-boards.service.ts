@@ -8,6 +8,20 @@ import {
 import { DataSource, EntityManager } from 'typeorm';
 import { ProductionBoard } from './entities/production-board.entity';
 import { ProductionStage } from './entities/production-stage.entity';
+import { ProductionCard } from './entities/production-card.entity';
+import { Order } from '../orders/entities/order.entity';
+import {
+  OrderGroup,
+  OrderStatus,
+} from '../order-groups/entities/order-group.entity';
+import { OrderManagementEventService } from '../order-management/order-management-event.service';
+import {
+  AssignCardDto,
+  CardsQueryDto,
+  MoveCardDto,
+  RemoveCardDto,
+  TransferCardDto,
+} from './dto/production-card.dto';
 import {
   BoardVersionDto,
   CreateBoardDto,
@@ -21,7 +35,10 @@ import {
 
 @Injectable()
 export class ProductionBoardsService {
-  constructor(private readonly source: DataSource) {}
+  constructor(
+    private readonly source: DataSource,
+    private readonly journal: OrderManagementEventService,
+  ) {}
 
   private transaction<T>(
     work: (manager: EntityManager) => Promise<T>,
@@ -180,8 +197,14 @@ export class ProductionBoardsService {
   }
 
   archive(id: string, dto: BoardVersionDto) {
-    // OM-04 adds the check for unfinished cards here.
     return this.mutate(id, dto.expectedVersion, async (manager) => {
+      const unfinished = await manager
+        .createQueryBuilder(ProductionCard, 'card')
+        .innerJoin(ProductionStage, 'stage', 'stage.id = card.stageId')
+        .where('stage.boardId = :id', { id })
+        .andWhere('stage.kind != :done', { done: 'done' })
+        .getExists();
+      if (unfinished) throw new ConflictException('Board has unfinished cards');
       await manager.update(ProductionBoard, id, { archivedAt: new Date() });
     });
   }
@@ -258,7 +281,9 @@ export class ProductionBoardsService {
       const stage = this.stage(board, stageId);
       if (!archive && stage.usedAt)
         throw new ConflictException('Used stages must be archived');
-      // OM-04 checks active cards, OM-08 checks enabled notification rules.
+      if (await manager.existsBy(ProductionCard, { stageId }))
+        throw new ConflictException('Move cards before removing this stage');
+      // OM-08 checks enabled notification rules.
       if (dto.initialStageId !== undefined) {
         const replacement = this.stage(board, dto.initialStageId);
         if (replacement.id === stageId || replacement.kind !== 'queue')
@@ -298,5 +323,408 @@ export class ProductionBoardsService {
       for (const [position, stageId] of dto.stageIds.entries())
         await manager.update(ProductionStage, stageId, { position });
     });
+  }
+
+  private async claimGroup(
+    manager: EntityManager,
+    id: number,
+    expectedVersion: number,
+  ) {
+    const result = await manager
+      .createQueryBuilder()
+      .update(OrderGroup)
+      .set({ managementVersion: () => '"managementVersion" + 1' })
+      .where('id = :id AND "managementVersion" = :expectedVersion', {
+        id,
+        expectedVersion,
+      })
+      .execute();
+    if (!result.affected)
+      throw new ConflictException('Order group changed; reload and retry');
+    const group = await manager.findOneByOrFail(OrderGroup, { id });
+    if ([OrderStatus.COMPLETED, OrderStatus.CANCELLED].includes(group.status))
+      throw new ConflictException('Terminal order groups cannot be moved');
+    return group;
+  }
+
+  private async claimBoard(
+    manager: EntityManager,
+    id: string,
+    expectedVersion: number,
+  ) {
+    const result = await manager
+      .createQueryBuilder()
+      .update(ProductionBoard)
+      .set({ version: () => 'version + 1' })
+      .where('id = :id AND version = :expectedVersion', { id, expectedVersion })
+      .execute();
+    if (!result.affected)
+      throw new ConflictException('Production board changed; reload and retry');
+    const board = await this.board(manager, id);
+    if (board.archivedAt)
+      throw new ConflictException('Archived boards cannot be changed');
+    return board;
+  }
+
+  private async orderForCard(manager: EntityManager, orderId: string) {
+    const order = await manager.findOne(Order, {
+      where: { id: orderId },
+      loadEagerRelations: false,
+      relations: { orderGroup: true, customStatus: true },
+    });
+    if (!order) throw new NotFoundException('Order document not found');
+    if (!order.orderGroup)
+      throw new BadRequestException('Document must belong to an order group');
+    return order;
+  }
+
+  private async normalizeCards(manager: EntityManager, stageId: string) {
+    const cards = await manager.find(ProductionCard, {
+      where: { stageId },
+      order: { position: 'ASC', id: 'ASC' },
+    });
+    for (const [position, card] of cards.entries())
+      if (card.position !== position)
+        await manager.update(ProductionCard, card.id, { position });
+  }
+
+  private async insertPosition(
+    manager: EntityManager,
+    stageId: string,
+    beforeCardId?: string | null,
+    excludedId?: string,
+  ) {
+    const cards = await manager.find(ProductionCard, {
+      where: { stageId },
+      order: { position: 'ASC', id: 'ASC' },
+    });
+    const filtered = cards.filter((card) => card.id !== excludedId);
+    const index =
+      beforeCardId == null
+        ? filtered.length
+        : filtered.findIndex((card) => card.id === beforeCardId);
+    if (index < 0)
+      throw new BadRequestException('beforeCardId is not in the target stage');
+    filtered.splice(index, 0, {
+      id: excludedId ?? '',
+      position: -1,
+    } as ProductionCard);
+    for (const [position, card] of filtered.entries())
+      if (card.id && card.position !== position)
+        await manager.update(ProductionCard, card.id, { position });
+    return index;
+  }
+
+  async assignCard(boardId: string, dto: AssignCardDto) {
+    return this.transaction(async (manager) => {
+      const order = await this.orderForCard(manager, dto.orderId);
+      const group = await this.claimGroup(
+        manager,
+        order.orderGroup.id,
+        dto.expectedGroupVersion,
+      );
+      const board = await this.claimBoard(
+        manager,
+        boardId,
+        dto.expectedBoardVersion,
+      );
+      if (await manager.existsBy(ProductionCard, { orderId: order.id }))
+        throw new ConflictException('Document already has a production card');
+      const stage = this.stage(board, board.initialStageId!);
+      if (stage.kind !== 'queue')
+        throw new ConflictException('Initial stage must be a queue');
+      const position = await manager.countBy(ProductionCard, {
+        stageId: stage.id,
+      });
+      const card = await manager.save(
+        ProductionCard,
+        manager.create(ProductionCard, {
+          orderId: order.id,
+          stageId: stage.id,
+          position,
+          progressPercent: stage.progressPercent,
+          enteredStageAt: new Date(),
+          version: 0,
+        }),
+      );
+      await manager.update(ProductionStage, stage.id, {
+        usedAt: stage.usedAt ?? new Date(),
+      });
+      await this.journal.record(manager, {
+        orderGroupId: group.id,
+        orderId: order.id,
+        type: 'board_assigned',
+        before: {},
+        after: {
+          boardId,
+          boardName: board.name,
+          stageId: stage.id,
+          stageName: stage.name,
+        },
+        targetSnapshot: {
+          orderNumber: group.orderNumber,
+          documentNumber: order.documentNumber,
+          documentName: order.name ?? null,
+        },
+      });
+      return card;
+    });
+  }
+
+  private async relocate(
+    id: string,
+    dto: MoveCardDto | TransferCardDto,
+    transfer: boolean,
+  ) {
+    return this.transaction(async (manager) => {
+      const initial = await manager.findOne(ProductionCard, {
+        where: { id },
+        relations: { stage: true },
+      });
+      if (!initial) throw new NotFoundException('Production card not found');
+      const order = await this.orderForCard(manager, initial.orderId);
+      const group = await this.claimGroup(
+        manager,
+        order.orderGroup.id,
+        dto.expectedGroupVersion,
+      );
+      const sourceBoardId = initial.stage.boardId;
+      const targetBoardId = transfer
+        ? (dto as TransferCardDto).targetBoardId
+        : sourceBoardId;
+      const boardIds = [...new Set([sourceBoardId, targetBoardId])].sort();
+      const boards = new Map<string, ProductionBoard>();
+      for (const boardId of boardIds) {
+        const version =
+          boardId === sourceBoardId
+            ? dto.expectedBoardVersion
+            : (dto as TransferCardDto).expectedTargetBoardVersion;
+        boards.set(boardId, await this.claimBoard(manager, boardId, version));
+      }
+      const claimed = await manager
+        .createQueryBuilder()
+        .update(ProductionCard)
+        .set({ version: () => 'version + 1' })
+        .where('id = :id AND version = :version', {
+          id,
+          version: dto.expectedCardVersion,
+        })
+        .execute();
+      if (!claimed.affected)
+        throw new ConflictException(
+          'Production card changed; reload and retry',
+        );
+      const targetBoard = boards.get(targetBoardId)!;
+      const target = this.stage(targetBoard, dto.targetStageId);
+      if (group.status === OrderStatus.DRAFT && target.kind !== 'queue')
+        throw new ConflictException(
+          'Draft documents can only be in queue stages',
+        );
+      const position = await this.insertPosition(
+        manager,
+        target.id,
+        dto.beforeCardId,
+        id,
+      );
+      const stageChanged = initial.stageId !== target.id;
+      await manager.update(ProductionCard, id, {
+        stageId: target.id,
+        position,
+        progressPercent: target.progressPercent,
+        ...(stageChanged ? { enteredStageAt: new Date() } : {}),
+      });
+      if (stageChanged) {
+        await manager.update(ProductionStage, target.id, {
+          usedAt: target.usedAt ?? new Date(),
+        });
+        await this.journal.record(manager, {
+          orderGroupId: group.id,
+          orderId: order.id,
+          type: transfer ? 'board_changed' : 'stage_changed',
+          before: {
+            boardId: sourceBoardId,
+            stageId: initial.stageId,
+            stageName: initial.stage.name,
+            progressPercent: initial.progressPercent,
+          },
+          after: {
+            boardId: targetBoardId,
+            stageId: target.id,
+            stageName: target.name,
+            progressPercent: target.progressPercent,
+          },
+          targetSnapshot: {
+            orderNumber: group.orderNumber,
+            documentNumber: order.documentNumber,
+            documentName: order.name ?? null,
+          },
+        });
+      }
+      await this.normalizeCards(manager, initial.stageId);
+      await this.normalizeCards(manager, target.id);
+      return manager.findOneByOrFail(ProductionCard, { id });
+    });
+  }
+
+  moveCard(id: string, dto: MoveCardDto) {
+    return this.relocate(id, dto, false);
+  }
+
+  transferCard(id: string, dto: TransferCardDto) {
+    if (!dto.targetBoardId)
+      throw new BadRequestException('targetBoardId is required');
+    return this.relocate(id, dto, true);
+  }
+
+  async removeCard(id: string, dto: RemoveCardDto) {
+    return this.transaction(async (manager) => {
+      const card = await manager.findOne(ProductionCard, {
+        where: { id },
+        relations: { stage: true },
+      });
+      if (!card) throw new NotFoundException('Production card not found');
+      const order = await this.orderForCard(manager, card.orderId);
+      const group = await this.claimGroup(
+        manager,
+        order.orderGroup.id,
+        dto.expectedGroupVersion,
+      );
+      const board = await this.claimBoard(
+        manager,
+        card.stage.boardId,
+        dto.expectedBoardVersion,
+      );
+      if (card.version !== dto.expectedCardVersion)
+        throw new ConflictException(
+          'Production card changed; reload and retry',
+        );
+      await manager.delete(ProductionCard, id);
+      await this.normalizeCards(manager, card.stageId);
+      await this.journal.record(manager, {
+        orderGroupId: group.id,
+        orderId: order.id,
+        type: 'board_removed',
+        before: {
+          boardId: board.id,
+          boardName: board.name,
+          stageId: card.stageId,
+          stageName: card.stage.name,
+        },
+        after: {},
+        targetSnapshot: {
+          orderNumber: group.orderNumber,
+          documentNumber: order.documentNumber,
+          documentName: order.name ?? null,
+        },
+      });
+      return { id };
+    });
+  }
+
+  async listCards(boardId: string, query: CardsQueryDto) {
+    await this.get(boardId);
+    let cursor: [number, string] | null = null;
+    if (query.cursor) {
+      try {
+        cursor = JSON.parse(
+          Buffer.from(query.cursor, 'base64url').toString(),
+        ) as [number, string];
+      } catch {
+        throw new BadRequestException('Invalid cursor');
+      }
+    }
+    const qb = this.source.manager
+      .createQueryBuilder(ProductionCard, 'card')
+      .innerJoin(ProductionStage, 'stage', 'stage.id = card.stageId')
+      .innerJoin(Order, 'orders', 'orders.id = card.orderId')
+      .innerJoin(OrderGroup, 'groups', 'groups.id = orders.orderGroupId')
+      .leftJoin(
+        'custom_order_statuses',
+        'status',
+        'status.id = orders.customStatusId',
+      )
+      .select([
+        'card.id AS id',
+        'card.orderId AS "orderId"',
+        'card.stageId AS "stageId"',
+        'card.position AS position',
+        'card.progressPercent AS "progressPercent"',
+        'card.enteredStageAt AS "enteredStageAt"',
+        'card.version AS version',
+        'orders.name AS "documentName"',
+        'orders.documentNumber AS "documentNumber"',
+        'orders.managementVersion AS "documentVersion"',
+        'COALESCE(orders.dueDate, groups.dueDate) AS "effectiveDueDate"',
+        'orders.customStatusId AS "customStatusId"',
+        'status.name AS "customStatusName"',
+        'groups.id AS "orderGroupId"',
+        'groups.orderNumber AS "orderNumber"',
+        'groups.managementVersion AS "groupVersion"',
+      ])
+      .where('stage.boardId = :boardId', { boardId })
+      .andWhere(query.stageId ? 'card.stageId = :stageId' : '1 = 1', {
+        stageId: query.stageId,
+      })
+      .orderBy('card.position', 'ASC')
+      .addOrderBy('card.id', 'ASC')
+      .limit(query.limit + 1);
+    if (cursor)
+      qb.andWhere(
+        '(card.position > :position OR (card.position = :position AND card.id > :cursorId))',
+        { position: cursor[0], cursorId: cursor[1] },
+      );
+    const rows = await qb.getRawMany<Record<string, unknown>>();
+    const hasMore = rows.length > query.limit;
+    const items = rows.slice(0, query.limit);
+    const last = items.at(-1);
+    return {
+      items,
+      meta: {
+        nextCursor:
+          hasMore && last
+            ? Buffer.from(
+                JSON.stringify([Number(last.position), last.id]),
+              ).toString('base64url')
+            : null,
+      },
+    };
+  }
+
+  async groupProduction(groupId: number) {
+    if (!(await this.source.manager.existsBy(OrderGroup, { id: groupId })))
+      throw new NotFoundException('Order group not found');
+    const rows = await this.source.manager
+      .createQueryBuilder(Order, 'orders')
+      .leftJoin(ProductionCard, 'card', 'card.orderId = orders.id')
+      .leftJoin(ProductionStage, 'stage', 'stage.id = card.stageId')
+      .leftJoin(ProductionBoard, 'board', 'board.id = stage.boardId')
+      .select([
+        'orders.id AS id',
+        'orders.name AS name',
+        'orders.documentNumber AS "documentNumber"',
+        'COALESCE(card.progressPercent, 0) AS "progressPercent"',
+        'card.id AS "cardId"',
+        'card.version AS "cardVersion"',
+        'stage.id AS "stageId"',
+        'stage.name AS "stageName"',
+        'stage.kind AS "stageKind"',
+        'board.id AS "boardId"',
+        'board.name AS "boardName"',
+      ])
+      .where('orders.orderGroupId = :groupId', { groupId })
+      .orderBy('orders.documentNumber', 'ASC')
+      .getRawMany<Record<string, unknown>>();
+    const trackedCount = rows.filter((row) => row.cardId).length;
+    return {
+      documents: rows,
+      progressPercent: rows.length
+        ? rows.reduce((sum, row) => sum + Number(row.progressPercent), 0) /
+          rows.length
+        : null,
+      documentCount: rows.length,
+      trackedCount,
+      productionComplete:
+        rows.length > 0 && rows.every((row) => row.stageKind === 'done'),
+    };
   }
 }

@@ -321,6 +321,51 @@ Content-Type: application/json
 
 **Передать дальше:** DTO карточки/сводки, команды move/transfer и ошибки. Не реализовывать уведомления или DnD UI.
 
+### Результат OM-04 (8 сентября 2026)
+
+Добавлена `ProductionCard` (`id`, уникальный `orderId`, `stageId`, `position`,
+`progressPercent`, `enteredStageAt`, `version`) и парные миграции
+`1789000000000-AddProductionCards.ts`. Индексы: `UNIQUE(orderId)` и
+`(stageId, position, id)`.
+
+Фактический API под `/api`:
+
+- `GET /production-boards/:id/cards?stageId=&cursor=&limit=` →
+  `{ items, meta: { nextCursor } }`; cursor — opaque base64url `(position,id)`,
+  limit 1–100 (50 по умолчанию). Проекция содержит версии карточки, документа и
+  группы, эффективный срок, custom status и данные ссылки, без items документа.
+- `POST /production-boards/:id/cards`: `{ orderId, expectedBoardVersion,
+  expectedGroupVersion }`; назначение всегда в начальную очередь.
+- `POST /production-cards/:id/move`: `{ targetStageId, beforeCardId?,
+  expectedCardVersion, expectedBoardVersion, expectedGroupVersion }`.
+- `POST /production-cards/:id/transfer`: те же поля плюс `targetBoardId` и
+  `expectedTargetBoardVersion`; `expectedBoardVersion` относится к исходной доске.
+- `DELETE /production-cards/:id`: `{ expectedCardVersion,
+  expectedBoardVersion, expectedGroupVersion }`.
+- `GET /order-groups/:id/production` → `{ documents, progressPercent,
+  documentCount, trackedCount, productionComplete }`. Пустая группа имеет
+  `progressPercent: null`; документ без карточки учитывается как 0%.
+
+Команды атомарно условно увеличивают версии в порядке группа → доски по UUID →
+карточка. Конфликт версии, terminal lifecycle и архивный объект дают 409;
+документ без группы или неверный сосед — 400; отсутствующий объект — 404.
+`beforeCardId: null` означает конец полной колонки. Реальный переход меняет
+процент и `enteredStageAt` и пишет событие; перестановка в той же колонке время
+сохраняет и события не создаёт. События: `board_assigned`, `board_removed`,
+`stage_changed`, `board_changed`.
+
+Архивирование доски запрещено при незавершённых карточках; колонку с карточками
+нельзя удалить или архивировать. Копия документа карточку не наследует. Удаление
+документа/группы удаляет карточки, нормализует позиции и увеличивает версии досок.
+Закрытие без подтверждения теперь разрешено только непустой группе, у которой
+каждый документ имеет карточку в `done`.
+
+Проверки: `npm run build`; ESLint без `--fix` по затронутым файлам; `npm test --
+--runInBand orders.service.spec.ts order-groups.service.spec.ts` — 10 тестов;
+`npm run test:e2e:sqlite -- --testTimeout=90000` — 4 теста, включая полную
+цепочку миграций и отсутствие расхождений ORM-схемы. Реальный PostgreSQL
+недоступен, поэтому его миграция не проверена исполнением.
+
 <a id="om-05"></a>
 ## OM-05. Пользовательские статусы, сроки и настройки зоны в UI
 

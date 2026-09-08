@@ -117,7 +117,12 @@ export class OrderManagementService {
     }
   }
 
-  private checkLifecycle(current: OrderStatus, dto: UpdateGroupManagementDto) {
+  private async checkLifecycle(
+    manager: EntityManager,
+    groupId: number,
+    current: OrderStatus,
+    dto: UpdateGroupManagementDto,
+  ) {
     const next = dto.status;
     if (next === undefined || next === current) return;
     if (next === OrderStatus.DRAFT)
@@ -132,15 +137,28 @@ export class OrderManagementService {
         'Reopening requires in_production and a reason',
       );
     }
-    // OM-04 must replace this condition with actual production readiness.
-    // Until cards exist, every close explicitly acknowledges incomplete tracking.
-    if (
-      next === OrderStatus.COMPLETED &&
-      (dto.confirmIncompleteProduction !== true || !dto.reason?.trim())
-    ) {
-      throw new BadRequestException(
-        'Closing requires confirmIncompleteProduction and a reason',
-      );
+    if (next === OrderStatus.COMPLETED) {
+      const counts = await manager
+        .createQueryBuilder(Order, 'orders')
+        .leftJoin('production_cards', 'card', 'card.orderId = orders.id')
+        .leftJoin('production_stages', 'stage', 'stage.id = card.stageId')
+        .select('COUNT(orders.id)', 'total')
+        .addSelect(
+          `SUM(CASE WHEN stage.kind = 'done' THEN 1 ELSE 0 END)`,
+          'done',
+        )
+        .where('orders.orderGroupId = :groupId', { groupId })
+        .getRawOne<{ total: string; done: string | null }>();
+      const complete =
+        Number(counts?.total) > 0 &&
+        Number(counts?.done) === Number(counts?.total);
+      if (
+        !complete &&
+        (dto.confirmIncompleteProduction !== true || !dto.reason?.trim())
+      )
+        throw new BadRequestException(
+          'Incomplete production requires confirmation and a reason',
+        );
     }
   }
 
@@ -177,7 +195,7 @@ export class OrderManagementService {
     return this.transaction(async (manager) => {
       await this.claimGroup(manager, id, dto.expectedVersion);
       const group = await this.group(manager, id);
-      this.checkLifecycle(group.status, dto);
+      await this.checkLifecycle(manager, id, group.status, dto);
       const targetSnapshot = {
         orderNumber: group.orderNumber,
         documentNumber: null,
@@ -442,6 +460,7 @@ export class OrderManagementService {
           documentName: order.name ?? null,
         },
       });
+      await this.removeProductionCards(manager, [id]);
       await manager.delete(Order, id);
       return order;
     });
@@ -451,6 +470,13 @@ export class OrderManagementService {
     return this.transaction(async (manager) => {
       await this.claimGroup(manager, id);
       const group = await this.group(manager, id);
+      const documentIds = (
+        await manager.find(Order, {
+          where: { orderGroup: { id } },
+          select: { id: true },
+          loadEagerRelations: false,
+        })
+      ).map((order) => order.id);
       await this.journal.record(manager, {
         orderGroupId: id,
         type: 'group_deleted',
@@ -474,8 +500,57 @@ export class OrderManagementService {
         .set({ managementVersion: () => '"managementVersion" + 1' })
         .where('"orderGroupId" = :id', { id })
         .execute();
+      await this.removeProductionCards(manager, documentIds);
       await manager.delete(OrderGroup, id);
       return group;
     });
+  }
+
+  private async removeProductionCards(
+    manager: EntityManager,
+    orderIds: string[],
+  ) {
+    if (!orderIds.length) return;
+    const cards = await manager
+      .createQueryBuilder()
+      .select([
+        'card.id AS id',
+        'card.stageId AS "stageId"',
+        'stage.boardId AS "boardId"',
+      ])
+      .from('production_cards', 'card')
+      .innerJoin('production_stages', 'stage', 'stage.id = card.stageId')
+      .where('card.orderId IN (:...orderIds)', { orderIds })
+      .getRawMany<{ id: string; stageId: string; boardId: string }>();
+    if (!cards.length) return;
+    const boardIds = [...new Set(cards.map((card) => card.boardId))].sort();
+    for (const boardId of boardIds)
+      await manager.query(
+        `UPDATE "production_boards" SET "version" = "version" + 1 WHERE "id" = ${manager.connection.options.type === 'postgres' ? '$1' : '?'}`,
+        [boardId],
+      );
+    await manager
+      .createQueryBuilder()
+      .delete()
+      .from('production_cards')
+      .where('orderId IN (:...orderIds)', { orderIds })
+      .execute();
+    for (const stageId of new Set(cards.map((card) => card.stageId))) {
+      const remaining = await manager
+        .createQueryBuilder()
+        .select(['card.id AS id'])
+        .from('production_cards', 'card')
+        .where('card.stageId = :stageId', { stageId })
+        .orderBy('card.position', 'ASC')
+        .addOrderBy('card.id', 'ASC')
+        .getRawMany<{ id: string }>();
+      for (const [position, card] of remaining.entries())
+        await manager
+          .createQueryBuilder()
+          .update('production_cards')
+          .set({ position })
+          .where('id = :id', { id: card.id })
+          .execute();
+    }
   }
 }

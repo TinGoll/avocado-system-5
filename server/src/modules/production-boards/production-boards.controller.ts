@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { ProductionBoardsService } from './production-boards.service';
 import {
@@ -19,6 +20,7 @@ import {
   UpdateBoardDto,
   UpdateStageDto,
 } from './dto/production-board.dto';
+import { AssignCardDto, CardsQueryDto } from './dto/production-card.dto';
 
 @Controller('production-boards')
 export class ProductionBoardsController {
@@ -93,5 +95,15 @@ export class ProductionBoardsController {
     @Body() dto: ReorderStagesDto,
   ) {
     return this.boards.reorder(id, dto);
+  }
+
+  @Get(':id/cards')
+  cards(@Param('id', ParseUUIDPipe) id: string, @Query() query: CardsQueryDto) {
+    return this.boards.listCards(id, query);
+  }
+
+  @Post(':id/cards')
+  assign(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AssignCardDto) {
+    return this.boards.assignCard(id, dto);
   }
 }
