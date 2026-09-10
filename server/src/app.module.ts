@@ -18,6 +18,7 @@ import { OrderGroupsModule } from './modules/order-groups/order-groups.module';
 import { CustomersModule } from './modules/customers/customers.module';
 import { ClientErrorsModule } from './modules/client-errors/client-errors.module';
 import { HealthModule } from './modules/health/health.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { HealthModule } from './modules/health/health.module';
     HealthModule,
     OrderManagementModule,
     ProductionBoardsModule,
+    NotificationsModule,
   ],
   controllers: [],
   providers: [],

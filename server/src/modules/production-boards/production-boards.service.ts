@@ -283,7 +283,19 @@ export class ProductionBoardsService {
         throw new ConflictException('Used stages must be archived');
       if (await manager.existsBy(ProductionCard, { stageId }))
         throw new ConflictException('Move cards before removing this stage');
-      // OM-08 checks enabled notification rules.
+      const referenced = await manager
+        .createQueryBuilder()
+        .select('rule.id')
+        .from('notification_rules', 'rule')
+        .where('rule.enabled = :enabled', { enabled: true })
+        .andWhere('CAST(rule.conditions AS text) LIKE :stageId', {
+          stageId: `%"${stageId}"%`,
+        })
+        .getRawOne<{ id: string }>();
+      if (referenced)
+        throw new ConflictException(
+          'Disable notification rules that reference this stage first',
+        );
       if (dto.initialStageId !== undefined) {
         const replacement = this.stage(board, dto.initialStageId);
         if (replacement.id === stageId || replacement.kind !== 'queue')

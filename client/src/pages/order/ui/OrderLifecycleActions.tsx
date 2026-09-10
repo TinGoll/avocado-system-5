@@ -94,6 +94,7 @@ export const OrderLifecycleActions: FC<Props> = ({
           <Button
             icon={<PlayCircleOutlined />}
             loading={isSaving}
+            size='small'
             onClick={() => requestStatus(ORDER_STATUS.IN_PRODUCTION)}
           >
             Запустить заказ
@@ -105,12 +106,15 @@ export const OrderLifecycleActions: FC<Props> = ({
               danger
               icon={<StopOutlined />}
               loading={isSaving}
+              size='small'
               onClick={() => requestStatus(ORDER_STATUS.CANCELLED)}
             >
               Отменить заказ
             </Button>
             <Button
               type="primary"
+
+              size='small'
               icon={<CloseCircleOutlined />}
               loading={isSaving}
               onClick={() => requestStatus(ORDER_STATUS.COMPLETED)}
@@ -123,6 +127,7 @@ export const OrderLifecycleActions: FC<Props> = ({
           status === ORDER_STATUS.CANCELLED) && (
           <Button
             icon={<RedoOutlined />}
+            size='small'
             onClick={() => requestStatus(ORDER_STATUS.IN_PRODUCTION)}
           >
             Возобновить заказ

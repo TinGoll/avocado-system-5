@@ -375,6 +375,19 @@ export class OrderManagementService {
     return this.transaction(async (manager) => {
       await this.lockStatus(manager, id);
       const status = await manager.findOneByOrFail(CustomOrderStatus, { id });
+      const referenced = await manager
+        .createQueryBuilder()
+        .select('rule.id')
+        .from('notification_rules', 'rule')
+        .where('rule.enabled = :enabled', { enabled: true })
+        .andWhere('CAST(rule.conditions AS text) LIKE :statusId', {
+          statusId: `%"${id}"%`,
+        })
+        .getRawOne<{ id: string }>();
+      if (referenced)
+        throw new ConflictException(
+          'Disable notification rules that reference this status first',
+        );
       if (!status.archivedAt)
         await manager.update(CustomOrderStatus, id, { archivedAt: new Date() });
       return manager.findOneByOrFail(CustomOrderStatus, { id });
