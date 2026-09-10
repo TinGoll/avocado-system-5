@@ -9,13 +9,19 @@ import { ProductionBoard } from '../production-boards/entities/production-board.
 import { ProductionCard } from '../production-boards/entities/production-card.entity';
 import { ProductionStage } from '../production-boards/entities/production-stage.entity';
 import { NotificationRule } from './entities/notification-rule.entity';
-import { NotificationsController } from './notifications.controller';
+import { Notification } from './entities/notification.entity';
+import {
+  NotificationFeedController,
+  NotificationsController,
+} from './notifications.controller';
 import { NotificationsService } from './notifications.service';
+import { NotificationSchedulerService } from './notification-scheduler.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       NotificationRule,
+      Notification,
       CustomOrderStatus,
       OrderManagementEvent,
       OrderManagementSettings,
@@ -26,8 +32,8 @@ import { NotificationsService } from './notifications.service';
       ProductionStage,
     ]),
   ],
-  controllers: [NotificationsController],
-  providers: [NotificationsService],
+  controllers: [NotificationsController, NotificationFeedController],
+  providers: [NotificationsService, NotificationSchedulerService],
   exports: [NotificationsService],
 })
 export class NotificationsModule {}

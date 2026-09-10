@@ -474,6 +474,16 @@ Lifecycle выполняется только через `PATCH /order-groups/:i
 
 **Передать дальше:** DTO уведомления/ленты/состояния scheduler, политика cursor, конфигурация запуска. UI не входит в эту задачу.
 
+### Результат OM-09 (10 сентября 2026)
+
+Добавлена сохранённая сущность `Notification`, парные миграции `1789200000000-AddNotifications`, cursor-feed `GET /api/notifications`, идемпотентный `PATCH /api/notifications/:id/read` и состояние прохода `GET /api/notifications/scheduler/status`. Сообщение хранится как текстовые части и структурированные link-target, отдельно сохраняются снимок цели, revision правила, severity, `readAt` и `resolvedAt`.
+
+`NotificationSchedulerService` запускает единый проход после готовности приложения и каждые пять минут через `@nestjs/schedule@5.0.1`. Startup и cron используют общий локальный guard; дополнительная реплика отключается через `NOTIFICATIONS_SCHEDULER_ENABLED=false`. Временные и событийные проверки используют evaluator/renderer OM-08, фиксированный `now`, уникальный `dedupKey` и вставку `ON CONFLICT DO NOTHING`. Событийные уведомления и `notificationProcessedAt` записываются одной транзакцией; новая revision не переигрывает события старше `activatedAt`.
+
+Неактуальные временные уведомления получают `resolvedAt` после переноса срока, terminal/done, изменения или выключения правила. При удалении документа/группы активные сообщения завершаются, FK обнуляются, снимок сохраняется. История и dedup-ключи автоматически не очищаются.
+
+Проверки: 25 unit suites / 124 теста, notification coverage suite 9 тестов, SQLite e2e 5 тестов, локальный ESLint и `npm run build` прошли. E2e подтверждает дедупликацию повторного прохода, сохранение read-state, resolution после переноса срока и откат события при ошибке renderer. Реальная PostgreSQL остаётся недоступной, поэтому PostgreSQL-миграция и транзакции проверены только статически.
+
 <a id="om-10"></a>
 ## OM-10. Лента и всплывающие уведомления в приложении
 

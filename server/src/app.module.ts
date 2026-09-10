@@ -19,6 +19,7 @@ import { CustomersModule } from './modules/customers/customers.module';
 import { ClientErrorsModule } from './modules/client-errors/client-errors.module';
 import { HealthModule } from './modules/health/health.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
       envFilePath: '.env',
     }),
     DatabaseModule,
+    ScheduleModule.forRoot(),
     ProductionOperationsModule,
     ProductsModule,
     OrdersModule,

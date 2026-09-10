@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DataSource, In } from 'typeorm';
+import { Brackets, DataSource, In } from 'typeorm';
 import { runDatabaseTransaction } from '../database/database-transaction';
 import { CustomOrderStatus } from '../order-management/entities/custom-order-status.entity';
 import { OrderManagementEvent } from '../order-management/entities/order-management-event.entity';
@@ -20,6 +20,11 @@ import {
   UpdateNotificationRuleDto,
 } from './dto/notification-rule.dto';
 import { NotificationRule } from './entities/notification-rule.entity';
+import { Notification } from './entities/notification.entity';
+import {
+  NotificationFeedQueryDto,
+  ReadNotificationDto,
+} from './dto/notification-feed.dto';
 import { evaluateNotificationRule } from './notification-evaluator';
 import type { NotificationEvaluationContext } from './notification-rule.types';
 import {
@@ -35,6 +40,66 @@ export class NotificationsService {
     return this.source.manager.find(NotificationRule, {
       order: { name: 'ASC', id: 'ASC' },
     });
+  }
+
+  async feed(query: NotificationFeedQueryDto) {
+    const builder = this.source.manager
+      .createQueryBuilder(Notification, 'notification')
+      .orderBy('notification.createdAt', 'DESC')
+      .addOrderBy('notification.id', 'DESC')
+      .take(query.limit + 1);
+    if (query.cursor) {
+      let cursor: { createdAt: string; id: string };
+      try {
+        cursor = JSON.parse(
+          Buffer.from(query.cursor, 'base64url').toString('utf8'),
+        ) as { createdAt: string; id: string };
+        if (!cursor.createdAt || !cursor.id) throw new Error('invalid');
+      } catch {
+        throw new BadRequestException('Invalid notification cursor');
+      }
+      builder.andWhere(
+        new Brackets((where) => {
+          where
+            .where('notification.createdAt < :createdAt', cursor)
+            .orWhere(
+              'notification.createdAt = :createdAt AND notification.id < :id',
+              cursor,
+            );
+        }),
+      );
+    }
+    const rows = await builder.getMany();
+    const hasMore = rows.length > query.limit;
+    const items = rows.slice(0, query.limit);
+    const last = hasMore ? items.at(-1) : undefined;
+    return {
+      items,
+      meta: {
+        nextCursor: last
+          ? Buffer.from(
+              JSON.stringify({
+                createdAt: last.createdAt.toISOString(),
+                id: last.id,
+              }),
+            ).toString('base64url')
+          : null,
+      },
+    };
+  }
+
+  async setRead(id: string, dto: ReadNotificationDto) {
+    const notification = await this.source.manager.findOneBy(Notification, {
+      id,
+    });
+    if (!notification) throw new NotFoundException('Notification not found');
+    if (dto.read && !notification.readAt)
+      await this.source.manager.update(Notification, id, {
+        readAt: new Date(),
+      });
+    if (!dto.read && notification.readAt)
+      await this.source.manager.update(Notification, id, { readAt: null });
+    return this.source.manager.findOneByOrFail(Notification, { id });
   }
 
   private async validateRule(
@@ -180,6 +245,12 @@ export class NotificationsService {
           'Notification rule changed; reload and retry',
         );
       }
+      await manager
+        .createQueryBuilder()
+        .update(Notification)
+        .set({ resolvedAt: new Date() })
+        .where('ruleId = :id AND resolvedAt IS NULL', { id })
+        .execute();
       return manager.findOneByOrFail(NotificationRule, { id });
     });
   }
@@ -197,7 +268,7 @@ export class NotificationsService {
       activatedAt: new Date(),
     });
     const now = new Date();
-    const contexts = await this.contexts(dto);
+    const contexts = await this.evaluationContexts(dto);
     const evaluated = contexts
       .filter((context) =>
         evaluateNotificationRule(rule, context, now, settings.timeZone),
@@ -228,7 +299,7 @@ export class NotificationsService {
         };
   }
 
-  private async contexts(dto: PreviewNotificationRuleDto) {
+  async evaluationContexts(dto: PreviewNotificationRuleDto) {
     if (
       ['stage_changed', 'custom_status_changed', 'lifecycle_changed'].includes(
         dto.trigger,

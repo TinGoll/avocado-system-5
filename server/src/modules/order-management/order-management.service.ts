@@ -474,6 +474,12 @@ export class OrderManagementService {
         },
       });
       await this.removeProductionCards(manager, [id]);
+      await manager
+        .createQueryBuilder()
+        .update('notifications')
+        .set({ orderId: null, resolvedAt: new Date() })
+        .where('orderId = :id', { id })
+        .execute();
       await manager.delete(Order, id);
       return order;
     });
@@ -514,6 +520,12 @@ export class OrderManagementService {
         .where('"orderGroupId" = :id', { id })
         .execute();
       await this.removeProductionCards(manager, documentIds);
+      await manager
+        .createQueryBuilder()
+        .update('notifications')
+        .set({ orderGroupId: null, resolvedAt: new Date() })
+        .where('orderGroupId = :id', { id })
+        .execute();
       await manager.delete(OrderGroup, id);
       return group;
     });

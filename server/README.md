@@ -59,6 +59,10 @@ DB_PATH=C:\absolute\path\to\avocado.sqlite
 `DB_PATH` is required for SQLite and must be absolute. Both drivers run only their
 own migrations on startup and keep `synchronize` disabled. SQLite uses WAL mode.
 
+Notification scheduling is enabled by default. Set
+`NOTIFICATIONS_SCHEDULER_ENABLED=false` on additional API replicas so only one
+process per installation runs the startup and five-minute notification pass.
+
 Migration commands:
 
 ```bash
