@@ -39,6 +39,8 @@ import {
 } from '@shared/api';
 import { fetcher } from '@shared/lib/swr';
 
+import { NotificationRulesCard } from './NotificationRulesCard';
+
 const styles = {
   page: css`
     padding: 24px;
@@ -282,6 +284,7 @@ export const OrderManagementSettingsPage: FC = () => {
           ]}
         />
       </Card>
+      <NotificationRulesCard />
       <Modal
         title={editor?.status ? 'Редактировать статус' : 'Новый статус'}
         open={Boolean(editor)}
