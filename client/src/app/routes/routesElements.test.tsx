@@ -15,6 +15,9 @@ vi.mock('@pages/order-management-settings', () => ({
 vi.mock('@pages/production-board', () => ({
   default: () => <div>Маршрут производства</div>,
 }));
+vi.mock('@pages/notifications', () => ({
+  default: () => <div>Маршрут уведомлений</div>,
+}));
 vi.mock('@pages/catalogs', () => ({
   CatalogPage: ({ catalog }: { catalog: string }) => (
     <div>Маршрут справочника: {catalog}</div>
@@ -89,5 +92,18 @@ describe('routesElements', () => {
     });
 
     expect(container.textContent).toContain('Маршрут производства');
+  });
+
+  it('renders the notifications page by its URL', async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={['/notifications']}>
+          {routesElements()}
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain('Маршрут уведомлений');
   });
 });

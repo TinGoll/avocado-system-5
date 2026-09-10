@@ -20,6 +20,9 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+export const backgroundFetcher = async <R = unknown>(url: string): Promise<R> =>
+  (await api.get<R>(url)).data;
+
 interface ErrorResponse {
   error: {
     message: string;

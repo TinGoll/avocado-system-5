@@ -95,4 +95,24 @@ describe('Sidebar', () => {
         ?.classList.contains('ant-menu-item-selected'),
     ).toBe(true);
   });
+
+  it('links to the notifications feed', () => {
+    act(() =>
+      root.render(
+        <MemoryRouter initialEntries={['/notifications']}>
+          <Sidebar />
+        </MemoryRouter>,
+      ),
+    );
+
+    const link = container.querySelector<HTMLAnchorElement>(
+      'a[href="/notifications"]',
+    );
+    expect(link?.textContent).toBe('Уведомления');
+    expect(
+      link
+        ?.closest('.ant-menu-item')
+        ?.classList.contains('ant-menu-item-selected'),
+    ).toBe(true);
+  });
 });

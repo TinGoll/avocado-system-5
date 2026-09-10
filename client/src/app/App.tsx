@@ -2,6 +2,7 @@ import { type FC, useCallback, useState } from 'react';
 import { BrowserRouter, HashRouter } from 'react-router';
 
 import { AntdConfigProvider } from './providers/AntdConfigProvider.tsx';
+import { BusinessNotificationsProvider } from './providers/BusinessNotificationsProvider';
 import { initializeDayjsConf } from './providers/dayjs.conf';
 import { GlobalErrorBoundary } from './providers/GlobalErrorBoundary';
 import { routesElements } from './routes/routesElements';
@@ -25,7 +26,11 @@ export const App: FC = () => {
       <GlobalErrorBoundary>
         {isServerReady && (
           <div className="app-entry-animation">
-            <Router useTransitions={false}>{routesElements()}</Router>
+            <Router useTransitions={false}>
+              <BusinessNotificationsProvider>
+                {routesElements()}
+              </BusinessNotificationsProvider>
+            </Router>
           </div>
         )}
         {!isTransitionComplete && (

@@ -505,6 +505,16 @@ Lifecycle выполняется только через `PATCH /order-groups/:i
 
 **Передать дальше:** маршрут ленты, контракт идентичности установки и результаты проверки обоих Router. Не добавлять OS notifications.
 
+### Результат OM-10 (10 сентября 2026)
+
+Добавлены `entities/notification`, страница `/notifications` и глобальный `BusinessNotificationsProvider` внутри Ant Design context и BrowserRouter/HashRouter. Лента поддерживает cursor-пагинацию, loading/error/empty, фильтр непрочитанных и явное прочтение. Фоновый SWR-запрос выполняется при старте, focus/reconnect и раз в две минуты только в активном окне, с ограниченным retry и без глобального error-toast.
+
+Бизнес-toast показываются в `bottomRight`, не более трёх одновременно; избыток объединяется в переход к ленте. Закрытие не меняет `readAt`, resolved/read сообщения повторно не показываются. Показанные ID хранятся отдельно от серверного read-state и синхронизируются вкладками через `storage`.
+
+Для web installation ID хранится в localStorage текущего origin. Electron один раз создаёт `installation-id` в `userData` и передаёт его через preload независимо от случайного API-порта. Текст и link-токены отображаются React-узлами; hostname не сохраняется. Удалённый документ ведёт на доступную группу с пояснением, удалённая группа отображается без активной ссылки.
+
+Проверки: client build, desktop TypeScript build и 107 клиентских тестов прошли. Маршрут, sidebar и installation storage покрыты тестами. Фактический экран `/notifications` проверен в BrowserRouter: маршрут, выбранный пункт меню, unread-фильтр и empty-state отображаются корректно. `npm run fsd:check` по-прежнему сообщает только существовавшее до OM-10 нарушение `src/app/ui`; новых нарушений FSD нет.
+
 <a id="om-11"></a>
 ## OM-11. Редактор правил и предпросмотр уведомлений
 

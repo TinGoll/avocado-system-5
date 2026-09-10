@@ -16,4 +16,5 @@ export const ROUTES = {
   orderSearch: '/search',
   orderManagementSettings: '/order-management/settings',
   productionBoard: '/production',
+  notifications: '/notifications',
 };

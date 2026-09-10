@@ -18,6 +18,7 @@ const OrderManagementSettingsPage = lazy(
   () => import('@pages/order-management-settings'),
 );
 const ProductionBoardPage = lazy(() => import('@pages/production-board'));
+const NotificationsPage = lazy(() => import('@pages/notifications'));
 const CatalogPage = lazy(() =>
   import('@pages/catalogs').then(({ CatalogPage }) => ({
     default: CatalogPage,
@@ -68,6 +69,10 @@ export const routesElements = (): JSX.Element => (
         <Route
           path={ROUTES.productionBoard}
           element={withPageLoadingFallback(<ProductionBoardPage />)}
+        />
+        <Route
+          path={ROUTES.notifications}
+          element={withPageLoadingFallback(<NotificationsPage />)}
         />
         <Route
           path={ROUTES.customers}

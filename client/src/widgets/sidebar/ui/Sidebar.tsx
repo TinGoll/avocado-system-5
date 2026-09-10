@@ -9,6 +9,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   PercentageOutlined,
+  BellOutlined,
   ProfileOutlined,
   ProjectOutlined,
   SettingOutlined,
@@ -80,6 +81,11 @@ export const Sidebar: FC = () => {
             key: '/production',
             icon: <ProjectOutlined />,
             label: <Link to="/production">Производство</Link>,
+          },
+          {
+            key: '/notifications',
+            icon: <BellOutlined />,
+            label: <Link to="/notifications">Уведомления</Link>,
           },
           {
             key: 'catalogs',

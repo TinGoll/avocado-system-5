@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 
 import { app, BrowserWindow, dialog, Menu } from 'electron';
 
@@ -72,7 +73,22 @@ const startLocalServer = async (): Promise<number> => {
   return Number(new URL(await localServer.getUrl()).port);
 };
 
+const getInstallationId = (): string => {
+  const filename = path.join(app.getPath('userData'), 'installation-id');
+  try {
+    const existing = fs.readFileSync(filename, 'utf8').trim();
+    if (existing) return existing;
+  } catch {
+    // The identifier is created on the first launch.
+  }
+  const id = randomUUID();
+  fs.mkdirSync(path.dirname(filename), { recursive: true });
+  fs.writeFileSync(filename, id, { encoding: 'utf8', flag: 'wx' });
+  return id;
+};
+
 const createMainWindow = async (apiPort: number): Promise<void> => {
+  const installationId = getInstallationId();
   mainWindow = new BrowserWindow({
     height: 900,
     icon: path.join(app.getAppPath(), 'build', 'client', 'favicon.png'),
@@ -82,7 +98,10 @@ const createMainWindow = async (apiPort: number): Promise<void> => {
     title: 'Avocado 5',
     width: 1440,
     webPreferences: {
-      additionalArguments: [`--avocado-api-port=${apiPort}`],
+      additionalArguments: [
+        `--avocado-api-port=${apiPort}`,
+        `--avocado-installation-id=${installationId}`,
+      ],
       contextIsolation: true,
       nodeIntegration: false,
       preload: path.join(__dirname, 'preload.js'),
