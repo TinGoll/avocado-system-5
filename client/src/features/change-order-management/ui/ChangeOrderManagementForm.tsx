@@ -102,6 +102,7 @@ export const ChangeOrderManagementForm: FC<Props> = ({
       mutate(),
       mutateGlobal(orderManagementKeys.group(groupId)),
       mutateGlobal(orderManagementKeys.groupView(groupId)),
+      mutateGlobal(orderManagementKeys.production(groupId)),
       mutateGlobal(orderManagementKeys.history(groupId)),
       scope === 'document' &&
         mutateGlobal(orderManagementKeys.documentView(String(targetId))),

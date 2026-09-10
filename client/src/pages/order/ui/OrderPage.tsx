@@ -39,6 +39,9 @@ import { useOrderDocuments } from '../api/useOrderDocuments';
 import { formatCurrency } from '../model/orderInvoice';
 
 import { OrderDocumentView } from './OrderDocumentView';
+import { OrderLifecycleActions } from './OrderLifecycleActions';
+import { OrderManagementHistory } from './OrderManagementHistory';
+import { OrderProductionSummary } from './OrderProductionSummary';
 
 const styles = {
   page: css`
@@ -449,7 +452,14 @@ const OrderPage: FC = () => {
           scope="group"
           targetId={group.id}
         />
+        <OrderLifecycleActions
+          groupId={group.id}
+          managementVersion={group.managementVersion ?? 0}
+          status={group.status}
+        />
       </div>
+
+      <OrderProductionSummary groupId={group.id} />
 
       {documentsError && documents.length > 0 && (
         <Alert
@@ -498,6 +508,7 @@ const OrderPage: FC = () => {
           description="В заказе пока нет документов"
         />
       )}
+      <OrderManagementHistory groupId={group.id} />
     </section>
   );
 };

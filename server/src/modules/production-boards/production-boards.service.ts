@@ -543,12 +543,14 @@ export class ProductionBoardsService {
           type: transfer ? 'board_changed' : 'stage_changed',
           before: {
             boardId: sourceBoardId,
+            boardName: boards.get(sourceBoardId)!.name,
             stageId: initial.stageId,
             stageName: initial.stage.name,
             progressPercent: initial.progressPercent,
           },
           after: {
             boardId: targetBoardId,
+            boardName: targetBoard.name,
             stageId: target.id,
             stageName: target.name,
             progressPercent: target.progressPercent,
@@ -699,10 +701,12 @@ export class ProductionBoardsService {
       .leftJoin(ProductionCard, 'card', 'card.orderId = orders.id')
       .leftJoin(ProductionStage, 'stage', 'stage.id = card.stageId')
       .leftJoin(ProductionBoard, 'board', 'board.id = stage.boardId')
+      .leftJoin('orders.orderGroup', 'orderGroup')
       .select([
         'orders.id AS id',
         'orders.name AS name',
         'orders.documentNumber AS "documentNumber"',
+        'COALESCE(orders.dueDate, orderGroup.dueDate) AS "effectiveDueDate"',
         'COALESCE(card.progressPercent, 0) AS "progressPercent"',
         'card.id AS "cardId"',
         'card.version AS "cardVersion"',

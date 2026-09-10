@@ -18,11 +18,53 @@ export type ManagementView = {
   customStatusId: string | null;
   customStatus: CustomOrderStatus | null;
   managementVersion: number;
+  status?: 'draft' | 'in_production' | 'completed' | 'cancelled';
 };
 export type UpdateManagementDto = {
   expectedVersion: number;
   dueDate?: string | null;
   customStatusId?: string | null;
+  status?: 'draft' | 'in_production' | 'completed' | 'cancelled';
+  reason?: string;
+  confirmIncompleteProduction?: boolean;
+};
+
+export type OrderProductionDocument = {
+  id: string;
+  name: string | null;
+  documentNumber: number;
+  effectiveDueDate: string | null;
+  progressPercent: number;
+  cardId: string | null;
+  stageId: string | null;
+  stageName: string | null;
+  stageKind: 'queue' | 'active' | 'done' | null;
+  boardId: string | null;
+  boardName: string | null;
+};
+
+export type OrderProductionSummary = {
+  documents: OrderProductionDocument[];
+  progressPercent: number | null;
+  documentCount: number;
+  trackedCount: number;
+  productionComplete: boolean;
+};
+
+export type OrderManagementEvent = {
+  id: string;
+  orderGroupId: number | null;
+  orderId: string | null;
+  type: string;
+  before: Record<string, unknown>;
+  after: Record<string, unknown>;
+  targetSnapshot: {
+    orderNumber: string | null;
+    documentNumber: number | null;
+    documentName: string | null;
+  };
+  reason: string | null;
+  occurredAt: string;
 };
 
 export const orderManagementKeys = {
@@ -33,9 +75,22 @@ export const orderManagementKeys = {
   document: (id: string) => `orders/${id}/management`,
   groupView: (id: number) => `order-groups/${id}/with-order-ids`,
   documentView: (id: string) => `orders/${id}/with-items`,
+  production: (id: number) => `order-groups/${id}/production`,
   history: (groupId: number, orderId?: string) =>
     `order-management/history?orderGroupId=${groupId}${orderId ? `&orderId=${orderId}` : ''}&offset=0&limit=50`,
 };
+
+export const getOrderManagementHistory = (
+  groupId: number,
+  offset: number,
+  limit: number,
+) =>
+  fetcher<{
+    items: OrderManagementEvent[];
+    meta: { nextOffset: number | null };
+  }>({
+    url: `order-management/history?orderGroupId=${groupId}&offset=${offset}&limit=${limit}`,
+  });
 
 export const getCustomStatuses = (scope: ManagementScope) =>
   fetcher<{ items: CustomOrderStatus[]; meta: { count: number } }>({

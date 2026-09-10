@@ -10,16 +10,17 @@ import { css } from '@emotion/css';
 import { App, Breadcrumb, Button, Modal, Tag, Typography } from 'antd';
 import { type FC, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { useSWRConfig } from 'swr';
 
 import {
   ORDER_STATUS,
   orderStatusColors,
   orderStatusLabels,
-  useOrderGroupMutations,
   useRecalculateOrderGroupProductionMutation,
   useOrderStore,
 } from '@entities/order';
 import { EditGroupFields } from '@features/edit-order-group';
+import { orderManagementKeys, updateManagement } from '@shared/api';
 import { useCurrentOrderGroupID } from '@shared/lib';
 import { EditOrderWidget } from '@widgets/edit-order';
 
@@ -96,9 +97,9 @@ const styles = {
 const OrderEditPage: FC = () => {
   const { message } = App.useApp();
   const navigate = useNavigate();
+  const { mutate } = useSWRConfig();
   const { groupID } = useCurrentOrderGroupID();
   const { currentGroup, setCurrentGroup } = useOrderStore();
-  const { update } = useOrderGroupMutations();
   const recalculateProduction = useRecalculateOrderGroupProductionMutation(
     currentGroup?.id,
   );
@@ -107,10 +108,21 @@ const OrderEditPage: FC = () => {
     if (!currentGroup || currentGroup.status !== ORDER_STATUS.DRAFT) return;
 
     try {
-      const updatedGroup = await update.trigger(currentGroup.id, {
+      await updateManagement('group', currentGroup.id, {
+        expectedVersion: currentGroup.managementVersion ?? 0,
         status: ORDER_STATUS.IN_PRODUCTION,
       });
+      const updatedGroup = {
+        ...currentGroup,
+        status: ORDER_STATUS.IN_PRODUCTION,
+        managementVersion: (currentGroup.managementVersion ?? 0) + 1,
+      };
       setCurrentGroup(updatedGroup);
+      await Promise.all([
+        mutate(orderManagementKeys.group(currentGroup.id)),
+        mutate(orderManagementKeys.groupView(currentGroup.id)),
+        mutate(orderManagementKeys.history(currentGroup.id)),
+      ]);
       message.success('Заказ передан в работу');
       navigate(`/order/${updatedGroup.id}`);
     } catch {
@@ -185,7 +197,6 @@ const OrderEditPage: FC = () => {
               <Button
                 size="small"
                 icon={<PlayCircleOutlined />}
-                loading={update.isMutating}
                 onClick={startProduction}
               >
                 В работу
