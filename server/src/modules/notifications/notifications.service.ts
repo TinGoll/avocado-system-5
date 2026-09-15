@@ -36,6 +36,12 @@ import {
 export class NotificationsService {
   constructor(private readonly source: DataSource) {}
 
+  private activationTime() {
+    const activatedAt = new Date();
+    activatedAt.setMilliseconds(0);
+    return activatedAt;
+  }
+
   list() {
     return this.source.manager.find(NotificationRule, {
       order: { name: 'ASC', id: 'ASC' },
@@ -210,7 +216,7 @@ export class NotificationsService {
       this.source.manager.create(NotificationRule, {
         ...dto,
         revision: 1,
-        activatedAt: new Date(),
+        activatedAt: this.activationTime(),
       }),
     );
   }
@@ -231,7 +237,7 @@ export class NotificationsService {
           messageTemplate: dto.messageTemplate,
           severity: dto.severity,
           revision: () => 'revision + 1',
-          activatedAt: new Date(),
+          activatedAt: this.activationTime(),
         })
         .where('id = :id AND revision = :revision', {
           id,
