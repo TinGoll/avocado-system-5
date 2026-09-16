@@ -64,6 +64,10 @@ const styles = {
     border-top: 0;
   `,
   management: css`
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
     margin-bottom: 8px;
   `,
 };
@@ -132,7 +136,15 @@ export const OrderDocumentView: FC<Props> = ({ order, groupId }) => (
   <>
     <div className={styles.management}>
       <ChangeOrderManagementForm
+        field="dueDate"
         groupId={groupId}
+        scope="document"
+        targetId={order.id}
+      />
+      <ChangeOrderManagementForm
+        field="status"
+        groupId={groupId}
+        hideLabel
         scope="document"
         targetId={order.id}
       />

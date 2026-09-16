@@ -59,6 +59,8 @@ type Props = {
   scope: ManagementScope;
   targetId: number | string;
   groupId: number;
+  field?: 'all' | 'dueDate' | 'status';
+  hideLabel?: boolean;
   onSaved?: () => void | Promise<void>;
 };
 
@@ -66,6 +68,8 @@ export const ChangeOrderManagementForm: FC<Props> = ({
   scope,
   targetId,
   groupId,
+  field = 'all',
+  hideLabel = false,
   onSaved,
 }) => {
   const { message } = App.useApp();
@@ -81,8 +85,9 @@ export const ChangeOrderManagementForm: FC<Props> = ({
     key,
     (url: string) => fetcher<ManagementView>({ url }),
   );
-  const statuses = useSWR(orderManagementKeys.statuses(scope), () =>
-    getCustomStatuses(scope),
+  const statuses = useSWR(
+    field === 'dueDate' ? null : orderManagementKeys.statuses(scope),
+    () => getCustomStatuses(scope),
   );
 
   if (isLoading || !data) {
@@ -93,7 +98,7 @@ export const ChangeOrderManagementForm: FC<Props> = ({
         title="Не удалось загрузить срок и отметку"
       />
     ) : (
-      <Skeleton.Input active block />
+      <Skeleton.Input active block={!hideLabel} size="small" />
     );
   }
 
@@ -165,75 +170,85 @@ export const ChangeOrderManagementForm: FC<Props> = ({
   return (
     <div>
       <div className={styles.fields}>
-        <div className={styles.field}>
-          <Typography.Text className={styles.label}>
-            {scope === 'group' ? 'Срок заказа:' : 'Срок документа:'}
-          </Typography.Text>
-          <Editable<Dayjs | null>
-            className={styles.value}
-            control={(props) => (
-              <DatePicker
-                {...props}
-                allowClear
-                autoFocus
-                className={styles.datePicker}
-                format="DD.MM.YYYY"
-                placeholder="Без срока"
-                size="small"
-              />
+        {field !== 'status' && (
+          <div className={styles.field}>
+            {!hideLabel && (
+              <Typography.Text className={styles.label}>
+                {scope === 'group' ? 'Срок заказа:' : 'Срок документа:'}
+              </Typography.Text>
             )}
-            defaultValue={data.dueDate ? dayjs(data.dueDate) : null}
-            key={`due-date-${data.managementVersion}`}
-            loading={savingField === 'dueDate'}
-            name={`${scope}-${targetId}-due-date`}
-            onSave={(_, value) =>
-              void save('dueDate', { dueDate: toManagementDate(value ?? null) })
-            }
-          >
-            <Typography.Text type={data.dueDate ? undefined : 'secondary'}>
-              {dueDateText}
-            </Typography.Text>
-          </Editable>
-        </div>
+            <Editable<Dayjs | null>
+              className={styles.value}
+              control={(props) => (
+                <DatePicker
+                  {...props}
+                  allowClear
+                  autoFocus
+                  className={styles.datePicker}
+                  format="DD.MM.YYYY"
+                  placeholder="Без срока"
+                  size="small"
+                />
+              )}
+              defaultValue={data.dueDate ? dayjs(data.dueDate) : null}
+              key={`due-date-${data.managementVersion}`}
+              loading={savingField === 'dueDate'}
+              name={`${scope}-${targetId}-due-date`}
+              onSave={(_, value) =>
+                void save('dueDate', {
+                  dueDate: toManagementDate(value ?? null),
+                })
+              }
+            >
+              <Typography.Text type={data.dueDate ? undefined : 'secondary'}>
+                {dueDateText}
+              </Typography.Text>
+            </Editable>
+          </div>
+        )}
 
-        <div className={styles.field}>
-          <Typography.Text className={styles.label}>
-            Пользовательская отметка:
-          </Typography.Text>
-          <Editable<string | null>
-            className={styles.value}
-            control={(props) => (
-              <Select
-                {...props}
-                allowClear
-                autoFocus
-                className={styles.statusSelect}
-                loading={statuses.isLoading}
-                options={options}
-                placeholder="Без отметки"
-                size="small"
-              />
+        {field !== 'dueDate' && (
+          <div className={styles.field}>
+            {!hideLabel && (
+              <Typography.Text className={styles.label}>
+                Пользовательская отметка:
+              </Typography.Text>
             )}
-            defaultValue={data.customStatusId}
-            key={`status-${data.managementVersion}`}
-            loading={savingField === 'status'}
-            name={`${scope}-${targetId}-status`}
-            onSave={(_, value) =>
-              void save('status', { customStatusId: value ?? null })
-            }
-          >
-            {data.customStatus ? (
-              <Tag color={data.customStatus.color} variant="solid">
-                {data.customStatus.name}
-              </Tag>
-            ) : (
-              <Typography.Text type="secondary">Без отметки</Typography.Text>
-            )}
-          </Editable>
-        </div>
+            <Editable<string | null>
+              className={styles.value}
+              control={(props) => (
+                <Select
+                  {...props}
+                  allowClear
+                  autoFocus
+                  className={styles.statusSelect}
+                  loading={statuses.isLoading}
+                  options={options}
+                  placeholder="Без отметки"
+                  size="small"
+                />
+              )}
+              defaultValue={data.customStatusId}
+              key={`status-${data.managementVersion}`}
+              loading={savingField === 'status'}
+              name={`${scope}-${targetId}-status`}
+              onSave={(_, value) =>
+                void save('status', { customStatusId: value ?? null })
+              }
+            >
+              {data.customStatus ? (
+                <Tag color={data.customStatus.color} variant="solid">
+                  {data.customStatus.name}
+                </Tag>
+              ) : (
+                <Typography.Text type="secondary">Без отметки</Typography.Text>
+              )}
+            </Editable>
+          </div>
+        )}
       </div>
 
-      {statuses.error && (
+      {field !== 'dueDate' && statuses.error && (
         <Alert
           className={styles.alert}
           type="warning"

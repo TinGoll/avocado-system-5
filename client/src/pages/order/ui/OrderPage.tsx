@@ -88,10 +88,16 @@ const styles = {
     background: var(--app-body-2-background-color);
   `,
   groupSummary: css`
+    display: flex;
+    align-items: center;
+    gap: 10px;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+
+    > .ant-typography {
+      flex: none;
+      margin: 0;
+      white-space: nowrap;
+    }
   `,
   groupDetailsTransition: css`
     display: grid;
@@ -369,11 +375,16 @@ const OrderPage: FC = () => {
 
       <div className={styles.groupHeader}>
         <div className={styles.groupToolbar}>
-          {isGroupHeaderCollapsed && (
-            <Typography.Text className={styles.groupSummary} strong>
-              Заказ № {group.orderNumber} — {group.customer?.name || '-'}
-            </Typography.Text>
-          )}
+          <div className={styles.groupSummary}>
+            <Typography.Title level={5}>Заказ №{group.id}</Typography.Title>
+            <ChangeOrderManagementForm
+              field="status"
+              groupId={group.id}
+              hideLabel
+              scope="group"
+              targetId={group.id}
+            />
+          </div>
           <div className={styles.actions}>
             <Button
               size="small"
@@ -557,6 +568,7 @@ const OrderPage: FC = () => {
         <>
           <div className={styles.management}>
             <ChangeOrderManagementForm
+              field="dueDate"
               groupId={group.id}
               scope="group"
               targetId={group.id}
