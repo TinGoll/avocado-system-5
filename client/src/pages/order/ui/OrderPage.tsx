@@ -1,8 +1,10 @@
 import {
   DownOutlined,
   EditOutlined,
+  FileTextOutlined,
   PrinterOutlined,
   ReloadOutlined,
+  SettingOutlined,
   UpOutlined,
 } from '@ant-design/icons';
 import { css } from '@emotion/css';
@@ -37,6 +39,12 @@ import { MarkdownPreview } from '@shared/ui/markdown';
 
 import { useOrderDocuments } from '../api/useOrderDocuments';
 import { formatCurrency } from '../model/orderInvoice';
+import {
+  getOrderSection,
+  ORDER_SECTION,
+  PRODUCTION_SECTION,
+  setOrderSection,
+} from '../model/orderSection';
 
 import { OrderDocumentView } from './OrderDocumentView';
 import { OrderLifecycleActions } from './OrderLifecycleActions';
@@ -147,6 +155,16 @@ const styles = {
       padding-top: 0;
     }
   `,
+  sectionTabs: css`
+    > .ant-tabs-nav {
+      margin-bottom: 12px;
+    }
+
+    > .ant-tabs-nav .ant-tabs-tab {
+      padding: 10px 20px;
+      font-size: 14px;
+    }
+  `,
   alert: css`
     margin-bottom: 8px;
   `,
@@ -170,6 +188,7 @@ const OrderPage: FC = () => {
   const { message } = App.useApp();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const activeSection = getOrderSection(searchParams);
   const { groupID } = useCurrentOrderGroupID();
   const {
     data: group,
@@ -237,7 +256,20 @@ const OrderPage: FC = () => {
   };
 
   useEffect(() => {
-    if (documents.length === 0) return;
+    const nextSearchParams = new URLSearchParams(searchParams);
+    let shouldReplaceSearchParams = false;
+
+    if (searchParams.get('tab') !== activeSection) {
+      nextSearchParams.set('tab', activeSection);
+      shouldReplaceSearchParams = true;
+    }
+
+    if (documents.length === 0) {
+      if (shouldReplaceSearchParams) {
+        setSearchParams(nextSearchParams, { replace: true });
+      }
+      return;
+    }
 
     const requestedDocumentNumber = Number(searchParams.get('document'));
     const requestedDocument = documents.find(
@@ -255,11 +287,18 @@ const OrderPage: FC = () => {
     if (
       searchParams.get('document') !== String(activeDocument.documentNumber)
     ) {
-      const nextSearchParams = new URLSearchParams(searchParams);
       nextSearchParams.set('document', String(activeDocument.documentNumber));
+      shouldReplaceSearchParams = true;
+    }
+
+    if (shouldReplaceSearchParams) {
       setSearchParams(nextSearchParams, { replace: true });
     }
-  }, [activeOrderID, documents, searchParams, setSearchParams]);
+  }, [activeOrderID, activeSection, documents, searchParams, setSearchParams]);
+
+  const selectSection = (section: string) => {
+    setSearchParams(setOrderSection(searchParams, getOrderSection(section)));
+  };
 
   const selectDocument = (id: string) => {
     const document = documents.find((item) => item.id === id);
@@ -309,6 +348,24 @@ const OrderPage: FC = () => {
           </Tag>
         </div>
       </div>
+
+      <Tabs
+        className={styles.sectionTabs}
+        activeKey={activeSection}
+        items={[
+          {
+            key: ORDER_SECTION,
+            label: 'Заказ',
+            icon: <FileTextOutlined />,
+          },
+          {
+            key: PRODUCTION_SECTION,
+            label: 'Производство и история',
+            icon: <SettingOutlined />,
+          },
+        ]}
+        onChange={selectSection}
+      />
 
       <div className={styles.groupHeader}>
         <div className={styles.groupToolbar}>
@@ -446,69 +503,74 @@ const OrderPage: FC = () => {
         </div>
       </div>
 
-      <div className={styles.management}>
-        <ChangeOrderManagementForm
-          groupId={group.id}
-          scope="group"
-          targetId={group.id}
-        />
-        <OrderLifecycleActions
-          groupId={group.id}
-          managementVersion={group.managementVersion ?? 0}
-          status={group.status}
-        />
-      </div>
+      {activeSection === ORDER_SECTION ? (
+        <>
+          {documentsError && documents.length > 0 && (
+            <Alert
+              className={styles.alert}
+              title="Названия документов временно недоступны"
+              description="Документы можно просматривать по порядковым номерам."
+              showIcon
+              type="warning"
+            />
+          )}
 
-      <OrderProductionSummary groupId={group.id} />
-
-      {documentsError && documents.length > 0 && (
-        <Alert
-          className={styles.alert}
-          title="Названия документов временно недоступны"
-          description="Документы можно просматривать по порядковым номерам."
-          showIcon
-          type="warning"
-        />
-      )}
-
-      {areDocumentsLoading ? (
-        <Skeleton.Input active block />
-      ) : documents.length > 0 ? (
-        <Tabs
-          className={`${styles.tabs} order-view-tabs`}
-          activeKey={activeOrderID}
-          items={documents.map(({ id, name, documentNumber }) => ({
-            key: id,
-            label: `№${documentNumber} · ${
-              name?.trim() || `Документ ${documentNumber}`
-            }`,
-            children:
-              id !== activeOrderID ? null : isOrderLoading ? (
-                <div className={styles.documentSkeleton}>
-                  <Skeleton active paragraph={{ rows: 8 }} />
-                </div>
-              ) : orderError || !order ? (
-                <Alert
-                  title="Не удалось загрузить документ"
-                  description="Обновите страницу или попробуйте выбрать документ ещё раз."
-                  showIcon
-                  type="error"
-                />
-              ) : (
-                <OrderDocumentView groupId={group.id} order={order} />
-              ),
-          }))}
-          onChange={selectDocument}
-          size="small"
-          type="card"
-        />
+          {areDocumentsLoading ? (
+            <Skeleton.Input active block />
+          ) : documents.length > 0 ? (
+            <Tabs
+              className={`${styles.tabs} order-view-tabs`}
+              activeKey={activeOrderID}
+              items={documents.map(({ id, name, documentNumber }) => ({
+                key: id,
+                label: `№${documentNumber} · ${
+                  name?.trim() || `Документ ${documentNumber}`
+                }`,
+                children:
+                  id !== activeOrderID ? null : isOrderLoading ? (
+                    <div className={styles.documentSkeleton}>
+                      <Skeleton active paragraph={{ rows: 8 }} />
+                    </div>
+                  ) : orderError || !order ? (
+                    <Alert
+                      title="Не удалось загрузить документ"
+                      description="Обновите страницу или попробуйте выбрать документ ещё раз."
+                      showIcon
+                      type="error"
+                    />
+                  ) : (
+                    <OrderDocumentView groupId={group.id} order={order} />
+                  ),
+              }))}
+              onChange={selectDocument}
+              size="small"
+              type="card"
+            />
+          ) : (
+            <Empty
+              className={styles.empty}
+              description="В заказе пока нет документов"
+            />
+          )}
+        </>
       ) : (
-        <Empty
-          className={styles.empty}
-          description="В заказе пока нет документов"
-        />
+        <>
+          <div className={styles.management}>
+            <ChangeOrderManagementForm
+              groupId={group.id}
+              scope="group"
+              targetId={group.id}
+            />
+            <OrderLifecycleActions
+              groupId={group.id}
+              managementVersion={group.managementVersion ?? 0}
+              status={group.status}
+            />
+          </div>
+          <OrderProductionSummary groupId={group.id} />
+          <OrderManagementHistory groupId={group.id} />
+        </>
       )}
-      <OrderManagementHistory groupId={group.id} />
     </section>
   );
 };
