@@ -68,7 +68,9 @@ const styles = {
     align-items: center;
     gap: 18px;
     flex-wrap: wrap;
-    margin-bottom: 8px;
+    padding: 8px;
+    border: 1px solid var(--app-devider-color);
+    border-radius: 6px 6px 0 0;
   `,
 };
 
