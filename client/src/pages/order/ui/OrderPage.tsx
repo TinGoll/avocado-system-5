@@ -13,6 +13,7 @@ import {
   App,
   Breadcrumb,
   Button,
+  Divider,
   Empty,
   Modal,
   Skeleton,
@@ -377,6 +378,7 @@ const OrderPage: FC = () => {
         <div className={styles.groupToolbar}>
           <div className={styles.groupSummary}>
             <Typography.Title level={5}>Заказ №{group.id}</Typography.Title>
+            <Divider type="vertical" />
             <ChangeOrderManagementForm
               field="status"
               groupId={group.id}
