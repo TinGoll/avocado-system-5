@@ -50,6 +50,9 @@ const snapshotLabel = (snapshot: Record<string, unknown>): string => {
       ? `${snapshot.boardName} · ${snapshot.stageName}`
       : snapshot.stageName;
   }
+  if (Array.isArray(snapshot.names)) {
+    return snapshot.names.length ? snapshot.names.join(', ') : '—';
+  }
   const value =
     snapshot.boardName ?? snapshot.name ?? snapshot.status ?? snapshot.dueDate;
   return typeof value === 'string' && value ? value : '—';

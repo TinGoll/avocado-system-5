@@ -23,11 +23,13 @@ export interface NotificationEvaluationContext {
   orderStatus: OrderStatus;
   orderDueDate: string | null;
   orderCustomStatusId: string | null;
+  orderCustomStatusIds?: string[];
   documentId?: string;
   documentNumber?: number;
   documentName?: string | null;
   documentDueDate?: string | null;
   documentCustomStatusId?: string | null;
+  documentCustomStatusIds?: string[];
   cardId?: string;
   boardId?: string;
   stageId?: string;

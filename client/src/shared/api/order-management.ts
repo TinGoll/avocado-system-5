@@ -17,6 +17,8 @@ export type ManagementView = {
   effectiveDueDate?: string | null;
   customStatusId: string | null;
   customStatus: CustomOrderStatus | null;
+  customStatusIds: string[];
+  customStatuses: CustomOrderStatus[];
   managementVersion: number;
   status?: 'draft' | 'in_production' | 'completed' | 'cancelled';
 };
@@ -24,6 +26,7 @@ export type UpdateManagementDto = {
   expectedVersion: number;
   dueDate?: string | null;
   customStatusId?: string | null;
+  customStatusIds?: string[];
   status?: 'draft' | 'in_production' | 'completed' | 'cancelled';
   reason?: string;
   confirmIncompleteProduction?: boolean;

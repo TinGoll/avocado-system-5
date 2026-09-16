@@ -6,6 +6,8 @@ import {
   Entity,
   Index,
   ManyToOne,
+  ManyToMany,
+  JoinTable,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -79,6 +81,14 @@ export class Order {
     foreignKeyConstraintName: 'FK_orders_custom_status',
   })
   customStatus: CustomOrderStatus | null;
+
+  @ManyToMany(() => CustomOrderStatus)
+  @JoinTable({
+    name: 'order_custom_statuses',
+    joinColumn: { name: 'orderId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'customStatusId', referencedColumnName: 'id' },
+  })
+  customStatuses: CustomOrderStatus[];
 
   @Column({ type: 'integer', default: 0 })
   managementVersion: number;

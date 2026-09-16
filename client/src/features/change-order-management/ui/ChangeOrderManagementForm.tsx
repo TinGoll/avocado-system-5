@@ -118,7 +118,7 @@ export const ChangeOrderManagementForm: FC<Props> = ({
 
   const save = async (
     field: 'dueDate' | 'status',
-    update: { dueDate: string | null } | { customStatusId: string | null },
+    update: { dueDate: string | null } | { customStatusIds: string[] },
   ) => {
     setSavingField(field);
     try {
@@ -214,7 +214,7 @@ export const ChangeOrderManagementForm: FC<Props> = ({
                 Пользовательская отметка:
               </Typography.Text>
             )}
-            <Editable<string | null>
+            <Editable<string[]>
               className={styles.value}
               control={(props) => (
                 <Select
@@ -223,23 +223,28 @@ export const ChangeOrderManagementForm: FC<Props> = ({
                   autoFocus
                   className={styles.statusSelect}
                   loading={statuses.isLoading}
+                  mode="multiple"
                   options={options}
                   placeholder="Без отметки"
                   size="small"
                 />
               )}
-              defaultValue={data.customStatusId}
+              defaultValue={data.customStatusIds ?? []}
               key={`status-${data.managementVersion}`}
               loading={savingField === 'status'}
               name={`${scope}-${targetId}-status`}
               onSave={(_, value) =>
-                void save('status', { customStatusId: value ?? null })
+                void save('status', { customStatusIds: value ?? [] })
               }
             >
-              {data.customStatus ? (
-                <Tag color={data.customStatus.color} variant="solid">
-                  {data.customStatus.name}
-                </Tag>
+              {data.customStatuses?.length ? (
+                <Space size={[4, 4]} wrap>
+                  {data.customStatuses.map((status) => (
+                    <Tag color={status.color} key={status.id} variant="solid">
+                      {status.name}
+                    </Tag>
+                  ))}
+                </Space>
               ) : (
                 <Typography.Text type="secondary">Без отметки</Typography.Text>
               )}

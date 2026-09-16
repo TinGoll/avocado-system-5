@@ -46,7 +46,7 @@ export class OrderManagementService {
   private async group(manager: EntityManager, id: number) {
     const group = await manager.findOne(OrderGroup, {
       where: { id },
-      relations: { customStatus: true },
+      relations: { customStatus: true, customStatuses: true },
     });
     if (!group) throw new NotFoundException('Order group not found');
     return group;
@@ -56,25 +56,29 @@ export class OrderManagementService {
     const order = await manager.findOne(Order, {
       where: { id },
       loadEagerRelations: false,
-      relations: { orderGroup: true, customStatus: true },
+      relations: { orderGroup: true, customStatus: true, customStatuses: true },
     });
     if (!order) throw new NotFoundException('Order document not found');
     return order;
   }
 
   private groupView(group: OrderGroup) {
+    const customStatuses = this.sortedStatuses(group.customStatuses);
     return {
       id: group.id,
       dueDate: group.dueDate,
       effectiveDueDate: group.dueDate,
       customStatusId: group.customStatusId,
       customStatus: group.customStatus,
+      customStatusIds: customStatuses.map(({ id }) => id),
+      customStatuses,
       managementVersion: group.managementVersion,
       status: group.status,
     };
   }
 
   private documentView(order: Order) {
+    const customStatuses = this.sortedStatuses(order.customStatuses);
     return {
       id: order.id,
       orderGroupId: order.orderGroup?.id ?? null,
@@ -82,8 +86,17 @@ export class OrderManagementService {
       effectiveDueDate: order.dueDate ?? order.orderGroup?.dueDate ?? null,
       customStatusId: order.customStatusId,
       customStatus: order.customStatus,
+      customStatusIds: customStatuses.map(({ id }) => id),
+      customStatuses,
       managementVersion: order.managementVersion,
     };
+  }
+
+  private sortedStatuses(statuses: CustomOrderStatus[] | undefined) {
+    return [...(statuses ?? [])].sort(
+      (left, right) =>
+        left.position - right.position || left.id.localeCompare(right.id),
+    );
   }
 
   async getGroup(id: number) {
@@ -162,27 +175,29 @@ export class OrderManagementService {
     }
   }
 
-  private async statusForAssignment(
+  private async statusesForAssignment(
     manager: EntityManager,
-    id: string | null | undefined,
+    ids: string[],
     scope: 'group' | 'document',
   ) {
-    if (id == null) return null;
-    // Serialize assignment with archive/delete, using a portable UPDATE lock.
-    const result = await manager
-      .createQueryBuilder()
-      .update(CustomOrderStatus)
-      .set({ position: () => 'position' })
-      .where('id = :id', { id })
-      .execute();
-    if (!result.affected)
-      throw new BadRequestException('Custom status not found');
-    const status = await manager.findOneByOrFail(CustomOrderStatus, { id });
-    if (status.scope !== scope || status.archivedAt)
-      throw new BadRequestException(
-        'Custom status has incompatible scope or is archived',
-      );
-    return status;
+    const statuses: CustomOrderStatus[] = [];
+    for (const id of ids) {
+      const result = await manager
+        .createQueryBuilder()
+        .update(CustomOrderStatus)
+        .set({ position: () => 'position' })
+        .where('id = :id', { id })
+        .execute();
+      if (!result.affected)
+        throw new BadRequestException('Custom status not found');
+      const status = await manager.findOneByOrFail(CustomOrderStatus, { id });
+      if (status.scope !== scope || status.archivedAt)
+        throw new BadRequestException(
+          'Custom status has incompatible scope or is archived',
+        );
+      statuses.push(status);
+    }
+    return statuses;
   }
 
   async updateGroup(
@@ -214,27 +229,57 @@ export class OrderManagementService {
           targetSnapshot,
         });
       }
+      const nextStatusIds =
+        dto.customStatusIds ??
+        (dto.customStatusId !== undefined
+          ? dto.customStatusId === null
+            ? []
+            : [dto.customStatusId]
+          : undefined);
+      const currentStatusIds = this.sortedStatuses(group.customStatuses).map(
+        ({ id }) => id,
+      );
       if (
-        dto.customStatusId !== undefined &&
-        dto.customStatusId !== group.customStatusId
+        nextStatusIds !== undefined &&
+        JSON.stringify([...nextStatusIds].sort()) !==
+          JSON.stringify([...currentStatusIds].sort())
       ) {
-        const status = await this.statusForAssignment(
+        const statuses = await this.statusesForAssignment(
           manager,
-          dto.customStatusId,
+          nextStatusIds,
           'group',
         );
-        changes.customStatusId = dto.customStatusId;
+        changes.customStatusId = nextStatusIds[0] ?? null;
+        await manager
+          .createQueryBuilder()
+          .relation(OrderGroup, 'customStatuses')
+          .of(id)
+          .addAndRemove(nextStatusIds, currentStatusIds);
         await this.journal.record(manager, {
           orderGroupId: id,
           type: 'custom_status_changed',
-          before: {
-            customStatusId: group.customStatusId,
-            name: group.customStatus?.name ?? null,
-          },
-          after: {
-            customStatusId: dto.customStatusId,
-            name: status?.name ?? null,
-          },
+          before:
+            dto.customStatusIds === undefined
+              ? {
+                  customStatusId: group.customStatusId,
+                  name: group.customStatus?.name ?? null,
+                }
+              : {
+                  customStatusIds: currentStatusIds,
+                  names: this.sortedStatuses(group.customStatuses).map(
+                    ({ name }) => name,
+                  ),
+                },
+          after:
+            dto.customStatusIds === undefined
+              ? {
+                  customStatusId: dto.customStatusId ?? null,
+                  name: statuses[0]?.name ?? null,
+                }
+              : {
+                  customStatusIds: nextStatusIds,
+                  names: statuses.map(({ name }) => name),
+                },
           targetSnapshot,
         });
       }
@@ -301,28 +346,58 @@ export class OrderManagementService {
           targetSnapshot,
         });
       }
+      const nextStatusIds =
+        dto.customStatusIds ??
+        (dto.customStatusId !== undefined
+          ? dto.customStatusId === null
+            ? []
+            : [dto.customStatusId]
+          : undefined);
+      const currentStatusIds = this.sortedStatuses(order.customStatuses).map(
+        ({ id }) => id,
+      );
       if (
-        dto.customStatusId !== undefined &&
-        dto.customStatusId !== order.customStatusId
+        nextStatusIds !== undefined &&
+        JSON.stringify([...nextStatusIds].sort()) !==
+          JSON.stringify([...currentStatusIds].sort())
       ) {
-        const status = await this.statusForAssignment(
+        const statuses = await this.statusesForAssignment(
           manager,
-          dto.customStatusId,
+          nextStatusIds,
           'document',
         );
-        changes.customStatusId = dto.customStatusId;
+        changes.customStatusId = nextStatusIds[0] ?? null;
+        await manager
+          .createQueryBuilder()
+          .relation(Order, 'customStatuses')
+          .of(id)
+          .addAndRemove(nextStatusIds, currentStatusIds);
         await this.journal.record(manager, {
           orderId: id,
           orderGroupId,
           type: 'custom_status_changed',
-          before: {
-            customStatusId: order.customStatusId,
-            name: order.customStatus?.name ?? null,
-          },
-          after: {
-            customStatusId: dto.customStatusId,
-            name: status?.name ?? null,
-          },
+          before:
+            dto.customStatusIds === undefined
+              ? {
+                  customStatusId: order.customStatusId,
+                  name: order.customStatus?.name ?? null,
+                }
+              : {
+                  customStatusIds: currentStatusIds,
+                  names: this.sortedStatuses(order.customStatuses).map(
+                    ({ name }) => name,
+                  ),
+                },
+          after:
+            dto.customStatusIds === undefined
+              ? {
+                  customStatusId: dto.customStatusId ?? null,
+                  name: statuses[0]?.name ?? null,
+                }
+              : {
+                  customStatusIds: nextStatusIds,
+                  names: statuses.map(({ name }) => name),
+                },
           targetSnapshot,
         });
       }
@@ -399,7 +474,19 @@ export class OrderManagementService {
       await this.lockStatus(manager, id);
       const assigned =
         (await manager.existsBy(OrderGroup, { customStatusId: id })) ||
-        (await manager.existsBy(Order, { customStatusId: id }));
+        (await manager.existsBy(Order, { customStatusId: id })) ||
+        (await manager
+          .createQueryBuilder()
+          .select('1')
+          .from('order_group_custom_statuses', 'assignment')
+          .where('assignment.customStatusId = :id', { id })
+          .getExists()) ||
+        (await manager
+          .createQueryBuilder()
+          .select('1')
+          .from('order_custom_statuses', 'assignment')
+          .where('assignment.customStatusId = :id', { id })
+          .getExists());
       const used = await manager
         .createQueryBuilder(OrderManagementEvent, 'event')
         .where('event.type = :type', { type: 'custom_status_changed' })

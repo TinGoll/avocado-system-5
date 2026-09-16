@@ -149,9 +149,17 @@ export const ProductionBoardCardOverlay: FC<{
         №{card.documentNumber} · {card.documentName || 'Без названия'}
       </Typography.Text>
       <div className={styles.cardMeta}>
-        <Tag color={card.customStatusColor ?? 'default'} variant="solid">
-          {card.customStatusName || 'Без отметки'}
-        </Tag>
+        {card.customStatuses?.length ? (
+          card.customStatuses.map((status) => (
+            <Tag color={status.color} key={status.id} variant="solid">
+              {status.name}
+            </Tag>
+          ))
+        ) : (
+          <Tag color="default" variant="solid">
+            Без отметки
+          </Tag>
+        )}
         <Typography.Text type="secondary">
           Срок:{' '}
           {card.effectiveDueDate
@@ -258,9 +266,17 @@ export const ProductionBoardCard: FC<CardProps> = ({
           </Typography.Text>
         </Link>
         <div className={styles.cardMeta}>
-          <Tag color={card.customStatusColor ?? 'default'} variant="solid">
-            {card.customStatusName || 'Без отметки'}
-          </Tag>
+          {card.customStatuses?.length ? (
+            card.customStatuses.map((status) => (
+              <Tag color={status.color} key={status.id} variant="solid">
+                {status.name}
+              </Tag>
+            ))
+          ) : (
+            <Tag color="default" variant="solid">
+              Без отметки
+            </Tag>
+          )}
           <Typography.Text type="secondary">
             Срок:{' '}
             {card.effectiveDueDate

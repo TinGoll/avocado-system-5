@@ -314,7 +314,7 @@ export class NotificationsService {
       return this.eventContexts(dto);
     const groups = await this.source.manager.find(OrderGroup, {
       where: dto.orderGroupId ? { id: dto.orderGroupId } : {},
-      relations: { orders: true },
+      relations: { customStatuses: true, orders: { customStatuses: true } },
       order: { id: 'ASC' },
     });
     const orderIds = groups.flatMap((group) =>
@@ -361,6 +361,7 @@ export class NotificationsService {
       orderStatus: group.status,
       orderDueDate: group.dueDate,
       orderCustomStatusId: group.customStatusId,
+      orderCustomStatusIds: group.customStatuses?.map(({ id }) => id) ?? [],
       ...(card
         ? {
             cardId: card.id,
@@ -387,6 +388,7 @@ export class NotificationsService {
       documentName: order.name ?? null,
       documentDueDate: order.dueDate,
       documentCustomStatusId: order.customStatusId,
+      documentCustomStatusIds: order.customStatuses?.map(({ id }) => id) ?? [],
     };
   }
 

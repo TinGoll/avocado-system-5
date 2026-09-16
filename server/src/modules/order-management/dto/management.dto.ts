@@ -1,5 +1,8 @@
 import { Transform, Type } from 'class-transformer';
 import {
+  ArrayUnique,
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsEnum,
   IsIn,
@@ -56,6 +59,13 @@ export class UpdateDocumentManagementDto {
   @ValidateIf((_, value: unknown) => value !== undefined && value !== null)
   @IsUUID()
   customStatusId?: string | null;
+
+  @ValidateIf((_, value: unknown) => value !== undefined)
+  @IsArray()
+  @ArrayMaxSize(100)
+  @ArrayUnique()
+  @IsUUID('all', { each: true })
+  customStatusIds?: string[];
 }
 
 export class UpdateGroupManagementDto extends UpdateDocumentManagementDto {

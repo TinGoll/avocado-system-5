@@ -691,9 +691,43 @@ export class ProductionBoardsService {
     const rows = await qb.getRawMany<Record<string, unknown>>();
     const hasMore = rows.length > query.limit;
     const items = rows.slice(0, query.limit);
+    const orderIds = items.map((item) => String(item.orderId));
+    const assignedStatuses = orderIds.length
+      ? await this.source.manager
+          .createQueryBuilder()
+          .select('assignment.orderId', 'orderId')
+          .addSelect('status.id', 'id')
+          .addSelect('status.name', 'name')
+          .addSelect('status.color', 'color')
+          .from('order_custom_statuses', 'assignment')
+          .innerJoin(
+            'custom_order_statuses',
+            'status',
+            'status.id = assignment.customStatusId',
+          )
+          .where('assignment.orderId IN (:...orderIds)', { orderIds })
+          .orderBy('status.position', 'ASC')
+          .addOrderBy('status.id', 'ASC')
+          .getRawMany<{
+            orderId: string;
+            id: string;
+            name: string;
+            color: string;
+          }>()
+      : [];
+    const statusesByOrder = new Map<string, typeof assignedStatuses>();
+    for (const status of assignedStatuses) {
+      const statuses = statusesByOrder.get(status.orderId) ?? [];
+      statuses.push(status);
+      statusesByOrder.set(status.orderId, statuses);
+    }
+    const itemsWithStatuses = items.map((item) => ({
+      ...item,
+      customStatuses: statusesByOrder.get(String(item.orderId)) ?? [],
+    }));
     const last = items.at(-1);
     return {
-      items,
+      items: itemsWithStatuses,
       meta: {
         nextCursor:
           hasMore && last

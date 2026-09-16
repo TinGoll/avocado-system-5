@@ -481,8 +481,15 @@ const managementView = (
   const dueDate = typeof entity.dueDate === 'string' ? entity.dueDate : null;
   const groupDueDate =
     typeof group?.dueDate === 'string' ? group.dueDate : null;
-  const customStatusId =
-    typeof entity.customStatusId === 'string' ? entity.customStatusId : null;
+  const customStatusIds = Array.isArray(entity.customStatusIds)
+    ? (entity.customStatusIds as string[])
+    : typeof entity.customStatusId === 'string'
+      ? [entity.customStatusId]
+      : [];
+  const assignedStatuses = customStatusIds
+    .map((id) => customStatuses.find((status) => status.id === id))
+    .filter((status): status is MockEntity => Boolean(status));
+  const customStatusId = customStatusIds[0] ?? null;
   return {
     id: entity.id,
     ...(resource === 'orders'
@@ -496,6 +503,8 @@ const managementView = (
     customStatus: customStatusId
       ? (customStatuses.find(({ id }) => id === customStatusId) ?? null)
       : null,
+    customStatusIds,
+    customStatuses: assignedStatuses,
     managementVersion: Number(entity.managementVersion) || 0,
     ...(resource === 'order-groups' ? { status: entity.status } : {}),
   };
@@ -572,6 +581,12 @@ const managementHandlers = [
       }
       if ('dueDate' in body) entity.dueDate = body.dueDate;
       if ('customStatusId' in body) entity.customStatusId = body.customStatusId;
+      if ('customStatusIds' in body) {
+        entity.customStatusIds = body.customStatusIds;
+        entity.customStatusId = Array.isArray(body.customStatusIds)
+          ? (body.customStatusIds[0] ?? null)
+          : null;
+      }
       entity.managementVersion = (Number(entity.managementVersion) || 0) + 1;
       return HttpResponse.json(managementView(resource, entity));
     }),
@@ -751,6 +766,15 @@ const productionBoardHandlers = [
     const customStatus = customStatuses.find(
       ({ id }) => id === order.customStatusId,
     );
+    const assignedStatuses = (
+      Array.isArray(order.customStatusIds)
+        ? order.customStatusIds
+        : order.customStatusId
+          ? [order.customStatusId]
+          : []
+    )
+      .map((id) => customStatuses.find((status) => status.id === id))
+      .filter((status): status is MockEntity => Boolean(status));
     const card = {
       id: crypto.randomUUID(),
       orderId: order.id,
@@ -766,6 +790,7 @@ const productionBoardHandlers = [
       customStatusId: order.customStatusId ?? null,
       customStatusName: customStatus?.name ?? null,
       customStatusColor: customStatus?.color ?? null,
+      customStatuses: assignedStatuses,
       orderGroupId: group?.id,
       orderNumber: group?.orderNumber,
       groupVersion: Number(group?.managementVersion) || 0,

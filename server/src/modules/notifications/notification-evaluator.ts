@@ -22,6 +22,8 @@ const addDays = (date: string, days: number): string => {
 
 const overlaps = (actual: string | undefined, expected?: string[]) =>
   !expected?.length || (!!actual && expected.includes(actual));
+const overlapsAny = (actual: string[], expected?: string[]) =>
+  !expected?.length || actual.some((value) => expected.includes(value));
 
 export function evaluateNotificationRule(
   rule: NotificationRule,
@@ -36,13 +38,21 @@ export function evaluateNotificationRule(
     !conditions.systemStatusIn.includes(context.orderStatus)
   )
     return false;
-  const customStatus =
+  const customStatuses =
     context.scope === 'group'
-      ? context.orderCustomStatusId
-      : context.documentCustomStatusId;
-  if (!overlaps(customStatus ?? undefined, conditions.customStatusIn))
-    return false;
-  if (customStatus && conditions.customStatusNotIn?.includes(customStatus))
+      ? (context.orderCustomStatusIds ??
+        (context.orderCustomStatusId ? [context.orderCustomStatusId] : []))
+      : (context.documentCustomStatusIds ??
+        (context.documentCustomStatusId
+          ? [context.documentCustomStatusId]
+          : []));
+  if (!overlapsAny(customStatuses, conditions.customStatusIn)) return false;
+  if (
+    conditions.customStatusNotIn?.length &&
+    customStatuses.some((status) =>
+      conditions.customStatusNotIn?.includes(status),
+    )
+  )
     return false;
   if (!overlaps(context.boardId, conditions.boardIn)) return false;
   if (!overlaps(context.stageId, conditions.stageIn)) return false;
@@ -85,12 +95,14 @@ export function evaluateNotificationRule(
     );
   if (rule.trigger === 'custom_status_changed')
     return (
-      overlaps(
-        before.customStatusId as string | undefined,
+      overlapsAny(
+        (before.customStatusIds as string[] | undefined) ??
+          (before.customStatusId ? [before.customStatusId as string] : []),
         conditions.fromCustomStatusIn,
       ) &&
-      overlaps(
-        after.customStatusId as string | undefined,
+      overlapsAny(
+        (after.customStatusIds as string[] | undefined) ??
+          (after.customStatusId ? [after.customStatusId as string] : []),
         conditions.toCustomStatusIn,
       )
     );

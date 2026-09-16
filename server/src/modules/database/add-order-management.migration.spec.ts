@@ -33,7 +33,11 @@ describe('Order management migration and transactional journal (SQLite)', () => 
     await source.initialize();
     const allMigrations = source.migrations;
     source.migrations = allMigrations.filter(
-      (migration) => migration.name !== 'AddOrderManagement1788800000000',
+      (migration) =>
+        ![
+          'AddOrderManagement1788800000000',
+          'AddMultipleCustomStatuses1789300000000',
+        ].includes(migration.name),
     );
     await source.runMigrations();
     await source.query(

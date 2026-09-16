@@ -36,6 +36,7 @@ export type ProductionCard = {
   customStatusId: string | null;
   customStatusName: string | null;
   customStatusColor: string | null;
+  customStatuses: Array<{ id: string; name: string; color: string }>;
   orderGroupId: number;
   orderNumber: string;
   groupVersion: number;

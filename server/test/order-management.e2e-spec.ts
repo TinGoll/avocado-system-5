@@ -332,6 +332,73 @@ describe('Order management HTTP (SQLite)', () => {
     });
   });
 
+  it('assigns multiple custom statuses to groups and documents', async () => {
+    const { groupUrl, documentUrl } = await fixture();
+    const groupStatusIds = [await status('group'), await status('group')];
+    const documentStatusIds = [
+      await status('document'),
+      await status('document'),
+    ];
+
+    const groupResponse = await request(http)
+      .patch(groupUrl)
+      .send({ expectedVersion: 0, customStatusIds: groupStatusIds })
+      .expect(200);
+    expect(groupResponse.body).toMatchObject({
+      customStatusId: groupStatusIds[0],
+    });
+    expect(new Set(groupResponse.body.customStatusIds)).toEqual(
+      new Set(groupStatusIds),
+    );
+    expect(
+      new Set(
+        (groupResponse.body.customStatuses as { id: string }[]).map(
+          ({ id }) => id,
+        ),
+      ),
+    ).toEqual(new Set(groupStatusIds));
+
+    const documentResponse = await request(http)
+      .patch(documentUrl)
+      .send({ expectedVersion: 0, customStatusIds: documentStatusIds })
+      .expect(200);
+    expect(documentResponse.body).toMatchObject({
+      customStatusId: documentStatusIds[0],
+    });
+    expect(new Set(documentResponse.body.customStatusIds)).toEqual(
+      new Set(documentStatusIds),
+    );
+    expect(
+      new Set(
+        (documentResponse.body.customStatuses as { id: string }[]).map(
+          ({ id }) => id,
+        ),
+      ),
+    ).toEqual(new Set(documentStatusIds));
+
+    await request(http)
+      .patch(documentUrl)
+      .send({ expectedVersion: 1, customStatusIds: groupStatusIds })
+      .expect(400);
+    await request(http)
+      .patch(documentUrl)
+      .send({
+        expectedVersion: 1,
+        customStatusIds: [documentStatusIds[0], documentStatusIds[0]],
+      })
+      .expect(400);
+
+    const cleared = await request(http)
+      .patch(documentUrl)
+      .send({ expectedVersion: 1, customStatusIds: [] })
+      .expect(200);
+    expect(cleared.body).toMatchObject({
+      customStatusId: null,
+      customStatusIds: [],
+      customStatuses: [],
+    });
+  });
+
   it('changes a group custom status independently of lifecycle and pricing', async () => {
     const { document, groupUrl } = await fixture();
     const customStatusId = await status('group');
