@@ -186,6 +186,16 @@ const styles = {
   management: css`
     margin-bottom: 12px;
   `,
+  productionLayout: css`
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 512px;
+    align-items: start;
+    gap: 16px;
+
+    @media (max-width: 1280px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  `,
 };
 
 const hasHttpStatus = (error: Error, status: number): boolean =>
@@ -581,8 +591,10 @@ const OrderPage: FC = () => {
               status={group.status}
             />
           </div>
-          <OrderProductionSummary groupId={group.id} />
-          <OrderManagementHistory groupId={group.id} />
+          <div className={styles.productionLayout}>
+            <OrderProductionSummary groupId={group.id} />
+            <OrderManagementHistory groupId={group.id} />
+          </div>
         </>
       )}
     </section>
