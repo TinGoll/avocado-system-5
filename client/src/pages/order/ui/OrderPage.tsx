@@ -428,6 +428,33 @@ const OrderPage: FC = () => {
           <Tag variant="outlined" color={orderStatusColors[group.status]}>
             {orderStatusLabels[group.status]}
           </Tag>
+          <OrderLifecycleActions
+            groupId={group.id}
+            managementVersion={group.managementVersion ?? 0}
+            status={group.status}
+          />
+          <Button
+            size="small"
+            icon={<PrinterOutlined />}
+            onClick={() => navigate(`/order/${group.id}/print`)}
+          >
+            Печать
+          </Button>
+          {group.status !== ORDER_STATUS.DRAFT && (
+            <Button
+              size="small"
+              icon={<ReloadOutlined />}
+              loading={recalculateProduction.isMutating}
+              onClick={confirmProductionRecalculation}
+            >
+              Пересчитать работы
+            </Button>
+          )}
+          <Link to={`/order/${group.id}/editing`}>
+            <Button size="small" icon={<EditOutlined />}>
+              Редактировать
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -502,33 +529,6 @@ const OrderPage: FC = () => {
               </Tag>
             </div>
             <div className={styles.actions}>
-              <OrderLifecycleActions
-                groupId={group.id}
-                managementVersion={group.managementVersion ?? 0}
-                status={group.status}
-              />
-              <Button
-                size="small"
-                icon={<PrinterOutlined />}
-                onClick={() => navigate(`/order/${group.id}/print`)}
-              >
-                Печать
-              </Button>
-              {group.status !== ORDER_STATUS.DRAFT && (
-                <Button
-                  size="small"
-                  icon={<ReloadOutlined />}
-                  loading={recalculateProduction.isMutating}
-                  onClick={confirmProductionRecalculation}
-                >
-                  Пересчитать работы
-                </Button>
-              )}
-              <Link to={`/order/${group.id}/editing`}>
-                <Button size="small" icon={<EditOutlined />}>
-                  Редактировать
-                </Button>
-              </Link>
               <Button
                 aria-expanded={!isGroupHeaderCollapsed}
                 aria-label={
