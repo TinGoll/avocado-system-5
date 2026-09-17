@@ -39,6 +39,8 @@ import { Field, NotFound, ServerError } from '@shared/ui';
 import { MarkdownPreview } from '@shared/ui/markdown';
 
 import { useOrderDocuments } from '../api/useOrderDocuments';
+import { useOrderProduction } from '../api/useOrderProduction';
+import { getCurrentProductionStatus } from '../model/currentProductionStatus';
 import { formatCurrency } from '../model/orderInvoice';
 import {
   getOrderSection,
@@ -75,18 +77,20 @@ const styles = {
   `,
   groupHeader: css`
     margin-bottom: 12px;
-    border: 1px solid var(--app-devider-color);
-    border-radius: 6px;
+    padding: 14px 16px 16px;
+    border: 1px solid #303a46;
+    border-radius: 8px;
+    background: #141414;
   `,
   groupToolbar: css`
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
-    gap: 12px;
-    padding: 8px;
-    border-bottom: 1px solid var(--app-devider-color);
-    border-radius: 5px 5px 0 0;
-    background: var(--app-body-2-background-color);
+    gap: 24px;
+
+    @media (max-width: 900px) {
+      flex-direction: column;
+    }
   `,
   groupSummary: css`
     display: flex;
@@ -97,7 +101,68 @@ const styles = {
     > .ant-typography {
       flex: none;
       margin: 0;
+      color: #f0f0f0;
+      font-size: 20px;
       white-space: nowrap;
+    }
+  `,
+  groupIdentity: css`
+    min-width: 260px;
+  `,
+  groupName: css`
+    margin-top: 4px;
+    color: #8c8c8c;
+    font-size: 14px;
+  `,
+  groupOverview: css`
+    display: grid;
+    flex: 1;
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+    gap: 8px 24px;
+    padding-top: 2px;
+
+    @media (max-width: 700px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  `,
+  overviewItem: css`
+    color: #8c8c8c;
+    font-size: 14px;
+
+    strong {
+      color: #bfbfbf;
+      font-weight: 400;
+    }
+  `,
+  groupControls: css`
+    display: flex;
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 260px;
+
+    @media (max-width: 900px) {
+      align-items: flex-start;
+      width: 100%;
+    }
+  `,
+  currentStatus: css`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #8c8c8c;
+    font-size: 13px;
+  `,
+  statusTag: css`
+    margin-inline-end: 0;
+    border-radius: 4px;
+    font-weight: 500;
+    white-space: nowrap;
+  `,
+  dueDate: css`
+    .ant-typography {
+      color: #8c8c8c;
+      font-size: 14px;
     }
   `,
   groupDetailsTransition: css`
@@ -124,7 +189,7 @@ const styles = {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
     gap: 0 16px;
-    padding: 8px 8px 0;
+    padding-top: 14px;
 
     @media (max-width: 640px) {
       grid-template-columns: minmax(0, 1fr);
@@ -145,6 +210,7 @@ const styles = {
   `,
   actions: css`
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     margin-left: auto;
   `,
@@ -183,9 +249,6 @@ const styles = {
   empty: css`
     padding: 40px 16px;
   `,
-  management: css`
-    margin-bottom: 12px;
-  `,
   productionLayout: css`
     display: grid;
     grid-template-columns: minmax(0, 1fr) 512px;
@@ -220,6 +283,8 @@ const OrderPage: FC = () => {
     error: documentsError,
     isLoading: areDocumentsLoading,
   } = useOrderDocuments(groupID);
+  const { data: productionData, isLoading: isProductionLoading } =
+    useOrderProduction(groupID);
   const documents = useMemo(() => {
     if (documentData?.items?.length) {
       return [...documentData.items].sort(
@@ -386,53 +451,100 @@ const OrderPage: FC = () => {
 
       <div className={styles.groupHeader}>
         <div className={styles.groupToolbar}>
-          <div className={styles.groupSummary}>
-            <Typography.Title level={5}>Заказ №{group.id}</Typography.Title>
-            <Divider type="vertical" />
-            <ChangeOrderManagementForm
-              field="status"
-              groupId={group.id}
-              hideLabel
-              scope="group"
-              targetId={group.id}
-            />
+          <div className={styles.groupIdentity}>
+            <div className={styles.groupSummary}>
+              <Typography.Title level={5}>Заказ №{group.id}</Typography.Title>
+              <Divider type="vertical" />
+              <ChangeOrderManagementForm
+                field="status"
+                groupId={group.id}
+                hideLabel
+                scope="group"
+                targetId={group.id}
+              />
+            </div>
+            <div className={styles.groupName}>{group.orderNumber || '—'}</div>
           </div>
-          <div className={styles.actions}>
-            <Button
-              size="small"
-              icon={<PrinterOutlined />}
-              onClick={() => navigate(`/order/${group.id}/print`)}
-            >
-              Печать
-            </Button>
-            {group.status !== ORDER_STATUS.DRAFT && (
+          <div className={styles.groupOverview}>
+            <div className={styles.overviewItem}>
+              Клиент: <strong>{group.customer?.name || '—'}</strong>
+            </div>
+            <div className={styles.overviewItem}>
+              Начало производства:{' '}
+              <strong>
+                {group.startedAt
+                  ? dayjs(group.startedAt).format(DATE_DEFAULT_FORMAT)
+                  : '—'}
+              </strong>
+            </div>
+            <div className={styles.overviewItem}>
+              Документов: <strong>{documents.length}</strong>
+            </div>
+            <div className={styles.overviewItem}>
+              Сумма: <strong>{formatCurrency(groupTotal)}</strong>
+            </div>
+            <div className={`${styles.overviewItem} ${styles.dueDate}`}>
+              <ChangeOrderManagementForm
+                field="dueDate"
+                groupId={group.id}
+                scope="group"
+                targetId={group.id}
+              />
+            </div>
+          </div>
+          <div className={styles.groupControls}>
+            <div className={styles.currentStatus}>
+              Текущий статус:
+              <Tag className={styles.statusTag} color="blue" variant="solid">
+                {isProductionLoading
+                  ? 'Загрузка...'
+                  : getCurrentProductionStatus(productionData?.documents ?? [])}
+              </Tag>
+            </div>
+            <div className={styles.actions}>
+              <OrderLifecycleActions
+                groupId={group.id}
+                managementVersion={group.managementVersion ?? 0}
+                status={group.status}
+              />
               <Button
                 size="small"
-                icon={<ReloadOutlined />}
-                loading={recalculateProduction.isMutating}
-                onClick={confirmProductionRecalculation}
+                icon={<PrinterOutlined />}
+                onClick={() => navigate(`/order/${group.id}/print`)}
               >
-                Пересчитать работы
+                Печать
               </Button>
-            )}
-            <Link to={`/order/${group.id}/editing`}>
-              <Button size="small" icon={<EditOutlined />}>
-                Редактировать
-              </Button>
-            </Link>
-            <Button
-              aria-expanded={!isGroupHeaderCollapsed}
-              aria-label={
-                isGroupHeaderCollapsed
-                  ? 'Развернуть шапку заказа'
-                  : 'Свернуть шапку заказа'
-              }
-              size="small"
-              icon={isGroupHeaderCollapsed ? <DownOutlined /> : <UpOutlined />}
-              onClick={() =>
-                setIsGroupHeaderCollapsed((isCollapsed) => !isCollapsed)
-              }
-            />
+              {group.status !== ORDER_STATUS.DRAFT && (
+                <Button
+                  size="small"
+                  icon={<ReloadOutlined />}
+                  loading={recalculateProduction.isMutating}
+                  onClick={confirmProductionRecalculation}
+                >
+                  Пересчитать работы
+                </Button>
+              )}
+              <Link to={`/order/${group.id}/editing`}>
+                <Button size="small" icon={<EditOutlined />}>
+                  Редактировать
+                </Button>
+              </Link>
+              <Button
+                aria-expanded={!isGroupHeaderCollapsed}
+                aria-label={
+                  isGroupHeaderCollapsed
+                    ? 'Развернуть комментарий заказа'
+                    : 'Свернуть комментарий заказа'
+                }
+                size="small"
+                icon={
+                  isGroupHeaderCollapsed ? <DownOutlined /> : <UpOutlined />
+                }
+                onClick={() =>
+                  setIsGroupHeaderCollapsed((isCollapsed) => !isCollapsed)
+                }
+              />
+            </div>
           </div>
         </div>
         <div
@@ -442,72 +554,6 @@ const OrderPage: FC = () => {
         >
           <div className={styles.groupDetailsContainer}>
             <div className={styles.groupDetails}>
-              <Field>
-                <Field.Label>
-                  <Typography.Text type="secondary">Заказ №</Typography.Text>
-                </Field.Label>
-                <Field.Value className={styles.fieldValue}>
-                  <Typography.Text className={styles.fieldText} type="warning">
-                    {group.id}
-                  </Typography.Text>
-                </Field.Value>
-              </Field>
-              <Field>
-                <Field.Label>
-                  <Typography.Text type="secondary">
-                    Название заказа
-                  </Typography.Text>
-                </Field.Label>
-                <Field.Value className={styles.fieldValue}>
-                  <Typography.Text className={styles.fieldText} type="success">
-                    {group.orderNumber || '—'}
-                  </Typography.Text>
-                </Field.Value>
-              </Field>
-              <Field>
-                <Field.Label>
-                  <Typography.Text type="secondary">Заказчик</Typography.Text>
-                </Field.Label>
-                <Field.Value className={styles.fieldValue}>
-                  <Typography.Text className={styles.fieldText} type="success">
-                    {group.customer?.name || '—'}
-                  </Typography.Text>
-                </Field.Value>
-              </Field>
-              <Field>
-                <Field.Label>
-                  <Typography.Text type="secondary">
-                    Начало производства
-                  </Typography.Text>
-                </Field.Label>
-                <Field.Value className={styles.fieldValue}>
-                  <Typography.Text className={styles.fieldText} type="success">
-                    {group.startedAt
-                      ? dayjs(group.startedAt).format(DATE_DEFAULT_FORMAT)
-                      : '—'}
-                  </Typography.Text>
-                </Field.Value>
-              </Field>
-              <Field>
-                <Field.Label>
-                  <Typography.Text type="secondary">Документов</Typography.Text>
-                </Field.Label>
-                <Field.Value className={styles.fieldValue}>
-                  <Typography.Text className={styles.fieldText}>
-                    {documents.length}
-                  </Typography.Text>
-                </Field.Value>
-              </Field>
-              <Field>
-                <Field.Label>
-                  <Typography.Text type="secondary">Сумма</Typography.Text>
-                </Field.Label>
-                <Field.Value className={styles.fieldValue}>
-                  <Typography.Text className={styles.fieldText} strong>
-                    {formatCurrency(groupTotal)}
-                  </Typography.Text>
-                </Field.Value>
-              </Field>
               <Field className={styles.fullWidthField}>
                 <Field.Label>
                   <Typography.Text type="secondary">
@@ -577,25 +623,10 @@ const OrderPage: FC = () => {
           )}
         </>
       ) : (
-        <>
-          <div className={styles.management}>
-            <ChangeOrderManagementForm
-              field="dueDate"
-              groupId={group.id}
-              scope="group"
-              targetId={group.id}
-            />
-            <OrderLifecycleActions
-              groupId={group.id}
-              managementVersion={group.managementVersion ?? 0}
-              status={group.status}
-            />
-          </div>
-          <div className={styles.productionLayout}>
-            <OrderProductionSummary groupId={group.id} />
-            <OrderManagementHistory groupId={group.id} />
-          </div>
-        </>
+        <div className={styles.productionLayout}>
+          <OrderProductionSummary groupId={group.id} />
+          <OrderManagementHistory groupId={group.id} />
+        </div>
       )}
     </section>
   );

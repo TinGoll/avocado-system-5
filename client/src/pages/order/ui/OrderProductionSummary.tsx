@@ -14,7 +14,6 @@ import {
 import { DATE_DEFAULT_FORMAT } from '@shared/lib';
 
 import { useOrderProduction } from '../api/useOrderProduction';
-
 const styles = {
   container: css`
     margin-bottom: 12px;
@@ -38,16 +37,6 @@ const styles = {
     &.ant-typography {
       margin: 0;
       font-size: 18px;
-    }
-  `,
-  status: css`
-    color: #8c8c8c;
-    font-size: 14px;
-    text-align: right;
-
-    strong {
-      color: #f0f0f0;
-      font-weight: 500;
     }
   `,
   content: css`
@@ -222,21 +211,6 @@ const styles = {
   empty: css`
     padding: 18px 0 10px;
   `,
-};
-
-const getCurrentStatus = (documents: OrderProductionDocument[]) => {
-  if (documents.length === 0) return 'Нет документов';
-  if (documents.every(({ stageKind }) => stageKind === 'done')) {
-    return 'Производство завершено';
-  }
-
-  const stageNames = [
-    ...new Set(documents.map(({ stageName }) => stageName).filter(Boolean)),
-  ];
-
-  if (stageNames.length === 0) return 'Не назначено';
-  if (stageNames.length === 1) return stageNames[0];
-  return 'Несколько этапов';
 };
 
 const getPlannedCompletion = (documents: OrderProductionDocument[]) => {
@@ -418,9 +392,6 @@ export const OrderProductionSummary: FC<Props> = ({ groupId }) => {
           <SettingOutlined />
           Производство
         </Typography.Title>
-        <div className={styles.status}>
-          Текущий статус: <strong>{getCurrentStatus(documents)}</strong>
-        </div>
       </div>
 
       {documents.length > 0 ? (
