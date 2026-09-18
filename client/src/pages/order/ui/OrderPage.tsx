@@ -1,11 +1,13 @@
 import {
-  DownOutlined,
+  CalendarOutlined,
+  CommentOutlined,
+  DollarCircleOutlined,
   EditOutlined,
   FileTextOutlined,
   PrinterOutlined,
   ReloadOutlined,
   SettingOutlined,
-  UpOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
 import { css } from '@emotion/css';
 import {
@@ -35,7 +37,7 @@ import {
 } from '@entities/order';
 import { ChangeOrderManagementForm } from '@features/change-order-management';
 import { DATE_DEFAULT_FORMAT, useCurrentOrderGroupID } from '@shared/lib';
-import { Field, NotFound, ServerError } from '@shared/ui';
+import { NotFound, ServerError } from '@shared/ui';
 import { MarkdownPreview } from '@shared/ui/markdown';
 
 import { useOrderDocuments } from '../api/useOrderDocuments';
@@ -77,19 +79,25 @@ const styles = {
   `,
   groupHeader: css`
     margin-bottom: 12px;
-    padding: 14px 16px 16px;
+    padding: 8px;
     border: 1px solid #303a46;
     border-radius: 8px;
     background: #141414;
+
+    @media (max-width: 640px) {
+      padding: 8px;
+    }
   `,
   groupToolbar: css`
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 24px;
+    gap: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #303a46;
 
-    @media (max-width: 900px) {
-      flex-direction: column;
+    @media (max-width: 700px) {
+      align-items: flex-start;
     }
   `,
   groupSummary: css`
@@ -107,43 +115,101 @@ const styles = {
     }
   `,
   groupIdentity: css`
-    min-width: 260px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+
+    @media (max-width: 700px) {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 4px;
+    }
   `,
   groupName: css`
-    margin-top: 4px;
-    color: #8c8c8c;
+    overflow: hidden;
+    padding-left: 12px;
+    border-left: 1px solid #303a46;
+    color: #8996a3;
     font-size: 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    @media (max-width: 700px) {
+      padding-left: 0;
+      border-left: 0;
+    }
   `,
   groupOverview: css`
     display: grid;
-    flex: 1;
-    grid-template-columns: repeat(2, minmax(180px, 1fr));
-    gap: 8px 24px;
-    padding-top: 2px;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 8px;
+    padding: 8px 0;
 
-    @media (max-width: 700px) {
+    @media (max-width: 1100px) {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    @media (max-width: 560px) {
       grid-template-columns: minmax(0, 1fr);
     }
   `,
   overviewItem: css`
-    color: #8c8c8c;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 4px 8px;
+    border: 1px solid #2d3841;
+    border-radius: 8px;
+  `,
+  overviewIcon: css`
+    display: grid;
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border: 1px solid #2b353d;
+    border-radius: 9px;
+    color: #d9e0e5;
+    background: linear-gradient(145deg, #283139, #1a2025);
+    font-size: 16px;
+  `,
+  overviewContent: css`
+    min-width: 0;
+  `,
+  overviewLabel: css`
+    margin-bottom: 1px;
+    overflow: hidden;
+    color: #8794a0;
+    font-size: 12px;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  `,
+  overviewValue: css`
+    overflow: hidden;
+    color: #edf1f4;
     font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 
-    strong {
-      color: #bfbfbf;
-      font-weight: 400;
+    .ant-typography {
+      color: inherit;
+      font-size: inherit;
+      font-weight: inherit;
     }
   `,
   groupControls: css`
     display: flex;
-    align-items: flex-end;
-    flex-direction: column;
-    gap: 12px;
-    min-width: 260px;
+    align-items: center;
+    gap: 10px;
 
-    @media (max-width: 900px) {
-      align-items: flex-start;
-      width: 100%;
+    @media (max-width: 700px) {
+      align-items: flex-end;
+      flex-direction: column;
     }
   `,
   currentStatus: css`
@@ -160,53 +226,36 @@ const styles = {
     white-space: nowrap;
   `,
   dueDate: css`
-    .ant-typography {
-      color: #8c8c8c;
-      font-size: 14px;
-    }
-  `,
-  groupDetailsTransition: css`
-    display: grid;
-    grid-template-rows: 1fr;
-    opacity: 1;
-    transition:
-      grid-template-rows 200ms ease,
-      opacity 200ms ease;
-
-    @media (prefers-reduced-motion: reduce) {
-      transition: none;
-    }
-  `,
-  groupDetailsCollapsed: css`
-    grid-template-rows: 0fr;
-    opacity: 0;
-  `,
-  groupDetailsContainer: css`
-    min-height: 0;
-    overflow: hidden;
+    overflow: visible;
   `,
   groupDetails: css`
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
-    gap: 0 16px;
-    padding-top: 14px;
-
-    @media (max-width: 640px) {
-      grid-template-columns: minmax(0, 1fr);
-    }
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 8px;
+    border: 1px solid #303a46;
+    border-radius: 8px;
   `,
-  fullWidthField: css`
-    grid-column: 1 / -1;
+  commentIcon: css`
+    flex: none;
+    margin-top: 2px;
+    color: #91a0ac;
+    font-size: 18px;
   `,
-  fieldValue: css`
-    cursor: default;
-
-    &:hover {
-      box-shadow: none;
-    }
+  commentLabel: css`
+    flex: none;
+    min-width: 124px;
+    color: #8794a0;
+    font-weight: 600;
   `,
   fieldText: css`
+    min-width: 0;
+    color: #d5dbe0;
     font-size: 14px;
+
+    p:last-child {
+      margin-bottom: 0;
+    }
   `,
   actions: css`
     display: flex;
@@ -300,7 +349,6 @@ const OrderPage: FC = () => {
     }));
   }, [documentData?.items, group?.orderIds]);
   const [activeOrderID, setActiveOrderID] = useState<string>();
-  const [isGroupHeaderCollapsed, setIsGroupHeaderCollapsed] = useState(false);
   const groupTotal = useMemo(
     () =>
       documents.reduce(
@@ -492,33 +540,6 @@ const OrderPage: FC = () => {
             </div>
             <div className={styles.groupName}>{group.orderNumber || '—'}</div>
           </div>
-          <div className={styles.groupOverview}>
-            <div className={styles.overviewItem}>
-              Клиент: <strong>{group.customer?.name || '—'}</strong>
-            </div>
-            <div className={styles.overviewItem}>
-              Начало производства:{' '}
-              <strong>
-                {group.startedAt
-                  ? dayjs(group.startedAt).format(DATE_DEFAULT_FORMAT)
-                  : '—'}
-              </strong>
-            </div>
-            <div className={styles.overviewItem}>
-              Документов: <strong>{documents.length}</strong>
-            </div>
-            <div className={styles.overviewItem}>
-              Сумма: <strong>{formatCurrency(groupTotal)}</strong>
-            </div>
-            <div className={`${styles.overviewItem} ${styles.dueDate}`}>
-              <ChangeOrderManagementForm
-                field="dueDate"
-                groupId={group.id}
-                scope="group"
-                targetId={group.id}
-              />
-            </div>
-          </div>
           <div className={styles.groupControls}>
             <div className={styles.currentStatus}>
               Текущий статус:
@@ -528,47 +549,77 @@ const OrderPage: FC = () => {
                   : getCurrentProductionStatus(productionData?.documents ?? [])}
               </Tag>
             </div>
-            <div className={styles.actions}>
-              <Button
-                aria-expanded={!isGroupHeaderCollapsed}
-                aria-label={
-                  isGroupHeaderCollapsed
-                    ? 'Развернуть комментарий заказа'
-                    : 'Свернуть комментарий заказа'
-                }
-                size="small"
-                icon={
-                  isGroupHeaderCollapsed ? <DownOutlined /> : <UpOutlined />
-                }
-                onClick={() =>
-                  setIsGroupHeaderCollapsed((isCollapsed) => !isCollapsed)
-                }
-              />
+          </div>
+        </div>
+        <div className={styles.groupOverview}>
+          <div className={styles.overviewItem}>
+            <div className={styles.overviewIcon}>
+              <UserOutlined />
+            </div>
+            <div className={styles.overviewContent}>
+              <div className={styles.overviewLabel}>Заказчик</div>
+              <div className={styles.overviewValue}>
+                {group.customer?.name || '—'}
+              </div>
+            </div>
+          </div>
+          <div className={styles.overviewItem}>
+            <div className={styles.overviewIcon}>
+              <CalendarOutlined />
+            </div>
+            <div className={styles.overviewContent}>
+              <div className={styles.overviewLabel}>
+                Дата начала производства
+              </div>
+              <div className={styles.overviewValue}>
+                {group.startedAt
+                  ? dayjs(group.startedAt).format(DATE_DEFAULT_FORMAT)
+                  : '—'}
+              </div>
+            </div>
+          </div>
+          <div className={`${styles.overviewItem} ${styles.dueDate}`}>
+            <div className={styles.overviewIcon}>
+              <CalendarOutlined />
+            </div>
+            <div className={styles.overviewContent}>
+              <div className={styles.overviewLabel}>Срок заказа</div>
+              <div className={styles.overviewValue}>
+                <ChangeOrderManagementForm
+                  field="dueDate"
+                  groupId={group.id}
+                  hideLabel
+                  scope="group"
+                  targetId={group.id}
+                />
+              </div>
+            </div>
+          </div>
+          <div className={styles.overviewItem}>
+            <div className={styles.overviewIcon}>
+              <FileTextOutlined />
+            </div>
+            <div className={styles.overviewContent}>
+              <div className={styles.overviewLabel}>Документы</div>
+              <div className={styles.overviewValue}>{documents.length}</div>
+            </div>
+          </div>
+          <div className={styles.overviewItem}>
+            <div className={styles.overviewIcon}>
+              <DollarCircleOutlined />
+            </div>
+            <div className={styles.overviewContent}>
+              <div className={styles.overviewLabel}>Сумма заказа</div>
+              <div className={styles.overviewValue}>
+                {formatCurrency(groupTotal)}
+              </div>
             </div>
           </div>
         </div>
-        <div
-          className={`${styles.groupDetailsTransition} ${
-            isGroupHeaderCollapsed ? styles.groupDetailsCollapsed : ''
-          }`}
-        >
-          <div className={styles.groupDetailsContainer}>
-            <div className={styles.groupDetails}>
-              <Field className={styles.fullWidthField}>
-                <Field.Label>
-                  <Typography.Text type="secondary">
-                    Комментарий
-                  </Typography.Text>
-                </Field.Label>
-                <Field.Value className={styles.fieldValue}>
-                  <MarkdownPreview
-                    className={styles.fieldText}
-                    value={group.comment}
-                  />
-                </Field.Value>
-              </Field>
-            </div>
-          </div>
+        <div className={styles.groupDetails}>
+          <CommentOutlined className={styles.commentIcon} />
+          <div className={styles.commentLabel}>Комментарий</div>
+          <MarkdownPreview className={styles.fieldText} value={group.comment} />
         </div>
       </div>
 
