@@ -1,20 +1,22 @@
 import {
-  readShownNotificationIds,
-  saveShownNotificationIds,
-  shownNotificationsKey,
+  dismissedNotificationsKey,
+  readDismissedNotificationIds,
+  saveDismissedNotificationIds,
 } from './shown-notifications';
 
-describe('shown notification storage', () => {
+describe('dismissed notification storage', () => {
   beforeEach(() => localStorage.clear());
 
   it('persists shown ids in the installation namespace', () => {
-    saveShownNotificationIds(new Set(['one', 'two']));
-    expect(readShownNotificationIds()).toEqual(new Set(['one', 'two']));
-    expect(shownNotificationsKey()).toContain('avocado:shown-notifications:');
+    saveDismissedNotificationIds(new Set(['one', 'two']));
+    expect(readDismissedNotificationIds()).toEqual(new Set(['one', 'two']));
+    expect(dismissedNotificationsKey()).toContain(
+      'avocado:dismissed-notifications:v1:',
+    );
   });
 
   it('recovers from malformed local data', () => {
-    localStorage.setItem(shownNotificationsKey(), '{');
-    expect(readShownNotificationIds()).toEqual(new Set());
+    localStorage.setItem(dismissedNotificationsKey(), '{');
+    expect(readDismissedNotificationIds()).toEqual(new Set());
   });
 });

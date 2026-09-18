@@ -11,6 +11,7 @@ import {
   Typography,
 } from 'antd';
 import { type FC, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
 import useSWR from 'swr';
 
 import {
@@ -37,9 +38,18 @@ const styles = {
   stack: css`
     width: 100%;
   `,
+  header: css`
+    align-items: center;
+  `,
+  title: css`
+    && {
+      margin: 0;
+    }
+  `,
 };
 
 export const NotificationsPage: FC = () => {
+  const navigate = useNavigate();
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [older, setOlder] = useState<BusinessNotification[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -100,8 +110,10 @@ export const NotificationsPage: FC = () => {
   return (
     <section className={styles.page}>
       <Space className={styles.stack} orientation="vertical" size="large">
-        <Space wrap>
-          <Typography.Title level={2}>Уведомления</Typography.Title>
+        <Space className={styles.header} wrap>
+          <Typography.Title className={styles.title} level={4}>
+            Уведомления
+          </Typography.Title>
           <Switch
             checked={unreadOnly}
             checkedChildren="Непрочитанные"
@@ -146,6 +158,7 @@ export const NotificationsPage: FC = () => {
                   </Space>
                   <NotificationMessage
                     item={item}
+                    onNavigate={navigate}
                     onRead={() => void updateLocalRead(item)}
                   />
                 </Space>

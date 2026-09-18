@@ -1,14 +1,20 @@
 import { Button, Typography } from 'antd';
 import type { FC } from 'react';
-import { useNavigate } from 'react-router';
 
 import { setNotificationRead } from '../api/notification-api';
 import type { BusinessNotification } from '../model/notification';
 
-type Props = { item: BusinessNotification; onRead?: () => void };
+type Props = {
+  item: BusinessNotification;
+  onNavigate: (path: string) => void;
+  onRead?: () => void;
+};
 
-export const NotificationMessage: FC<Props> = ({ item, onRead }) => {
-  const navigate = useNavigate();
+export const NotificationMessage: FC<Props> = ({
+  item,
+  onNavigate,
+  onRead,
+}) => {
   const follow = async (kind: 'order' | 'document') => {
     await setNotificationRead(item.id);
     onRead?.();
@@ -17,7 +23,7 @@ export const NotificationMessage: FC<Props> = ({ item, onRead }) => {
       kind === 'document' && item.orderId && item.targetSnapshot.documentNumber
         ? `?document=${item.targetSnapshot.documentNumber}`
         : '';
-    navigate(`/order/${item.orderGroupId}${query}`);
+    onNavigate(`/order/${item.orderGroupId}${query}`);
   };
 
   return (

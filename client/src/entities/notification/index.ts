@@ -4,9 +4,9 @@ export {
   setNotificationRead,
 } from './api/notification-api';
 export {
-  readShownNotificationIds,
-  saveShownNotificationIds,
-  shownNotificationsKey,
+  dismissedNotificationsKey,
+  readDismissedNotificationIds,
+  saveDismissedNotificationIds,
 } from './lib/shown-notifications';
 export type {
   BusinessNotification,
@@ -14,3 +14,4 @@ export type {
   NotificationPage,
 } from './model/notification';
 export { NotificationMessage } from './ui/NotificationMessage';
+export { NotificationPopupItem } from './ui/NotificationPopupItem';

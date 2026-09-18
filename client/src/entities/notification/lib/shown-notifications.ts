@@ -10,13 +10,13 @@ export const getInstallationId = (): string => {
   return created;
 };
 
-export const shownNotificationsKey = () =>
-  `avocado:shown-notifications:${getInstallationId()}`;
+export const dismissedNotificationsKey = () =>
+  `avocado:dismissed-notifications:v1:${getInstallationId()}`;
 
-export const readShownNotificationIds = (): Set<string> => {
+export const readDismissedNotificationIds = (): Set<string> => {
   try {
     const value = JSON.parse(
-      localStorage.getItem(shownNotificationsKey()) ?? '[]',
+      localStorage.getItem(dismissedNotificationsKey()) ?? '[]',
     );
     return new Set(
       Array.isArray(value) ? value.filter((id) => typeof id === 'string') : [],
@@ -26,9 +26,9 @@ export const readShownNotificationIds = (): Set<string> => {
   }
 };
 
-export const saveShownNotificationIds = (ids: Set<string>) => {
+export const saveDismissedNotificationIds = (ids: Set<string>) => {
   localStorage.setItem(
-    shownNotificationsKey(),
+    dismissedNotificationsKey(),
     JSON.stringify([...ids].slice(-1000)),
   );
 };

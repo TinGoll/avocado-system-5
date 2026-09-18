@@ -4,7 +4,6 @@ import { BrowserRouter, HashRouter } from 'react-router';
 import { AntdConfigProvider } from './providers/AntdConfigProvider.tsx';
 import { BusinessNotificationsProvider } from './providers/BusinessNotificationsProvider';
 import { initializeDayjsConf } from './providers/dayjs.conf';
-import { GlobalErrorBoundary } from './providers/GlobalErrorBoundary';
 import { routesElements } from './routes/routesElements';
 import { ServerConnectionScreen } from './ui/ServerConnectionScreen';
 
@@ -23,23 +22,21 @@ export const App: FC = () => {
 
   return (
     <AntdConfigProvider>
-      <GlobalErrorBoundary>
-        {isServerReady && (
-          <div className="app-entry-animation">
-            <Router useTransitions={false}>
-              <BusinessNotificationsProvider>
-                {routesElements()}
-              </BusinessNotificationsProvider>
-            </Router>
-          </div>
-        )}
-        {!isTransitionComplete && (
-          <ServerConnectionScreen
-            onConnected={handleConnected}
-            onTransitionComplete={handleTransitionComplete}
-          />
-        )}
-      </GlobalErrorBoundary>
+      {isServerReady && (
+        <div className="app-entry-animation">
+          <Router useTransitions={false}>
+            <BusinessNotificationsProvider>
+              {routesElements()}
+            </BusinessNotificationsProvider>
+          </Router>
+        </div>
+      )}
+      {!isTransitionComplete && (
+        <ServerConnectionScreen
+          onConnected={handleConnected}
+          onTransitionComplete={handleTransitionComplete}
+        />
+      )}
     </AntdConfigProvider>
   );
 };
