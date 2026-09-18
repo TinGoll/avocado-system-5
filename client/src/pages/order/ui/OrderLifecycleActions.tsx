@@ -1,11 +1,12 @@
 import {
   CloseCircleOutlined,
+  DownOutlined,
   PlayCircleOutlined,
   RedoOutlined,
   StopOutlined,
 } from '@ant-design/icons';
 import { css } from '@emotion/css';
-import { App, Button, Input, Modal, Space } from 'antd';
+import { App, Button, Dropdown, Input, Modal, Space } from 'antd';
 import type { AxiosError } from 'axios';
 import { type FC, useState } from 'react';
 import { useSWRConfig } from 'swr';
@@ -94,40 +95,48 @@ export const OrderLifecycleActions: FC<Props> = ({
           <Button
             icon={<PlayCircleOutlined />}
             loading={isSaving}
-            size='small'
+            size="small"
             onClick={() => requestStatus(ORDER_STATUS.IN_PRODUCTION)}
           >
             Запустить заказ
           </Button>
         )}
         {status === ORDER_STATUS.IN_PRODUCTION && (
-          <>
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  danger: true,
+                  icon: <StopOutlined />,
+                  key: ORDER_STATUS.CANCELLED,
+                  label: 'Отменить заказ',
+                },
+                {
+                  icon: <CloseCircleOutlined />,
+                  key: ORDER_STATUS.COMPLETED,
+                  label: 'Закрыть заказ',
+                },
+              ],
+              onClick: ({ key }) => requestStatus(key as OrderStatus),
+            }}
+            trigger={['click']}
+          >
             <Button
-              danger
-              icon={<StopOutlined />}
+              disabled={isSaving}
+              icon={<DownOutlined />}
+              iconPosition="end"
               loading={isSaving}
-              size='small'
-              onClick={() => requestStatus(ORDER_STATUS.CANCELLED)}
+              size="small"
             >
-              Отменить заказ
+              Действия с заказом
             </Button>
-            <Button
-              type="primary"
-
-              size='small'
-              icon={<CloseCircleOutlined />}
-              loading={isSaving}
-              onClick={() => requestStatus(ORDER_STATUS.COMPLETED)}
-            >
-              Закрыть заказ
-            </Button>
-          </>
+          </Dropdown>
         )}
         {(status === ORDER_STATUS.COMPLETED ||
           status === ORDER_STATUS.CANCELLED) && (
           <Button
             icon={<RedoOutlined />}
-            size='small'
+            size="small"
             onClick={() => requestStatus(ORDER_STATUS.IN_PRODUCTION)}
           >
             Возобновить заказ

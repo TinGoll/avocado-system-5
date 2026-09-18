@@ -5,19 +5,16 @@ import {
   EditOutlined,
   FileTextOutlined,
   PrinterOutlined,
-  ReloadOutlined,
   SettingOutlined,
   UserOutlined,
 } from '@ant-design/icons';
 import { css } from '@emotion/css';
 import {
   Alert,
-  App,
   Breadcrumb,
   Button,
   Divider,
   Empty,
-  Modal,
   Skeleton,
   Tabs,
   Tag,
@@ -33,7 +30,6 @@ import {
   orderStatusLabels,
   useOrderByIDWithItems,
   useOrderGroupByIDWithOrderIDs,
-  useRecalculateOrderGroupProductionMutation,
 } from '@entities/order';
 import { ChangeOrderManagementForm } from '@features/change-order-management';
 import { DATE_DEFAULT_FORMAT, useCurrentOrderGroupID } from '@shared/lib';
@@ -314,7 +310,6 @@ const hasHttpStatus = (error: Error, status: number): boolean =>
   'status' in error && error.status === status;
 
 const OrderPage: FC = () => {
-  const { message } = App.useApp();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeSection = getOrderSection(searchParams);
@@ -324,9 +319,6 @@ const OrderPage: FC = () => {
     error: groupError,
     isLoading: isGroupLoading,
   } = useOrderGroupByIDWithOrderIDs(groupID);
-  const recalculateProduction = useRecalculateOrderGroupProductionMutation(
-    group?.id,
-  );
   const {
     data: documentData,
     error: documentsError,
@@ -357,33 +349,6 @@ const OrderPage: FC = () => {
       ),
     [documents],
   );
-
-  const confirmProductionRecalculation = () => {
-    if (!group || group.status === ORDER_STATUS.DRAFT) return;
-
-    Modal.confirm({
-      title: 'Пересчитать производственные работы?',
-      content:
-        'Сохранённые производственные данные всех позиций группы будут заменены.',
-      okText: 'Пересчитать',
-      cancelText: 'Отмена',
-      okButtonProps: { danger: true },
-      onOk: async () => {
-        try {
-          const result = await recalculateProduction.trigger();
-          if (result.errors.length > 0) {
-            message.error(
-              `Перерасчёт отменён: ошибок в позициях — ${result.errors.length}`,
-            );
-            return;
-          }
-          message.success(`Обновлено позиций: ${result.updatedItems}`);
-        } catch {
-          message.error('Не удалось пересчитать производственные работы');
-        }
-      },
-    });
-  };
 
   useEffect(() => {
     const nextSearchParams = new URLSearchParams(searchParams);
@@ -481,21 +446,13 @@ const OrderPage: FC = () => {
             managementVersion={group.managementVersion ?? 0}
             status={group.status}
           />
-          <Button
-            size="small"
-            icon={<PrinterOutlined />}
-            onClick={() => navigate(`/order/${group.id}/print`)}
-          >
-            Печать
-          </Button>
           {group.status !== ORDER_STATUS.DRAFT && (
             <Button
               size="small"
-              icon={<ReloadOutlined />}
-              loading={recalculateProduction.isMutating}
-              onClick={confirmProductionRecalculation}
+              icon={<PrinterOutlined />}
+              onClick={() => navigate(`/order/${group.id}/print`)}
             >
-              Пересчитать работы
+              Печать
             </Button>
           )}
           <Link to={`/order/${group.id}/editing`}>
