@@ -486,7 +486,7 @@ const OrderPage: FC = () => {
           <div className={styles.groupIdentity}>
             <div className={styles.groupSummary}>
               <Typography.Title level={5}>Заказ №{group.id}</Typography.Title>
-              <Divider type="vertical" />
+              <Divider orientation="vertical" />
               <ChangeOrderManagementForm
                 field="status"
                 groupId={group.id}
