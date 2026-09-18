@@ -1,6 +1,6 @@
 import { CheckOutlined, SettingOutlined } from '@ant-design/icons';
 import { css } from '@emotion/css';
-import { Alert, Empty, Progress, Skeleton, Typography } from 'antd';
+import { Alert, Empty, Skeleton, Typography } from 'antd';
 import dayjs from 'dayjs';
 import { type FC, useMemo } from 'react';
 import { Link } from 'react-router';
@@ -41,13 +41,8 @@ const styles = {
   `,
   content: css`
     display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(280px, 330px);
+    grid-template-columns: minmax(0, 1fr);
     align-items: stretch;
-    gap: 28px;
-
-    @media (max-width: 900px) {
-      grid-template-columns: minmax(0, 1fr);
-    }
   `,
   documents: css`
     display: grid;
@@ -170,58 +165,9 @@ const styles = {
     color: #8c8c8c;
     font-size: 13px;
   `,
-  summary: css`
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    min-height: 144px;
-    padding: 14px 20px;
-    border-radius: 8px;
-    background: #111820;
-  `,
-  summaryLabel: css`
-    margin-bottom: 8px;
-    color: #bfbfbf;
-    font-size: 14px;
-  `,
-  progress: css`
-    margin-bottom: 12px;
-
-    .ant-progress-inner {
-      background: #26313d;
-    }
-  `,
-  detail: css`
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    color: #8c8c8c;
-    font-size: 13px;
-
-    & + & {
-      margin-top: 8px;
-    }
-
-    strong {
-      color: #f0f0f0;
-      font-weight: 400;
-      text-align: right;
-    }
-  `,
   empty: css`
     padding: 18px 0 10px;
   `,
-};
-
-const getPlannedCompletion = (documents: OrderProductionDocument[]) => {
-  const dates = documents
-    .map(({ effectiveDueDate }) => effectiveDueDate)
-    .filter((date): date is string => Boolean(date))
-    .sort();
-
-  return dates.length > 0
-    ? dayjs(dates.at(-1)).format(DATE_DEFAULT_FORMAT)
-    : 'Без срока';
 };
 
 type Props = { groupId: number };
@@ -383,7 +329,6 @@ export const OrderProductionSummary: FC<Props> = ({ groupId }) => {
   }
 
   const documents = data?.documents ?? [];
-  const progressPercent = Math.round(data?.progressPercent ?? 0);
 
   return (
     <section className={styles.container} aria-label="Производственная сводка">
@@ -409,25 +354,6 @@ export const OrderProductionSummary: FC<Props> = ({ groupId }) => {
               />
             ))}
           </div>
-
-          <aside className={styles.summary} aria-label="Прогресс заказа">
-            <div className={styles.summaryLabel}>Прогресс заказа</div>
-            <Progress
-              className={styles.progress}
-              percent={progressPercent}
-              strokeColor="#1677ff"
-            />
-            <div className={styles.detail}>
-              <span>На доске</span>
-              <strong>
-                {data?.trackedCount ?? 0} из {data?.documentCount ?? 0}
-              </strong>
-            </div>
-            <div className={styles.detail}>
-              <span>Плановое завершение</span>
-              <strong>{getPlannedCompletion(documents)}</strong>
-            </div>
-          </aside>
         </div>
       ) : (
         <Empty
