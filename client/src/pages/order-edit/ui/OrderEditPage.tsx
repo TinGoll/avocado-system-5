@@ -19,6 +19,7 @@ import {
   useRecalculateOrderGroupProductionMutation,
   useOrderStore,
 } from '@entities/order';
+import { ChangeOrderManagementForm } from '@features/change-order-management';
 import { EditGroupFields } from '@features/edit-order-group';
 import { orderManagementKeys, updateManagement } from '@shared/api';
 import { useCurrentOrderGroupID } from '@shared/lib';
@@ -63,6 +64,12 @@ const styles = {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  `,
+  orderGroupManagement: css`
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
   `,
   orderGroupActions: css`
     display: flex;
@@ -179,12 +186,23 @@ const OrderEditPage: FC = () => {
       </div>
       <div className={styles.orderGroupPanel}>
         <div className={styles.orderGroupToolbar}>
-          {isOrderGroupCollapsed && currentGroup && (
-            <Typography.Text className={styles.orderGroupSummary} strong>
-              Заказ № {currentGroup.orderNumber} -{' '}
-              {currentGroup.customer?.name || '-'}
-            </Typography.Text>
-          )}
+          <div className={styles.orderGroupManagement}>
+            {isOrderGroupCollapsed && currentGroup && (
+              <Typography.Text className={styles.orderGroupSummary} strong>
+                Заказ № {currentGroup.orderNumber} -{' '}
+                {currentGroup.customer?.name || '-'}
+              </Typography.Text>
+            )}
+            {currentGroup && (
+              <ChangeOrderManagementForm
+                field="status"
+                groupId={currentGroup.id}
+                hideLabel
+                scope="group"
+                targetId={currentGroup.id}
+              />
+            )}
+          </div>
           <div className={styles.orderGroupActions}>
             <Button
               size="small"

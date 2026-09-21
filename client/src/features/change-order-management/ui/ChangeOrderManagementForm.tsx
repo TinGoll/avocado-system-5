@@ -105,6 +105,7 @@ export const ChangeOrderManagementForm: FC<Props> = ({
   const revalidateRelated = async () => {
     await Promise.all([
       mutate(),
+      mutateGlobal(`order-groups/${groupId}`),
       mutateGlobal(orderManagementKeys.group(groupId)),
       mutateGlobal(orderManagementKeys.groupView(groupId)),
       mutateGlobal(orderManagementKeys.production(groupId)),
