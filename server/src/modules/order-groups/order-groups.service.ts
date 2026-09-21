@@ -111,7 +111,8 @@ export class OrderGroupsService {
   ): Promise<Omit<OrderGroup, 'orders'> & { orderIds: string[] }> {
     const item = await this.repository.findOne({
       where: { id },
-      relations: ['orders'],
+      relations: { orders: true, customStatuses: true },
+      order: { customStatuses: { position: 'ASC' } },
     });
 
     if (!item) {

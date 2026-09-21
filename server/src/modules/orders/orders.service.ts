@@ -385,8 +385,11 @@ export class OrdersService {
   async findOneWithItems(id: string): Promise<Order> {
     const order = await this.ordersRepository.findOne({
       where: { id },
-      relations: { items: { template: true } },
-      order: { items: { position: 'ASC' } },
+      relations: { items: { template: true }, customStatuses: true },
+      order: {
+        items: { position: 'ASC' },
+        customStatuses: { position: 'ASC' },
+      },
     });
 
     if (!order) {

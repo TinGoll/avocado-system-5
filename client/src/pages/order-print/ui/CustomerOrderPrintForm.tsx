@@ -10,6 +10,9 @@ import {
   buildCustomerOrderTotals,
 } from '../model/customer-order';
 import { formatOrderPrintNumber } from '../model/order-print-number';
+import { getOrderPrintLabels } from '../model/print-labels';
+
+import { OrderPrintLabels } from './OrderPrintLabels';
 
 const styles = {
   preview: css`
@@ -163,6 +166,10 @@ export const CustomerOrderPrintForm: FC<CustomerOrderPrintFormProps> = ({
 }) => {
   const rows = buildCustomerOrderRows(document);
   const totals = showPrices ? buildCustomerOrderTotals(document) : null;
+  const labels = getOrderPrintLabels(
+    order.customStatuses,
+    document.customStatuses,
+  );
 
   return (
     <article className={`${styles.preview} order-print-document`}>
@@ -183,6 +190,7 @@ export const CustomerOrderPrintForm: FC<CustomerOrderPrintFormProps> = ({
           {documentIndex + 1}/{documentCount}
         </div> */}
       </div>
+      <OrderPrintLabels labels={labels} />
       <div className={styles.documentHeader}>
         {document.characteristics.profile !== undefined && (
           <>
