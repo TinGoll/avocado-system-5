@@ -22,6 +22,11 @@ const getCollection = (resource: string) => mockData[resource] ?? [];
 
 const customStatuses: MockEntity[] = [];
 let managementTimeZone = 'Europe/Moscow';
+let managementAutoAdd: Record<string, string | null> = {
+  autoAddStatus: null,
+  autoAddBoardId: null,
+  autoAddStageId: null,
+};
 
 const getCollectionResponse = (resource: string) => {
   const items = getCollection(resource);
@@ -548,12 +553,25 @@ const managementHandlers = [
     return HttpResponse.json({ id: status.id });
   }),
   http.get('*/order-management/settings', () =>
-    HttpResponse.json({ id: 1, timeZone: managementTimeZone }),
+    HttpResponse.json({
+      id: 1,
+      timeZone: managementTimeZone,
+      ...managementAutoAdd,
+    }),
   ),
   http.patch('*/order-management/settings', async ({ request }) => {
-    const body = (await request.json()) as { timeZone: string };
-    managementTimeZone = body.timeZone;
-    return HttpResponse.json({ id: 1, timeZone: managementTimeZone });
+    const body = (await request.json()) as Record<string, string | null>;
+    managementTimeZone = body.timeZone ?? managementTimeZone;
+    managementAutoAdd = {
+      autoAddStatus: body.autoAddStatus ?? null,
+      autoAddBoardId: body.autoAddBoardId ?? null,
+      autoAddStageId: body.autoAddStageId ?? null,
+    };
+    return HttpResponse.json({
+      id: 1,
+      timeZone: managementTimeZone,
+      ...managementAutoAdd,
+    });
   }),
   ...(['order-groups', 'orders'] as const).flatMap((resource) => [
     http.get(`*/${resource}/:id/management`, ({ params }) => {

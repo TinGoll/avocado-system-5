@@ -58,7 +58,12 @@ export class ProductionBoardsService {
 
   list() {
     return this.source.manager.find(ProductionBoard, {
-      order: { name: 'ASC', id: 'ASC' },
+      relations: { stages: true },
+      order: {
+        name: 'ASC',
+        id: 'ASC',
+        stages: { position: 'ASC', id: 'ASC' },
+      },
     });
   }
   get(id: string) {

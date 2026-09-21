@@ -9,7 +9,18 @@ export type CustomOrderStatus = {
   position: number;
   archivedAt: string | null;
 };
-export type OrderManagementSettings = { id: 1; timeZone: string };
+export type OrderLifecycleStatus =
+  | 'draft'
+  | 'in_production'
+  | 'completed'
+  | 'cancelled';
+export type OrderManagementSettings = {
+  id: 1;
+  timeZone: string;
+  autoAddStatus: OrderLifecycleStatus | null;
+  autoAddBoardId: string | null;
+  autoAddStageId: string | null;
+};
 export type ManagementView = {
   id: number | string;
   orderGroupId?: number | null;
@@ -128,11 +139,13 @@ export const deleteCustomStatus = (id: string) =>
     url: `order-management/statuses/${id}`,
     method: 'DELETE',
   });
-export const updateOrderManagementSettings = (timeZone: string) =>
-  fetcher<OrderManagementSettings, { timeZone: string }>({
+export const updateOrderManagementSettings = (
+  data: Omit<OrderManagementSettings, 'id'>,
+) =>
+  fetcher<OrderManagementSettings, typeof data>({
     url: orderManagementKeys.settings,
     method: 'PATCH',
-    data: { timeZone },
+    data,
   });
 export const updateManagement = (
   scope: ManagementScope,

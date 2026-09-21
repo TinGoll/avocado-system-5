@@ -100,11 +100,10 @@ describe('Production board configuration HTTP (SQLite)', () => {
     const detail = await request(http).get(url).expect(200);
     expect(detail.body).toEqual(board);
     const list = await request(http).get('/api/production-boards').expect(200);
-    expect(
-      (list.body as { items: ProductionBoard[] }).items.some(
-        (item) => item.id === board.id,
-      ),
-    ).toBe(true);
+    const listedBoard = (list.body as { items: ProductionBoard[] }).items.find(
+      (item) => item.id === board.id,
+    );
+    expect(listedBoard?.stages).toEqual(board.stages);
     expect((await source.driver.createSchemaBuilder().log()).upQueries).toEqual(
       [],
     );

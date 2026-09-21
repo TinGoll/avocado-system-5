@@ -11,6 +11,9 @@ import {
   OrderStatus,
 } from '../order-groups/entities/order-group.entity';
 import { Order } from '../orders/entities/order.entity';
+import { ProductionBoard } from '../production-boards/entities/production-board.entity';
+import { ProductionCard } from '../production-boards/entities/production-card.entity';
+import { ProductionStage } from '../production-boards/entities/production-stage.entity';
 import { CustomOrderStatus } from './entities/custom-order-status.entity';
 import { OrderManagementEvent } from './entities/order-management-event.entity';
 import { OrderManagementSettings } from './entities/order-management-settings.entity';
@@ -297,6 +300,7 @@ export class OrderManagementService {
           targetSnapshot,
           reason: dto.reason?.trim(),
         });
+        await this.autoAddDocumentsToBoard(manager, group, dto.status);
       }
       if (Object.values(changes).some((value) => value !== undefined))
         await manager.update(OrderGroup, id, changes);
@@ -509,11 +513,109 @@ export class OrderManagementService {
   }
   async updateSettings(dto: UpdateManagementSettingsDto) {
     return this.transaction(async (manager) => {
-      await manager.update(OrderManagementSettings, 1, {
-        timeZone: dto.timeZone,
-      });
+      const values = [
+        dto.autoAddStatus,
+        dto.autoAddBoardId,
+        dto.autoAddStageId,
+      ];
+      const configured = values.every((value) => value != null);
+      if (!configured && values.some((value) => value != null))
+        throw new BadRequestException(
+          'Auto-add status, board and stage must be configured together',
+        );
+      if (configured) {
+        const board = await manager.findOneBy(ProductionBoard, {
+          id: dto.autoAddBoardId!,
+        });
+        const stage = await manager.findOneBy(ProductionStage, {
+          id: dto.autoAddStageId!,
+        });
+        if (
+          !board ||
+          board.archivedAt ||
+          !stage ||
+          stage.archivedAt ||
+          stage.boardId !== board.id
+        )
+          throw new BadRequestException('Active board and stage are required');
+      }
+      await manager.update(OrderManagementSettings, 1, dto);
       return manager.findOneByOrFail(OrderManagementSettings, { id: 1 });
     });
+  }
+
+  private async autoAddDocumentsToBoard(
+    manager: EntityManager,
+    group: OrderGroup,
+    status: OrderStatus,
+  ) {
+    const settings = await manager.findOneByOrFail(OrderManagementSettings, {
+      id: 1,
+    });
+    if (
+      settings.autoAddStatus !== status ||
+      !settings.autoAddBoardId ||
+      !settings.autoAddStageId
+    )
+      return;
+    const board = await manager.findOneBy(ProductionBoard, {
+      id: settings.autoAddBoardId,
+    });
+    const stage = await manager.findOneBy(ProductionStage, {
+      id: settings.autoAddStageId,
+    });
+    if (
+      !board ||
+      board.archivedAt ||
+      !stage ||
+      stage.archivedAt ||
+      stage.boardId !== board.id
+    )
+      return;
+    const documents = await manager
+      .createQueryBuilder(Order, 'orders')
+      .leftJoin(ProductionCard, 'card', 'card.orderId = orders.id')
+      .where('orders.orderGroupId = :groupId', { groupId: group.id })
+      .andWhere('card.id IS NULL')
+      .orderBy('orders.documentNumber', 'ASC')
+      .getMany();
+    if (!documents.length) return;
+    let position = await manager.countBy(ProductionCard, { stageId: stage.id });
+    const now = new Date();
+    for (const document of documents) {
+      await manager.save(
+        ProductionCard,
+        manager.create(ProductionCard, {
+          orderId: document.id,
+          stageId: stage.id,
+          position: position++,
+          progressPercent: stage.progressPercent,
+          enteredStageAt: now,
+          version: 0,
+        }),
+      );
+      await this.journal.record(manager, {
+        orderGroupId: group.id,
+        orderId: document.id,
+        type: 'board_assigned',
+        before: {},
+        after: {
+          boardId: board.id,
+          boardName: board.name,
+          stageId: stage.id,
+          stageName: stage.name,
+        },
+        targetSnapshot: {
+          orderNumber: group.orderNumber,
+          documentNumber: document.documentNumber,
+          documentName: document.name ?? null,
+        },
+      });
+    }
+    await manager.update(ProductionStage, stage.id, {
+      usedAt: stage.usedAt ?? now,
+    });
+    await manager.increment(ProductionBoard, { id: board.id }, 'version', 1);
   }
 
   async history(query: ManagementHistoryQueryDto) {

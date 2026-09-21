@@ -15,7 +15,9 @@ import {
   InputNumber,
   Modal,
   Popconfirm,
+  Select,
   Space,
+  Switch,
   Table,
   Tabs,
   Tag,
@@ -30,12 +32,14 @@ import {
   createCustomStatus,
   deleteCustomStatus,
   getCustomStatuses,
+  getProductionBoards,
   orderManagementKeys,
   updateCustomStatus,
   updateOrderManagementSettings,
   type CustomOrderStatus,
   type ManagementScope,
   type OrderManagementSettings,
+  type OrderLifecycleStatus,
 } from '@shared/api';
 import { fetcher } from '@shared/lib/swr';
 
@@ -61,10 +65,36 @@ const styles = {
       min-width: 320px;
     }
   `,
+  autoAddForm: css`
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+    align-items: end;
+    gap: 8px;
+
+    .ant-form-item {
+      margin-bottom: 0;
+    }
+
+    @media (max-width: 900px) {
+      grid-template-columns: 1fr;
+    }
+  `,
 };
 
 type Editor = { scope: ManagementScope; status?: CustomOrderStatus } | null;
 type StatusValues = { name: string; color: string; position?: number };
+type AutoAddValues = {
+  enabled: boolean;
+  autoAddStatus?: OrderLifecycleStatus;
+  autoAddBoardId?: string;
+  autoAddStageId?: string;
+};
+
+const lifecycleOptions = [
+  { value: 'in_production', label: 'В производстве' },
+  { value: 'completed', label: 'Завершён' },
+  { value: 'cancelled', label: 'Отменён' },
+];
 
 const StatusTable: FC<{
   scope: ManagementScope;
@@ -172,6 +202,7 @@ export const OrderManagementSettingsPage: FC = () => {
   const [activeScope, setActiveScope] = useState<ManagementScope>('group');
   const [statusForm] = Form.useForm<StatusValues>();
   const [settingsForm] = Form.useForm<{ timeZone: string }>();
+  const [autoAddForm] = Form.useForm<AutoAddValues>();
   const settings = useSWR<OrderManagementSettings>(
     orderManagementKeys.settings,
     (url: string) => fetcher<OrderManagementSettings>({ url }),
@@ -179,6 +210,17 @@ export const OrderManagementSettingsPage: FC = () => {
   const statuses = useSWR(orderManagementKeys.statuses(activeScope), () =>
     getCustomStatuses(activeScope),
   );
+  const boards = useSWR('production-boards', getProductionBoards);
+  const autoAddEnabled = Form.useWatch('enabled', autoAddForm) ?? false;
+  const selectedBoardId = Form.useWatch('autoAddBoardId', autoAddForm);
+  const activeBoards = (boards.data?.items ?? []).filter(
+    (board) => !board.archivedAt,
+  );
+  const stageOptions =
+    activeBoards
+      .find((board) => board.id === selectedBoardId)
+      ?.stages?.filter((stage) => !stage.archivedAt)
+      .map((stage) => ({ value: stage.id, label: stage.name })) ?? [];
 
   const openEditor = (scope: ManagementScope, status?: CustomOrderStatus) => {
     setEditor({ scope, status });
@@ -202,11 +244,31 @@ export const OrderManagementSettingsPage: FC = () => {
   };
   const saveTimeZone = async ({ timeZone }: { timeZone: string }) => {
     try {
-      await updateOrderManagementSettings(timeZone.trim());
+      await updateOrderManagementSettings({
+        timeZone: timeZone.trim(),
+        autoAddStatus: settings.data?.autoAddStatus ?? null,
+        autoAddBoardId: settings.data?.autoAddBoardId ?? null,
+        autoAddStageId: settings.data?.autoAddStageId ?? null,
+      });
       await settings.mutate();
       message.success('Часовой пояс сохранён');
     } catch {
       message.error('Не удалось сохранить часовой пояс');
+    }
+  };
+  const saveAutoAdd = async (values: AutoAddValues) => {
+    if (!settings.data) return;
+    try {
+      await updateOrderManagementSettings({
+        timeZone: settings.data.timeZone,
+        autoAddStatus: values.enabled ? (values.autoAddStatus ?? null) : null,
+        autoAddBoardId: values.enabled ? (values.autoAddBoardId ?? null) : null,
+        autoAddStageId: values.enabled ? (values.autoAddStageId ?? null) : null,
+      });
+      await settings.mutate();
+      message.success('Автодобавление сохранено');
+    } catch {
+      message.error('Не удалось сохранить автодобавление');
     }
   };
 
@@ -238,6 +300,66 @@ export const OrderManagementSettingsPage: FC = () => {
               rules={[{ required: true, message: 'Укажите часовой пояс' }]}
             >
               <Input placeholder="Europe/Moscow" />
+            </Form.Item>
+            <Button htmlType="submit" type="primary">
+              Сохранить
+            </Button>
+          </Form>
+        )}
+      </Card>
+      <Card className={styles.card} title="Автодобавление на доску">
+        {settings.error || boards.error ? (
+          <Alert showIcon type="error" title="Не удалось загрузить настройки" />
+        ) : settings.isLoading || boards.isLoading ? (
+          <Typography.Text>Загрузка…</Typography.Text>
+        ) : (
+          <Form
+            className={styles.autoAddForm}
+            form={autoAddForm}
+            key={`${settings.data?.autoAddStatus}:${settings.data?.autoAddBoardId}:${settings.data?.autoAddStageId}`}
+            initialValues={{
+              enabled: Boolean(settings.data?.autoAddStatus),
+              autoAddStatus: settings.data?.autoAddStatus ?? undefined,
+              autoAddBoardId: settings.data?.autoAddBoardId ?? undefined,
+              autoAddStageId: settings.data?.autoAddStageId ?? undefined,
+            }}
+            onFinish={saveAutoAdd}
+          >
+            <Form.Item label="Включено" name="enabled" valuePropName="checked">
+              <Switch />
+            </Form.Item>
+            <Form.Item
+              label="При переходе в статус"
+              name="autoAddStatus"
+              rules={[{ required: autoAddEnabled, message: 'Выберите статус' }]}
+            >
+              <Select disabled={!autoAddEnabled} options={lifecycleOptions} />
+            </Form.Item>
+            <Form.Item
+              label="Доска"
+              name="autoAddBoardId"
+              rules={[{ required: autoAddEnabled, message: 'Выберите доску' }]}
+            >
+              <Select
+                disabled={!autoAddEnabled}
+                options={activeBoards.map((board) => ({
+                  value: board.id,
+                  label: board.name,
+                }))}
+                onChange={() =>
+                  autoAddForm.setFieldValue('autoAddStageId', undefined)
+                }
+              />
+            </Form.Item>
+            <Form.Item
+              label="Этап"
+              name="autoAddStageId"
+              rules={[{ required: autoAddEnabled, message: 'Выберите этап' }]}
+            >
+              <Select
+                disabled={!autoAddEnabled || !selectedBoardId}
+                options={stageOptions}
+              />
             </Form.Item>
             <Button htmlType="submit" type="primary">
               Сохранить

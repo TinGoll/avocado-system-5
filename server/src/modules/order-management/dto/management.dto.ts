@@ -162,6 +162,18 @@ export class UpdateManagementSettingsDto {
     },
   })
   timeZone: string;
+
+  @ValidateIf((_, value: unknown) => value !== undefined && value !== null)
+  @IsEnum(OrderStatus)
+  autoAddStatus?: OrderStatus | null;
+
+  @ValidateIf((_, value: unknown) => value !== undefined && value !== null)
+  @IsUUID()
+  autoAddBoardId?: string | null;
+
+  @ValidateIf((_, value: unknown) => value !== undefined && value !== null)
+  @IsUUID()
+  autoAddStageId?: string | null;
 }
 
 export class ManagementHistoryQueryDto {

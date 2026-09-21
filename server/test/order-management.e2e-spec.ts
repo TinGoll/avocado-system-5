@@ -500,6 +500,68 @@ describe('Order management HTTP (SQLite)', () => {
     ).toBe(5);
   });
 
+  it('automatically adds untracked documents to the configured board stage', async () => {
+    const { groupUrl, document } = await fixture();
+    const boardResponse = await request(http)
+      .post('/api/production-boards')
+      .send({
+        name: 'Производство',
+        stages: [
+          {
+            name: 'Очередь',
+            color: '#999999',
+            kind: 'queue',
+            progressPercent: 0,
+          },
+          {
+            name: 'В работе',
+            color: '#1677ff',
+            kind: 'active',
+            progressPercent: 50,
+          },
+          {
+            name: 'Готово',
+            color: '#52c41a',
+            kind: 'done',
+            progressPercent: 100,
+          },
+        ],
+        initialStageIndex: 0,
+      })
+      .expect(201);
+    const board = boardResponse.body as {
+      id: string;
+      stages: Array<{ id: string; name: string }>;
+    };
+    const targetStage = board.stages.find(({ name }) => name === 'В работе')!;
+    await request(http)
+      .patch('/api/order-management/settings')
+      .send({
+        timeZone: 'Europe/Moscow',
+        autoAddStatus: 'in_production',
+        autoAddBoardId: board.id,
+        autoAddStageId: targetStage.id,
+      })
+      .expect(200);
+
+    await request(http)
+      .patch(groupUrl)
+      .send({ expectedVersion: 0, status: 'in_production' })
+      .expect(200);
+
+    const cards = await request(http)
+      .get(`/api/production-boards/${board.id}/cards?stageId=${targetStage.id}`)
+      .expect(200);
+    const cardItems = (cards.body as { items: unknown[] }).items;
+    expect(cardItems).toEqual([
+      expect.objectContaining({
+        orderId: document.id,
+        stageId: targetStage.id,
+        progressPercent: 50,
+      }),
+    ]);
+  });
+
   it('rolls back all fields and versions if event writing fails', async () => {
     const { group, groupUrl } = await fixture();
     const spy = jest
