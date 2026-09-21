@@ -20,6 +20,15 @@ export const isFrontendAssetRequest = (request: Request) => {
 
 const getCollection = (resource: string) => mockData[resource] ?? [];
 
+const customStatuses: MockEntity[] = [];
+let managementTimeZone = 'Europe/Moscow';
+let managementAutoAdd: Record<string, string | null> = {
+  autoAddStatus: null,
+  autoAddBoardId: null,
+  autoAddStageId: null,
+};
+let managementDueDateRules: unknown[] = [];
+
 const getCollectionResponse = (resource: string) => {
   const items = getCollection(resource);
 
@@ -467,6 +476,392 @@ const orderHandlers = [
   }),
 ];
 
+const managementView = (
+  resource: 'order-groups' | 'orders',
+  entity: MockEntity,
+) => {
+  const group =
+    resource === 'orders'
+      ? findById('order-groups', String(entity.orderGroupId))
+      : entity;
+  const dueDate = typeof entity.dueDate === 'string' ? entity.dueDate : null;
+  const groupDueDate =
+    typeof group?.dueDate === 'string' ? group.dueDate : null;
+  const customStatusIds = Array.isArray(entity.customStatusIds)
+    ? (entity.customStatusIds as string[])
+    : typeof entity.customStatusId === 'string'
+      ? [entity.customStatusId]
+      : [];
+  const assignedStatuses = customStatusIds
+    .map((id) => customStatuses.find((status) => status.id === id))
+    .filter((status): status is MockEntity => Boolean(status));
+  const customStatusId = customStatusIds[0] ?? null;
+  return {
+    id: entity.id,
+    ...(resource === 'orders'
+      ? {
+          orderGroupId: entity.orderGroupId ?? null,
+          effectiveDueDate: dueDate ?? groupDueDate,
+        }
+      : {}),
+    dueDate,
+    customStatusId,
+    customStatus: customStatusId
+      ? (customStatuses.find(({ id }) => id === customStatusId) ?? null)
+      : null,
+    customStatusIds,
+    customStatuses: assignedStatuses,
+    managementVersion: Number(entity.managementVersion) || 0,
+    ...(resource === 'order-groups' ? { status: entity.status } : {}),
+  };
+};
+
+const managementHandlers = [
+  http.get('*/order-management/statuses', ({ request }) => {
+    const scope = new URL(request.url).searchParams.get('scope');
+    const items = customStatuses.filter(
+      (status) => !scope || status.scope === scope,
+    );
+    return HttpResponse.json({ items, meta: { count: items.length } });
+  }),
+  http.post('*/order-management/statuses', async ({ request }) => {
+    const body = (await request.json()) as MockEntity;
+    const status = {
+      ...body,
+      id: crypto.randomUUID(),
+      archivedAt: null,
+      position: body.position ?? customStatuses.length,
+    };
+    customStatuses.push(status);
+    return HttpResponse.json(status, { status: 201 });
+  }),
+  http.patch('*/order-management/statuses/:id', async ({ params, request }) => {
+    const status = customStatuses.find(({ id }) => id === params.id);
+    if (!status) return notFound('custom status', String(params.id));
+    Object.assign(status, (await request.json()) as object);
+    return HttpResponse.json(status);
+  }),
+  http.post('*/order-management/statuses/:id/archive', ({ params }) => {
+    const status = customStatuses.find(({ id }) => id === params.id);
+    if (!status) return notFound('custom status', String(params.id));
+    status.archivedAt = new Date().toISOString();
+    return HttpResponse.json(status, { status: 201 });
+  }),
+  http.delete('*/order-management/statuses/:id', ({ params }) => {
+    const index = customStatuses.findIndex(({ id }) => id === params.id);
+    if (index === -1) return notFound('custom status', String(params.id));
+    const [status] = customStatuses.splice(index, 1);
+    return HttpResponse.json({ id: status.id });
+  }),
+  http.get('*/order-management/settings', () =>
+    HttpResponse.json({
+      id: 1,
+      timeZone: managementTimeZone,
+      ...managementAutoAdd,
+      dueDateRules: managementDueDateRules,
+    }),
+  ),
+  http.patch('*/order-management/settings', async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    if (typeof body.timeZone === 'string') managementTimeZone = body.timeZone;
+    managementAutoAdd = {
+      autoAddStatus:
+        typeof body.autoAddStatus === 'string' ? body.autoAddStatus : null,
+      autoAddBoardId:
+        typeof body.autoAddBoardId === 'string' ? body.autoAddBoardId : null,
+      autoAddStageId:
+        typeof body.autoAddStageId === 'string' ? body.autoAddStageId : null,
+    };
+    managementDueDateRules = Array.isArray(body.dueDateRules)
+      ? body.dueDateRules
+      : managementDueDateRules;
+    return HttpResponse.json({
+      id: 1,
+      timeZone: managementTimeZone,
+      ...managementAutoAdd,
+      dueDateRules: managementDueDateRules,
+    });
+  }),
+  ...(['order-groups', 'orders'] as const).flatMap((resource) => [
+    http.get(`*/${resource}/:id/management`, ({ params }) => {
+      const entity = findById(resource, String(params.id));
+      return entity
+        ? HttpResponse.json(managementView(resource, entity))
+        : notFound(resource, String(params.id));
+    }),
+    http.patch(`*/${resource}/:id/management`, async ({ params, request }) => {
+      const entity = findById(resource, String(params.id));
+      if (!entity) return notFound(resource, String(params.id));
+      const body = (await request.json()) as Record<string, unknown>;
+      if (
+        Number(body.expectedVersion) !== (Number(entity.managementVersion) || 0)
+      ) {
+        return HttpResponse.json(
+          {
+            error: {
+              message: 'Order management data changed',
+              code: 'CONFLICT',
+            },
+          },
+          { status: 409 },
+        );
+      }
+      if ('dueDate' in body) entity.dueDate = body.dueDate;
+      if ('customStatusId' in body) entity.customStatusId = body.customStatusId;
+      if ('customStatusIds' in body) {
+        entity.customStatusIds = body.customStatusIds;
+        entity.customStatusId = Array.isArray(body.customStatusIds)
+          ? (body.customStatusIds[0] ?? null)
+          : null;
+      }
+      entity.managementVersion = (Number(entity.managementVersion) || 0) + 1;
+      return HttpResponse.json(managementView(resource, entity));
+    }),
+  ]),
+];
+
+const productionBoards: MockEntity[] = [];
+const productionCards: MockEntity[] = [];
+
+const productionBoardHandlers = [
+  http.get('*/production-boards', () =>
+    HttpResponse.json({
+      items: productionBoards.map((board) => {
+        const summary = { ...board };
+        delete summary.stages;
+        return summary;
+      }),
+      meta: { count: productionBoards.length },
+    }),
+  ),
+  http.post('*/production-boards', async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const boardId = crypto.randomUUID();
+    const stages = (body.stages as Record<string, unknown>[]).map(
+      (stage, position) => ({
+        ...stage,
+        id: crypto.randomUUID(),
+        boardId,
+        position,
+        usedAt: null,
+        archivedAt: null,
+      }),
+    );
+    const board = {
+      id: boardId,
+      name: body.name,
+      description: body.description ?? null,
+      initialStageId: stages[Number(body.initialStageIndex)].id,
+      version: 0,
+      archivedAt: null,
+      stages,
+    };
+    productionBoards.push(board);
+    return HttpResponse.json(board, { status: 201 });
+  }),
+  http.get('*/production-boards/:id', ({ params }) => {
+    const board = productionBoards.find(({ id }) => id === params.id);
+    return board
+      ? HttpResponse.json(board)
+      : notFound('production board', String(params.id));
+  }),
+  http.patch('*/production-boards/:id', async ({ params, request }) => {
+    const board = productionBoards.find(({ id }) => id === params.id);
+    if (!board) return notFound('production board', String(params.id));
+    const body = (await request.json()) as Record<string, unknown>;
+    if (Number(body.expectedVersion) !== Number(board.version))
+      return HttpResponse.json(
+        { error: { message: 'Board changed', code: 'CONFLICT' } },
+        { status: 409 },
+      );
+    Object.assign(board, body, { version: Number(board.version) + 1 });
+    delete board.expectedVersion;
+    return HttpResponse.json(board);
+  }),
+  http.post('*/production-boards/:id/archive', async ({ params, request }) => {
+    const board = productionBoards.find(({ id }) => id === params.id);
+    if (!board) return notFound('production board', String(params.id));
+    const body = (await request.json()) as { expectedVersion: number };
+    if (body.expectedVersion !== Number(board.version))
+      return HttpResponse.json(
+        { error: { message: 'Board changed', code: 'CONFLICT' } },
+        { status: 409 },
+      );
+    board.archivedAt = new Date().toISOString();
+    board.version = Number(board.version) + 1;
+    return HttpResponse.json(board, { status: 201 });
+  }),
+  http.post('*/production-boards/:id/stages', async ({ params, request }) => {
+    const board = productionBoards.find(({ id }) => id === params.id);
+    if (!board) return notFound('production board', String(params.id));
+    const body = (await request.json()) as Record<string, unknown>;
+    const stages = board.stages as MockEntity[];
+    const stage: MockEntity = {
+      ...body,
+      id: crypto.randomUUID(),
+      boardId: board.id,
+      position: stages.length,
+      usedAt: null,
+      archivedAt: null,
+    };
+    delete stage.expectedVersion;
+    stages.push(stage);
+    board.version = Number(board.version) + 1;
+    return HttpResponse.json(board, { status: 201 });
+  }),
+  http.patch(
+    '*/production-boards/:id/stages/:stageId',
+    async ({ params, request }) => {
+      const board = productionBoards.find(({ id }) => id === params.id);
+      const stage = (board?.stages as MockEntity[] | undefined)?.find(
+        ({ id }) => id === params.stageId,
+      );
+      if (!board || !stage)
+        return notFound('production stage', String(params.stageId));
+      const body = (await request.json()) as Record<string, unknown>;
+      Object.assign(stage, body);
+      delete stage.expectedVersion;
+      board.version = Number(board.version) + 1;
+      return HttpResponse.json(board);
+    },
+  ),
+  http.post(
+    '*/production-boards/:id/stages/:stageId/archive',
+    async ({ params }) => {
+      const board = productionBoards.find(({ id }) => id === params.id);
+      const stage = (board?.stages as MockEntity[] | undefined)?.find(
+        ({ id }) => id === params.stageId,
+      );
+      if (!board || !stage)
+        return notFound('production stage', String(params.stageId));
+      stage.archivedAt = new Date().toISOString();
+      board.version = Number(board.version) + 1;
+      return HttpResponse.json(board, { status: 201 });
+    },
+  ),
+  http.delete('*/production-boards/:id/stages/:stageId', ({ params }) => {
+    const board = productionBoards.find(({ id }) => id === params.id);
+    if (!board) return notFound('production board', String(params.id));
+    board.stages = (board.stages as MockEntity[]).filter(
+      ({ id }) => id !== params.stageId,
+    );
+    board.version = Number(board.version) + 1;
+    return HttpResponse.json(board);
+  }),
+  http.put(
+    '*/production-boards/:id/stage-order',
+    async ({ params, request }) => {
+      const board = productionBoards.find(({ id }) => id === params.id);
+      if (!board) return notFound('production board', String(params.id));
+      const { stageIds } = (await request.json()) as { stageIds: string[] };
+      const byId = new Map(
+        (board.stages as MockEntity[]).map((stage) => [stage.id, stage]),
+      );
+      board.stages = stageIds.map((id, position) => ({
+        ...byId.get(id)!,
+        position,
+      }));
+      board.version = Number(board.version) + 1;
+      return HttpResponse.json(board);
+    },
+  ),
+  http.get('*/production-boards/:id/cards', ({ params, request }) => {
+    const stageId = new URL(request.url).searchParams.get('stageId');
+    const board = productionBoards.find(({ id }) => id === params.id);
+    if (!board) return notFound('production board', String(params.id));
+    const stageIds = (board.stages as MockEntity[]).map(({ id }) => id);
+    const items = productionCards.filter(
+      (card) =>
+        stageIds.includes(String(card.stageId)) &&
+        (!stageId || card.stageId === stageId),
+    );
+    return HttpResponse.json({ items, meta: { nextCursor: null } });
+  }),
+  http.post('*/production-boards/:id/cards', async ({ params, request }) => {
+    const board = productionBoards.find(({ id }) => id === params.id);
+    if (!board) return notFound('production board', String(params.id));
+    const body = (await request.json()) as Record<string, unknown>;
+    if (Number(body.expectedBoardVersion) !== Number(board.version)) {
+      return HttpResponse.json(
+        { error: { message: 'Board changed', code: 'CONFLICT' } },
+        { status: 409 },
+      );
+    }
+    const order = findById('orders', String(body.orderId));
+    if (!order) return notFound('orders', String(body.orderId));
+    const group = findById('order-groups', String(order.orderGroupId));
+    const customStatus = customStatuses.find(
+      ({ id }) => id === order.customStatusId,
+    );
+    const assignedStatuses = (
+      Array.isArray(order.customStatusIds)
+        ? order.customStatusIds
+        : order.customStatusId
+          ? [order.customStatusId]
+          : []
+    )
+      .map((id) => customStatuses.find((status) => status.id === id))
+      .filter((status): status is MockEntity => Boolean(status));
+    const card = {
+      id: crypto.randomUUID(),
+      orderId: order.id,
+      stageId: board.initialStageId,
+      position: productionCards.length,
+      progressPercent: 0,
+      enteredStageAt: new Date().toISOString(),
+      version: 0,
+      documentName: order.name ?? null,
+      documentNumber: order.documentNumber,
+      documentVersion: Number(order.managementVersion) || 0,
+      effectiveDueDate: order.dueDate ?? group?.dueDate ?? null,
+      customStatusId: order.customStatusId ?? null,
+      customStatusName: customStatus?.name ?? null,
+      customStatusColor: customStatus?.color ?? null,
+      customStatuses: assignedStatuses,
+      orderGroupId: group?.id,
+      orderNumber: group?.orderNumber,
+      groupVersion: Number(group?.managementVersion) || 0,
+    };
+    productionCards.push(card);
+    board.version = Number(board.version) + 1;
+    return HttpResponse.json(card, { status: 201 });
+  }),
+  http.post('*/production-cards/:id/move', async ({ params, request }) => {
+    const card = productionCards.find(({ id }) => id === params.id);
+    if (!card) return notFound('production card', String(params.id));
+    const board = productionBoards.find(({ stages }) =>
+      (stages as MockEntity[]).some(({ id }) => id === card.stageId),
+    );
+    const body = (await request.json()) as Record<string, unknown>;
+    if (
+      !board ||
+      Number(body.expectedBoardVersion) !== Number(board.version) ||
+      Number(body.expectedCardVersion) !== Number(card.version)
+    ) {
+      return HttpResponse.json(
+        { error: { message: 'Card changed', code: 'CONFLICT' } },
+        { status: 409 },
+      );
+    }
+    const target = (board.stages as MockEntity[]).find(
+      ({ id }) => id === body.targetStageId,
+    );
+    card.stageId = body.targetStageId;
+    card.progressPercent = target?.progressPercent ?? card.progressPercent;
+    card.version = Number(card.version) + 1;
+    board.version = Number(board.version) + 1;
+    return HttpResponse.json(card);
+  }),
+  http.post('*/production-cards/:id/transfer', async ({ params, request }) => {
+    const card = productionCards.find(({ id }) => id === params.id);
+    if (!card) return notFound('production card', String(params.id));
+    const body = (await request.json()) as Record<string, unknown>;
+    card.stageId = body.targetStageId;
+    card.version = Number(card.version) + 1;
+    return HttpResponse.json(card);
+  }),
+];
+
 const templateVariables = [
   {
     path: 'item.quantity',
@@ -530,6 +925,8 @@ export const handlers = [
     return HttpResponse.json({ renderedValue: body.displayTemplate });
   }),
   ...priceModifierHandlers,
+  ...managementHandlers,
+  ...productionBoardHandlers,
   ...orderHandlers,
   ...entityHandlers,
 ];

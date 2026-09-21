@@ -1,3 +1,4 @@
+import type { OrderManagementService } from '../order-management/order-management.service';
 import type { DataSource, EntityManager, Repository } from 'typeorm';
 
 import { OrderGroup, OrderStatus } from './entities/order-group.entity';
@@ -6,15 +7,17 @@ import type { Order } from '../orders/entities/order.entity';
 import type { PricingService } from '../pricing/pricing.service';
 
 describe('OrderGroupsService', () => {
-  const preload = jest.fn();
+  const findOneBy = jest.fn();
+  const updateGroup = jest.fn();
   const save = jest.fn();
   const transaction = jest.fn();
   const calculateProductionCost = jest.fn();
   const service = new OrderGroupsService(
-    { preload, save } as unknown as Repository<OrderGroup>,
+    { findOneBy, save } as unknown as Repository<OrderGroup>,
     {} as Repository<Order>,
     { transaction } as unknown as DataSource,
     { calculateProductionCost } as unknown as PricingService,
+    { updateGroup } as unknown as OrderManagementService,
   );
 
   beforeEach(() => {
@@ -26,18 +29,23 @@ describe('OrderGroupsService', () => {
       id: 1,
       status: OrderStatus.IN_PRODUCTION,
     } as OrderGroup;
-    preload.mockResolvedValue(group);
+    findOneBy.mockResolvedValue(group);
     save.mockResolvedValue(group);
 
     const result = await service.update(1, {
       status: OrderStatus.IN_PRODUCTION,
+      expectedVersion: 0,
     });
 
-    expect(preload).toHaveBeenCalledWith({
-      id: 1,
-      status: OrderStatus.IN_PRODUCTION,
-    });
-    expect(save).toHaveBeenCalledWith(group);
+    expect(updateGroup).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({
+        status: OrderStatus.IN_PRODUCTION,
+        expectedVersion: 0,
+      }),
+      {},
+    );
+    expect(save).not.toHaveBeenCalled();
     expect(result.status).toBe(OrderStatus.IN_PRODUCTION);
   });
 

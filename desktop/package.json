@@ -1,7 +1,7 @@
 {
   "name": "avocado-desktop",
   "productName": "Avocado 5",
-  "version": "5.0.4",
+  "version": "5.0.5",
   "description": "Desktop shell for Avocado",
   "author": "Avocado",
   "main": "dist/main.js",
@@ -22,6 +22,7 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/mapped-types": "*",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/schedule": "^5.0.1",
     "@nestjs/typeorm": "^11.0.0",
     "better-sqlite3": "12.11.1",
     "class-transformer": "^0.5.1",

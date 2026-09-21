@@ -21,7 +21,7 @@ describe('order workbook export', () => {
     );
   });
 
-  it('creates customer and production worksheets with numeric values', () => {
+  it('creates only the selected production worksheet with numeric values', () => {
     const group = {
       id: '42',
       orderNumber: 'A-100',
@@ -46,6 +46,7 @@ describe('order workbook export', () => {
               {
                 key: 'row-1',
                 renderedName: 'Фасад',
+                comment: 'Срочно',
                 unit: 'per_item',
                 calculatedQuantity: 2,
                 costPerUnit: 100,
@@ -60,18 +61,49 @@ describe('order workbook export', () => {
     const workbook = buildOrderWorkbook(new Workbook(), {
       group,
       orders: [order],
-      productionDocuments,
+      selectedDocument: {
+        type: 'production',
+        name: productionDocuments[0].operationName,
+        document: productionDocuments[0],
+      },
     });
 
-    expect(workbook.worksheets.map(({ name }) => name)).toEqual([
-      'Для заказчика',
-      'Распил',
-    ]);
+    expect(workbook.worksheets.map(({ name }) => name)).toEqual(['Распил']);
 
     const productionWorksheet = workbook.getWorksheet('Распил');
     const itemRow = productionWorksheet?.findRow(4);
 
     expect(itemRow?.getCell(6).value).toBe(2);
     expect(itemRow?.getCell(8).value).toBe(200);
+    expect(itemRow?.getCell(9).value).toBe('Срочно');
+  });
+
+  it('creates only the selected customer worksheet', () => {
+    const group = {
+      id: '42',
+      orderNumber: 'A-100',
+      startedAt: '2026-09-01',
+      customer: { name: 'Заказчик' },
+    } as unknown as OrderGroup;
+    const order = {
+      id: 'order-1',
+      documentNumber: 1,
+      characteristics: {},
+      items: [],
+    } as unknown as Order;
+
+    const workbook = buildOrderWorkbook(new Workbook(), {
+      group,
+      orders: [order],
+      selectedDocument: {
+        type: 'customer',
+        name: 'Бланк для заказчика',
+        showPrices: true,
+      },
+    });
+
+    expect(workbook.worksheets.map(({ name }) => name)).toEqual([
+      'Бланк для заказчика',
+    ]);
   });
 });

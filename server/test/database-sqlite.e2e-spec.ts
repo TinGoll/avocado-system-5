@@ -30,7 +30,7 @@ describe('SQLite database', () => {
   });
 
   it('applies the baseline once and supports all entity metadata', async () => {
-    expect(dataSource.entityMetadatas).toHaveLength(16);
+    expect(dataSource.entityMetadatas).toHaveLength(24);
     expect(await dataSource.runMigrations()).toEqual([]);
     const schemaChanges = await dataSource.driver.createSchemaBuilder().log();
     expect(schemaChanges.upQueries).toEqual([]);
@@ -211,5 +211,109 @@ describe('SQLite database', () => {
         order.id,
       ]),
     ).resolves.toEqual([]);
+  });
+
+  it('deduplicates scheduled notifications and keeps failed events pending', async () => {
+    const { OrderGroup, OrderStatus } =
+      require('../src/modules/order-groups/entities/order-group.entity') as typeof import('../src/modules/order-groups/entities/order-group.entity');
+    const { NotificationRule } =
+      require('../src/modules/notifications/entities/notification-rule.entity') as typeof import('../src/modules/notifications/entities/notification-rule.entity');
+    const { Notification } =
+      require('../src/modules/notifications/entities/notification.entity') as typeof import('../src/modules/notifications/entities/notification.entity');
+    const { OrderManagementEvent } =
+      require('../src/modules/order-management/entities/order-management-event.entity') as typeof import('../src/modules/order-management/entities/order-management-event.entity');
+    const { NotificationsService } =
+      require('../src/modules/notifications/notifications.service') as typeof import('../src/modules/notifications/notifications.service');
+    const { NotificationSchedulerService } =
+      require('../src/modules/notifications/notification-scheduler.service') as typeof import('../src/modules/notifications/notification-scheduler.service');
+
+    const today = new Date().toISOString().slice(0, 10);
+    const group = await dataSource.getRepository(OrderGroup).save({
+      orderNumber: 'NOTIFY-1',
+      customer: {},
+      status: OrderStatus.IN_PRODUCTION,
+      dueDate: today,
+      customStatusId: null,
+      managementVersion: 0,
+    });
+    const rules = dataSource.getRepository(NotificationRule);
+    await rules.save({
+      name: 'Due today',
+      enabled: true,
+      revision: 1,
+      scope: 'group',
+      trigger: 'due_soon',
+      conditions: { days: 0 },
+      repeat: 'once',
+      messageTemplate: 'Заказ {{order.number}}',
+      severity: 'warning',
+      activatedAt: new Date(0),
+    });
+    const service = new NotificationsService(dataSource);
+    const scheduler = new NotificationSchedulerService(dataSource, service);
+    await scheduler.run();
+    await scheduler.run();
+    const notificationRepository = dataSource.getRepository(Notification);
+    expect(await notificationRepository.count()).toBe(1);
+    expect(scheduler.state().lastCreatedCount).toBe(0);
+    const page = await service.feed({ limit: 1 });
+    expect(page.items).toHaveLength(1);
+    expect(page.meta.nextCursor).toBeNull();
+    await service.setRead(page.items[0].id, { read: true });
+    const readAt = (
+      await notificationRepository.findOneByOrFail({
+        id: page.items[0].id,
+      })
+    ).readAt;
+    await service.setRead(page.items[0].id, { read: true });
+    expect(
+      (await notificationRepository.findOneByOrFail({ id: page.items[0].id }))
+        .readAt,
+    ).toEqual(readAt);
+
+    group.dueDate = '2999-01-01';
+    await dataSource.getRepository(OrderGroup).save(group);
+    await scheduler.run();
+    expect(
+      (await notificationRepository.findOneByOrFail({ id: page.items[0].id }))
+        .resolvedAt,
+    ).not.toBeNull();
+
+    const invalidRule = await rules.save({
+      name: 'Invalid event template',
+      enabled: true,
+      revision: 1,
+      scope: 'group',
+      trigger: 'lifecycle_changed',
+      conditions: {},
+      repeat: 'once',
+      messageTemplate: '{{unsupported.value}}',
+      severity: 'error',
+      activatedAt: new Date(0),
+    });
+    const event = await dataSource.getRepository(OrderManagementEvent).save({
+      orderGroupId: group.id,
+      orderId: null,
+      type: 'lifecycle_changed',
+      before: { status: OrderStatus.DRAFT },
+      after: { status: OrderStatus.IN_PRODUCTION },
+      targetSnapshot: {
+        orderNumber: group.orderNumber,
+        documentNumber: null,
+        documentName: null,
+      },
+      reason: null,
+      notificationProcessedAt: null,
+    });
+    await scheduler.run();
+    expect(
+      (
+        await dataSource
+          .getRepository(OrderManagementEvent)
+          .findOneByOrFail({ id: event.id })
+      ).notificationProcessedAt,
+    ).toBeNull();
+    expect(scheduler.state().lastError).toContain('unsupported variable');
+    await rules.delete(invalidRule.id);
   });
 });

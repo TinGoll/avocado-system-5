@@ -14,6 +14,11 @@ const OrderPage = lazy(() => import('@pages/order'));
 const OrderPrintPage = lazy(() => import('@pages/order-print'));
 const OrderSearchPage = lazy(() => import('@pages/order-search'));
 const PriceModifiersPage = lazy(() => import('@pages/price-modifiers'));
+const OrderManagementSettingsPage = lazy(
+  () => import('@pages/order-management-settings'),
+);
+const ProductionBoardPage = lazy(() => import('@pages/production-board'));
+const NotificationsPage = lazy(() => import('@pages/notifications'));
 const CatalogPage = lazy(() =>
   import('@pages/catalogs').then(({ CatalogPage }) => ({
     default: CatalogPage,
@@ -56,6 +61,18 @@ export const routesElements = (): JSX.Element => (
         <Route
           path={ROUTES.priceModifiers}
           element={withPageLoadingFallback(<PriceModifiersPage />)}
+        />
+        <Route
+          path={ROUTES.orderManagementSettings}
+          element={withPageLoadingFallback(<OrderManagementSettingsPage />)}
+        />
+        <Route
+          path={ROUTES.productionBoard}
+          element={withPageLoadingFallback(<ProductionBoardPage />)}
+        />
+        <Route
+          path={ROUTES.notifications}
+          element={withPageLoadingFallback(<NotificationsPage />)}
         />
         <Route
           path={ROUTES.customers}

@@ -9,6 +9,15 @@ vi.mock('@shared/layouts', () => ({ AppLayout: () => <Outlet /> }));
 vi.mock('@pages/price-modifiers', () => ({
   default: () => <div>Маршрут модификаторов</div>,
 }));
+vi.mock('@pages/order-management-settings', () => ({
+  default: () => <div>Маршрут управления заказами</div>,
+}));
+vi.mock('@pages/production-board', () => ({
+  default: () => <div>Маршрут производства</div>,
+}));
+vi.mock('@pages/notifications', () => ({
+  default: () => <div>Маршрут уведомлений</div>,
+}));
 vi.mock('@pages/catalogs', () => ({
   CatalogPage: ({ catalog }: { catalog: string }) => (
     <div>Маршрут справочника: {catalog}</div>
@@ -57,5 +66,44 @@ describe('routesElements', () => {
     });
 
     expect(container.textContent).toContain('Маршрут справочника: materials');
+  });
+
+  it('renders the order management settings page by its URL', async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={['/order-management/settings']}>
+          {routesElements()}
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain('Маршрут управления заказами');
+  });
+
+  it('renders the production board page by its URL', async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={['/production']}>
+          {routesElements()}
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain('Маршрут производства');
+  });
+
+  it('renders the notifications page by its URL', async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={['/notifications']}>
+          {routesElements()}
+        </MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain('Маршрут уведомлений');
   });
 });

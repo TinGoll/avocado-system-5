@@ -1,9 +1,13 @@
+import { CustomOrderStatus } from '../../order-management/entities/custom-order-status.entity';
 import {
   Column,
+  JoinColumn,
   CreateDateColumn,
   Entity,
   Index,
   ManyToOne,
+  ManyToMany,
+  JoinTable,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -21,6 +25,8 @@ export enum OrderStatus {
 }
 
 @Entity('orders')
+@Index('IDX_orders_custom_status', ['customStatusId'])
+@Index('IDX_orders_due_date', ['dueDate'])
 @Index(
   'IDX_orders_orderGroup_documentNumber',
   ['orderGroup', 'documentNumber'],
@@ -62,6 +68,30 @@ export class Order {
     onDelete: 'SET NULL',
   })
   orderGroup: OrderGroup;
+
+  @Column({ type: 'date', nullable: true })
+  dueDate: string | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  customStatusId: string | null;
+
+  @ManyToOne(() => CustomOrderStatus, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({
+    name: 'customStatusId',
+    foreignKeyConstraintName: 'FK_orders_custom_status',
+  })
+  customStatus: CustomOrderStatus | null;
+
+  @ManyToMany(() => CustomOrderStatus)
+  @JoinTable({
+    name: 'order_custom_statuses',
+    joinColumn: { name: 'orderId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'customStatusId', referencedColumnName: 'id' },
+  })
+  customStatuses: CustomOrderStatus[];
+
+  @Column({ type: 'integer', default: 0 })
+  managementVersion: number;
 
   @CreateDateColumn()
   createdAt: Date;

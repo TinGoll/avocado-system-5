@@ -13,7 +13,17 @@ import { createWorkbook, type Workbook, type Worksheet } from './exceljs';
 type ExportOrderWorkbookOptions = {
   group: OrderGroup;
   orders: Order[];
-  productionDocuments: ProductionOrderDocument[];
+  selectedDocument:
+    | {
+        type: 'customer';
+        name: string;
+        showPrices: boolean;
+      }
+    | {
+        type: 'production';
+        name: string;
+        document: ProductionOrderDocument;
+      };
 };
 
 const border = {
@@ -112,8 +122,10 @@ const addCustomerWorksheet = (
   workbook: Workbook,
   group: OrderGroup,
   orders: Order[],
+  worksheetName: string,
+  showPrices: boolean,
 ): void => {
-  const worksheet = workbook.addWorksheet('Для заказчика');
+  const worksheet = workbook.addWorksheet(worksheetName);
   prepareWorksheet(worksheet);
   worksheet.columns = [
     { width: 7 },
@@ -130,46 +142,72 @@ const addCustomerWorksheet = (
     if (orderIndex > 0) worksheet.addRow([]);
     styleTitle(
       worksheet,
-      `Бланк для заказчика № ${group.id}/${order.documentNumber}`,
+      `${worksheetName} № ${group.id}/${order.documentNumber}`,
     );
     addOrderMetadata(worksheet, group, order);
-    styleTableHeader(worksheet, [
-      '№',
-      'Название',
-      'Кол-во',
-      'Ед.',
-      'Цена, ₽',
-      'Сумма, ₽',
-      'Комментарий',
-    ]);
+    styleTableHeader(
+      worksheet,
+      showPrices
+        ? [
+            '№',
+            'Название',
+            'Кол-во',
+            'Ед.',
+            'Цена, ₽',
+            'Сумма, ₽',
+            'Комментарий',
+          ]
+        : ['№', 'Название', 'Кол-во', 'Ед.', 'Комментарий'],
+    );
 
     buildCustomerOrderRows(order).forEach((item, index) => {
-      const row = worksheet.addRow([
-        index + 1,
-        item.dimensions,
-        item.calculatedQuantity,
-        item.unit,
-        item.unitPrice,
-        item.totalPrice,
-        item.comment,
-      ]);
+      const row = worksheet.addRow(
+        showPrices
+          ? [
+              index + 1,
+              item.dimensions,
+              item.calculatedQuantity,
+              item.unit,
+              item.unitPrice,
+              item.totalPrice,
+              item.comment,
+            ]
+          : [
+              index + 1,
+              item.dimensions,
+              item.calculatedQuantity,
+              item.unit,
+              item.comment,
+            ],
+      );
       row.eachCell((cell) => {
         cell.border = border;
         cell.alignment = { vertical: 'top', wrapText: true };
       });
       row.getCell(3).numFmt = '#,##0.###';
-      row.getCell(5).numFmt = '#,##0.00';
-      row.getCell(6).numFmt = '#,##0.00';
+      if (showPrices) {
+        row.getCell(5).numFmt = '#,##0.00';
+        row.getCell(6).numFmt = '#,##0.00';
+      }
     });
 
-    const totals = buildCustomerOrderTotals(order);
-    totals.groups.forEach(({ group: totalGroup, amount }) => {
-      const row = worksheet.addRow(['', '', '', '', totalGroup, amount]);
-      row.getCell(6).numFmt = '#,##0.00';
-    });
-    const totalRow = worksheet.addRow(['', '', '', '', 'Итого', totals.total]);
-    totalRow.font = { bold: true };
-    totalRow.getCell(6).numFmt = '#,##0.00';
+    if (showPrices) {
+      const totals = buildCustomerOrderTotals(order);
+      totals.groups.forEach(({ group: totalGroup, amount }) => {
+        const row = worksheet.addRow(['', '', '', '', totalGroup, amount]);
+        row.getCell(6).numFmt = '#,##0.00';
+      });
+      const totalRow = worksheet.addRow([
+        '',
+        '',
+        '',
+        '',
+        'Итого',
+        totals.total,
+      ]);
+      totalRow.font = { bold: true };
+      totalRow.getCell(6).numFmt = '#,##0.00';
+    }
   });
 };
 
@@ -211,6 +249,7 @@ const addProductionWorksheet = (
     { width: 12 },
     { width: 16 },
     { width: 16 },
+    { width: 32 },
     { width: 16 },
   ];
 
@@ -227,6 +266,7 @@ const addProductionWorksheet = (
       'Кол-во',
       'Стоимость, ₽',
       'Сумма, ₽',
+      'Комментарий',
     ]);
 
     rows.forEach((item, index) => {
@@ -239,6 +279,7 @@ const addProductionWorksheet = (
         item.calculatedQuantity,
         item.costPerUnit,
         item.totalCost,
+        item.comment,
       ]);
       row.eachCell((cell) => {
         cell.border = border;
@@ -259,21 +300,27 @@ const addProductionWorksheet = (
 
 export const buildOrderWorkbook = (
   workbook: Workbook,
-  { group, orders, productionDocuments }: ExportOrderWorkbookOptions,
+  { group, orders, selectedDocument }: ExportOrderWorkbookOptions,
 ): Workbook => {
   workbook.creator = 'Avocado';
   workbook.created = new Date();
-  addCustomerWorksheet(workbook, group, orders);
 
-  const usedNames = new Set(['для заказчика']);
-  productionDocuments.forEach((document) => {
+  if (selectedDocument.type === 'customer') {
+    addCustomerWorksheet(
+      workbook,
+      group,
+      orders,
+      normalizeWorksheetName(selectedDocument.name, new Set()),
+      selectedDocument.showPrices,
+    );
+  } else {
     addProductionWorksheet(
       workbook,
       group,
-      document,
-      normalizeWorksheetName(document.operationName, usedNames),
+      selectedDocument.document,
+      normalizeWorksheetName(selectedDocument.name, new Set()),
     );
-  });
+  }
 
   return workbook;
 };
@@ -290,7 +337,12 @@ export const exportOrderWorkbook = async (
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `order-${options.group.id}.xlsx`;
+  const orderNumber = options.group.orderNumber || options.group.id;
+  const fileName = `${options.selectedDocument.name} ${orderNumber}`
+    .replace(/[\\/:*?"<>|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  link.download = `${fileName}.xlsx`;
   link.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
 };

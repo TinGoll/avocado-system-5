@@ -60,14 +60,14 @@ export const EditOrderWidget: FC = () => {
   const documentSummary =
     currentOrder && currentOrder.id === orderID
       ? [
-          ['Материал', currentOrder.characteristics.material?.name],
-          ['Цвет', currentOrder.characteristics.color?.name],
-          ['Профиль', currentOrder.characteristics.profile?.name],
-          ['Филёнка', currentOrder.characteristics.panel?.name],
-          ['Патина', currentOrder.characteristics.patina?.name],
-          ['Лак', currentOrder.characteristics.varnish?.name],
-          ['Термошов', currentOrder.characteristics.thermalSeam],
-          ['Присадка', currentOrder.characteristics.drilling],
+          ['Материал', currentOrder.characteristics?.material?.name],
+          ['Цвет', currentOrder.characteristics?.color?.name],
+          ['Профиль', currentOrder.characteristics?.profile?.name],
+          ['Филёнка', currentOrder.characteristics?.panel?.name],
+          ['Патина', currentOrder.characteristics?.patina?.name],
+          ['Лак', currentOrder.characteristics?.varnish?.name],
+          ['Термошов', currentOrder.characteristics?.thermalSeam],
+          ['Присадка', currentOrder.characteristics?.drilling],
         ]
           .filter((characteristic): characteristic is [string, string] =>
             Boolean(characteristic[1]),

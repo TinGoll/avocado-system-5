@@ -12,5 +12,6 @@ interface ImportMeta {
 interface Window {
   readonly avocadoDesktop?: {
     readonly apiBaseUrl: string;
+    readonly installationId: string;
   };
 }

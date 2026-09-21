@@ -9,7 +9,9 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   PercentageOutlined,
+  BellOutlined,
   ProfileOutlined,
+  ProjectOutlined,
   SettingOutlined,
   ShoppingCartOutlined,
   TeamOutlined,
@@ -67,6 +69,23 @@ export const Sidebar: FC = () => {
             key: '/price-modifiers',
             icon: <PercentageOutlined />,
             label: <Link to="/price-modifiers">Модификаторы цен</Link>,
+          },
+          {
+            key: '/order-management/settings',
+            icon: <SettingOutlined />,
+            label: (
+              <Link to="/order-management/settings">Управление заказами</Link>
+            ),
+          },
+          {
+            key: '/production',
+            icon: <ProjectOutlined />,
+            label: <Link to="/production">Производство</Link>,
+          },
+          {
+            key: '/notifications',
+            icon: <BellOutlined />,
+            label: <Link to="/notifications">Уведомления</Link>,
           },
           {
             key: 'catalogs',

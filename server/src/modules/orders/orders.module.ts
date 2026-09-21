@@ -7,9 +7,11 @@ import { OrderItem } from './entities/order-item.entity';
 import { ProductTemplate } from '../products/entities/product-template.entity';
 import { PricingModule } from '../pricing/pricing.module';
 import { OrderGroup } from '../order-groups/entities/order-group.entity';
+import { OrderManagementModule } from '../order-management/order-management.module';
 
 @Module({
   imports: [
+    OrderManagementModule,
     PricingModule,
     TypeOrmModule.forFeature([Order, OrderItem, ProductTemplate, OrderGroup]),
   ],

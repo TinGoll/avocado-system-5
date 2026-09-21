@@ -197,6 +197,12 @@ export interface OrderItemCharacteristics {
   comment?: string;
 }
 
+export interface OrderCustomStatus {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export interface OrderGroup {
   id: number;
   orderNumber: string;
@@ -208,6 +214,8 @@ export interface OrderGroup {
   orders: Order[];
   createdAt: Date;
   updatedAt: Date;
+  managementVersion?: number;
+  customStatuses?: OrderCustomStatus[];
 }
 
 export interface Order {
@@ -220,6 +228,8 @@ export interface Order {
   items: OrderItem[];
   createdAt: Date;
   updatedAt: Date;
+  managementVersion?: number;
+  customStatuses?: OrderCustomStatus[];
 }
 
 export interface OrderItem {

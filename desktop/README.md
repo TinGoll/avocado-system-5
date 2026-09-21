@@ -34,6 +34,18 @@ npm run start:desktop
 The desktop start command creates a packaged development build before launching
 it so that the native SQLite driver uses the correct Electron ABI.
 
+Before updating an existing desktop installation, close the application and
+back up its SQLite file from Electron's per-user `userData` directory. Database
+migrations run on startup. Do not test destructive down migrations against a
+user database.
+
+The notification scheduler runs only while the embedded NestJS process is
+alive. Closing the desktop application stops the server and its checks; after
+the next launch the startup pass creates the currently applicable reminder,
+without replaying every missed daily interval. Set
+`NOTIFICATIONS_SCHEDULER_ENABLED=false` only for an additional server replica
+that must not run the scheduler.
+
 ## Packaging for Windows
 
 Increase the application version before a release. Use `version:patch` for a

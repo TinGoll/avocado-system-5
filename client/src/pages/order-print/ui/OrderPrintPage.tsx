@@ -67,6 +67,7 @@ const OrderPrintPage: FC = () => {
   const [messageApi, messageContextHolder] = message.useMessage();
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
+  const [activeTabKey, setActiveTabKey] = useState('customer');
   const { groupID } = useCurrentOrderGroupID();
   const {
     data: group,
@@ -215,13 +216,31 @@ const OrderPrintPage: FC = () => {
   ];
 
   const exportToExcel = async () => {
+    const selectedProductionDocument = productionDocuments.find(
+      ({ operationId }) => operationId === activeTabKey,
+    );
+    const selectedDocument = selectedProductionDocument
+      ? {
+          type: 'production' as const,
+          name: selectedProductionDocument.operationName,
+          document: selectedProductionDocument,
+        }
+      : {
+          type: 'customer' as const,
+          name:
+            activeTabKey === 'general-production'
+              ? 'Общий заказ'
+              : 'Бланк для заказчика',
+          showPrices: activeTabKey !== 'general-production',
+        };
+
     setIsExportingExcel(true);
 
     try {
       await exportOrderWorkbook({
         group,
         orders: orders ?? [],
-        productionDocuments,
+        selectedDocument,
       });
     } catch {
       messageApi.error('Не удалось экспортировать документ в Excel');
@@ -269,7 +288,13 @@ const OrderPrintPage: FC = () => {
           type="warning"
         />
       )}
-      <Tabs className={styles.tabs} items={tabs} type="card" />
+      <Tabs
+        activeKey={activeTabKey}
+        className={styles.tabs}
+        items={tabs}
+        type="card"
+        onChange={setActiveTabKey}
+      />
     </section>
   );
 };

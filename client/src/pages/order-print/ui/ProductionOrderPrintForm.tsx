@@ -6,7 +6,10 @@ import type { OrderGroup } from '@entities/order';
 import { MarkdownPreview } from '@shared/ui/markdown';
 
 import { formatOrderPrintNumber } from '../model/order-print-number';
+import { getOrderPrintLabels } from '../model/print-labels';
 import type { ProductionOrderDocument } from '../model/production-order';
+
+import { OrderPrintLabels } from './OrderPrintLabels';
 
 const unitLabels: Record<string, string> = {
   per_item: 'шт.',
@@ -199,6 +202,12 @@ export const ProductionOrderPrintForm: FC<ProductionOrderPrintFormProps> = ({
               {documentIndex + 1}/{documentCount}
             </div> */}
           </div>
+          <OrderPrintLabels
+            labels={getOrderPrintLabels(
+              group.customStatuses,
+              order.customStatuses,
+            )}
+          />
           <div className={styles.documentHeader}>
             {characteristicLabels.map(([key, label]) =>
               order.characteristics[key] !== undefined ? (
@@ -245,6 +254,7 @@ export const ProductionOrderPrintForm: FC<ProductionOrderPrintFormProps> = ({
                 <th>Кол-во, ед.</th>
                 <th>Стоимость, ₽</th>
                 <th>Сумма, ₽</th>
+                <th>Комментарий</th>
               </tr>
             </thead>
             <tbody>
@@ -261,6 +271,7 @@ export const ProductionOrderPrintForm: FC<ProductionOrderPrintFormProps> = ({
                   </td>
                   <td>{moneyFormatter.format(row.costPerUnit)}</td>
                   <td>{moneyFormatter.format(row.totalCost)}</td>
+                  <td>{row.comment}</td>
                 </tr>
               ))}
             </tbody>

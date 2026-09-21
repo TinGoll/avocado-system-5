@@ -8,3 +8,8 @@ export * from './api/useOrderGroupByID';
 export * from './api/useOrderByIDWithItems';
 export * from './model/useLoadOrder';
 export * from './model/useLoadOrderGroup';
+export type {
+  CustomOrderStatus,
+  ManagementScope,
+  ManagementView,
+} from '@shared/api';
