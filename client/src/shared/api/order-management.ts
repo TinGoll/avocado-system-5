@@ -14,12 +14,18 @@ export type OrderLifecycleStatus =
   | 'in_production'
   | 'completed'
   | 'cancelled';
+export type DueDateRule = {
+  status: OrderLifecycleStatus;
+  customStatusId: string | null;
+  workingDays: number;
+};
 export type OrderManagementSettings = {
   id: 1;
   timeZone: string;
   autoAddStatus: OrderLifecycleStatus | null;
   autoAddBoardId: string | null;
   autoAddStageId: string | null;
+  dueDateRules: DueDateRule[];
 };
 export type ManagementView = {
   id: number | string;

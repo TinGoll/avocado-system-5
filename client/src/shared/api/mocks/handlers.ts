@@ -27,6 +27,7 @@ let managementAutoAdd: Record<string, string | null> = {
   autoAddBoardId: null,
   autoAddStageId: null,
 };
+let managementDueDateRules: unknown[] = [];
 
 const getCollectionResponse = (resource: string) => {
   const items = getCollection(resource);
@@ -557,20 +558,28 @@ const managementHandlers = [
       id: 1,
       timeZone: managementTimeZone,
       ...managementAutoAdd,
+      dueDateRules: managementDueDateRules,
     }),
   ),
   http.patch('*/order-management/settings', async ({ request }) => {
-    const body = (await request.json()) as Record<string, string | null>;
-    managementTimeZone = body.timeZone ?? managementTimeZone;
+    const body = (await request.json()) as Record<string, unknown>;
+    if (typeof body.timeZone === 'string') managementTimeZone = body.timeZone;
     managementAutoAdd = {
-      autoAddStatus: body.autoAddStatus ?? null,
-      autoAddBoardId: body.autoAddBoardId ?? null,
-      autoAddStageId: body.autoAddStageId ?? null,
+      autoAddStatus:
+        typeof body.autoAddStatus === 'string' ? body.autoAddStatus : null,
+      autoAddBoardId:
+        typeof body.autoAddBoardId === 'string' ? body.autoAddBoardId : null,
+      autoAddStageId:
+        typeof body.autoAddStageId === 'string' ? body.autoAddStageId : null,
     };
+    managementDueDateRules = Array.isArray(body.dueDateRules)
+      ? body.dueDateRules
+      : managementDueDateRules;
     return HttpResponse.json({
       id: 1,
       timeZone: managementTimeZone,
       ...managementAutoAdd,
+      dueDateRules: managementDueDateRules,
     });
   }),
   ...(['order-groups', 'orders'] as const).flatMap((resource) => [

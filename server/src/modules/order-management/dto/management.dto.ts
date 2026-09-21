@@ -16,6 +16,7 @@ import {
   MinLength,
   ValidateBy,
   ValidateIf,
+  ValidateNested,
 } from 'class-validator';
 import { OrderStatus } from '../../order-groups/entities/order-group.entity';
 
@@ -138,6 +139,21 @@ export class CustomStatusQueryDto {
   scope?: 'group' | 'document';
 }
 
+export class DueDateRuleDto {
+  @IsEnum(OrderStatus)
+  status: OrderStatus;
+
+  @ValidateIf((_, value: unknown) => value !== undefined && value !== null)
+  @IsUUID()
+  customStatusId: string | null;
+
+  @RawValue()
+  @IsInt()
+  @Min(0)
+  @Max(1000)
+  workingDays: number;
+}
+
 export class UpdateManagementSettingsDto {
   @RawValue()
   @IsString()
@@ -174,6 +190,13 @@ export class UpdateManagementSettingsDto {
   @ValidateIf((_, value: unknown) => value !== undefined && value !== null)
   @IsUUID()
   autoAddStageId?: string | null;
+
+  @ValidateIf((_, value: unknown) => value !== undefined)
+  @IsArray()
+  @ArrayMaxSize(100)
+  @Type(() => DueDateRuleDto)
+  @ValidateNested({ each: true })
+  dueDateRules?: DueDateRuleDto[];
 }
 
 export class ManagementHistoryQueryDto {

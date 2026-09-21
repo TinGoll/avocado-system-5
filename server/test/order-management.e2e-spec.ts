@@ -562,6 +562,60 @@ describe('Order management HTTP (SQLite)', () => {
     ]);
   });
 
+  it('sets a due date from the most specific matching working-day rule', async () => {
+    const { groupUrl } = await fixture();
+    const urgentStatusId = await status('group');
+    await request(http)
+      .patch('/api/order-management/settings')
+      .send({
+        timeZone: 'Europe/Moscow',
+        dueDateRules: [
+          {
+            status: 'in_production',
+            customStatusId: null,
+            workingDays: 20,
+          },
+          {
+            status: 'in_production',
+            customStatusId: urgentStatusId,
+            workingDays: 10,
+          },
+        ],
+      })
+      .expect(200);
+
+    const response = await request(http)
+      .patch(groupUrl)
+      .send({
+        expectedVersion: 0,
+        status: 'in_production',
+        customStatusIds: [urgentStatusId],
+      })
+      .expect(200);
+
+    const localDate = new Intl.DateTimeFormat('en', {
+      timeZone: 'Europe/Moscow',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+    const part = (type: Intl.DateTimeFormatPartTypes) =>
+      localDate.find((item) => item.type === type)!.value;
+    const expected = new Date(
+      `${part('year')}-${part('month')}-${part('day')}T00:00:00.000Z`,
+    );
+    let remaining = 10;
+    while (remaining > 0) {
+      expected.setUTCDate(expected.getUTCDate() + 1);
+      if (expected.getUTCDay() !== 0 && expected.getUTCDay() !== 6)
+        remaining -= 1;
+    }
+    expect(response.body).toMatchObject({
+      dueDate: expected.toISOString().slice(0, 10),
+      customStatusIds: [urgentStatusId],
+    });
+  });
+
   it('rolls back all fields and versions if event writing fails', async () => {
     const { group, groupUrl } = await fixture();
     const spy = jest

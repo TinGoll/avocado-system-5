@@ -288,6 +288,23 @@ export class OrderManagementService {
       }
       if (dto.status !== undefined && dto.status !== group.status) {
         changes.status = dto.status;
+        if (dto.dueDate === undefined) {
+          const automaticDueDate = await this.automaticDueDate(
+            manager,
+            dto.status,
+            nextStatusIds ?? currentStatusIds,
+          );
+          if (automaticDueDate && automaticDueDate !== group.dueDate) {
+            changes.dueDate = automaticDueDate;
+            await this.journal.record(manager, {
+              orderGroupId: id,
+              type: 'due_date_changed',
+              before: { dueDate: group.dueDate },
+              after: { dueDate: automaticDueDate, automatic: true },
+              targetSnapshot,
+            });
+          }
+        }
         await this.journal.record(manager, {
           orderGroupId: id,
           type: 'lifecycle_changed',
@@ -539,9 +556,72 @@ export class OrderManagementService {
         )
           throw new BadRequestException('Active board and stage are required');
       }
+      const ruleKeys = new Set<string>();
+      for (const rule of dto.dueDateRules ?? []) {
+        const key = `${rule.status}:${rule.customStatusId ?? ''}`;
+        if (ruleKeys.has(key))
+          throw new BadRequestException('Duplicate due date rule');
+        ruleKeys.add(key);
+        if (rule.customStatusId)
+          await this.statusesForAssignment(
+            manager,
+            [rule.customStatusId],
+            'group',
+          );
+      }
       await manager.update(OrderManagementSettings, 1, dto);
       return manager.findOneByOrFail(OrderManagementSettings, { id: 1 });
     });
+  }
+
+  private localDate(now: Date, timeZone: string) {
+    const parts = new Intl.DateTimeFormat('en', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(now);
+    const part = (type: Intl.DateTimeFormatPartTypes) =>
+      parts.find((item) => item.type === type)?.value;
+    return `${part('year')}-${part('month')}-${part('day')}`;
+  }
+
+  private addWorkingDays(date: string, workingDays: number) {
+    const value = new Date(`${date}T00:00:00.000Z`);
+    let remaining = workingDays;
+    while (remaining > 0) {
+      value.setUTCDate(value.getUTCDate() + 1);
+      const day = value.getUTCDay();
+      if (day !== 0 && day !== 6) remaining -= 1;
+    }
+    return value.toISOString().slice(0, 10);
+  }
+
+  private async automaticDueDate(
+    manager: EntityManager,
+    status: OrderStatus,
+    customStatusIds: string[],
+  ) {
+    const settings = await manager.findOneByOrFail(OrderManagementSettings, {
+      id: 1,
+    });
+    const matching = (settings.dueDateRules ?? [])
+      .filter(
+        (rule) =>
+          rule.status === status &&
+          (!rule.customStatusId ||
+            customStatusIds.includes(rule.customStatusId)),
+      )
+      .sort(
+        (left, right) =>
+          Number(Boolean(right.customStatusId)) -
+          Number(Boolean(left.customStatusId)),
+      )[0];
+    if (!matching) return null;
+    return this.addWorkingDays(
+      this.localDate(new Date(), settings.timeZone),
+      matching.workingDays,
+    );
   }
 
   private async autoAddDocumentsToBoard(

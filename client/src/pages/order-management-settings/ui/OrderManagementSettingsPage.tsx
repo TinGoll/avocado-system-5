@@ -2,6 +2,7 @@ import {
   DeleteOutlined,
   EditOutlined,
   InboxOutlined,
+  MinusCircleOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
 import { css } from '@emotion/css';
@@ -37,6 +38,7 @@ import {
   updateCustomStatus,
   updateOrderManagementSettings,
   type CustomOrderStatus,
+  type DueDateRule,
   type ManagementScope,
   type OrderManagementSettings,
   type OrderLifecycleStatus,
@@ -79,6 +81,24 @@ const styles = {
       grid-template-columns: 1fr;
     }
   `,
+  dueDateRules: css`
+    display: grid;
+    gap: 12px;
+  `,
+  dueDateRule: css`
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) minmax(220px, 1fr) 180px auto;
+    align-items: end;
+    gap: 8px;
+
+    .ant-form-item {
+      margin-bottom: 0;
+    }
+
+    @media (max-width: 900px) {
+      grid-template-columns: 1fr;
+    }
+  `,
 };
 
 type Editor = { scope: ManagementScope; status?: CustomOrderStatus } | null;
@@ -89,6 +109,7 @@ type AutoAddValues = {
   autoAddBoardId?: string;
   autoAddStageId?: string;
 };
+type DueDateRuleValues = { dueDateRules: DueDateRule[] };
 
 const lifecycleOptions = [
   { value: 'in_production', label: 'В производстве' },
@@ -203,6 +224,7 @@ export const OrderManagementSettingsPage: FC = () => {
   const [statusForm] = Form.useForm<StatusValues>();
   const [settingsForm] = Form.useForm<{ timeZone: string }>();
   const [autoAddForm] = Form.useForm<AutoAddValues>();
+  const [dueDateRulesForm] = Form.useForm<DueDateRuleValues>();
   const settings = useSWR<OrderManagementSettings>(
     orderManagementKeys.settings,
     (url: string) => fetcher<OrderManagementSettings>({ url }),
@@ -211,6 +233,9 @@ export const OrderManagementSettingsPage: FC = () => {
     getCustomStatuses(activeScope),
   );
   const boards = useSWR('production-boards', getProductionBoards);
+  const groupStatuses = useSWR(orderManagementKeys.statuses('group'), () =>
+    getCustomStatuses('group'),
+  );
   const autoAddEnabled = Form.useWatch('enabled', autoAddForm) ?? false;
   const selectedBoardId = Form.useWatch('autoAddBoardId', autoAddForm);
   const activeBoards = (boards.data?.items ?? []).filter(
@@ -249,6 +274,7 @@ export const OrderManagementSettingsPage: FC = () => {
         autoAddStatus: settings.data?.autoAddStatus ?? null,
         autoAddBoardId: settings.data?.autoAddBoardId ?? null,
         autoAddStageId: settings.data?.autoAddStageId ?? null,
+        dueDateRules: settings.data?.dueDateRules ?? [],
       });
       await settings.mutate();
       message.success('Часовой пояс сохранён');
@@ -264,11 +290,28 @@ export const OrderManagementSettingsPage: FC = () => {
         autoAddStatus: values.enabled ? (values.autoAddStatus ?? null) : null,
         autoAddBoardId: values.enabled ? (values.autoAddBoardId ?? null) : null,
         autoAddStageId: values.enabled ? (values.autoAddStageId ?? null) : null,
+        dueDateRules: settings.data.dueDateRules,
       });
       await settings.mutate();
       message.success('Автодобавление сохранено');
     } catch {
       message.error('Не удалось сохранить автодобавление');
+    }
+  };
+  const saveDueDateRules = async ({ dueDateRules }: DueDateRuleValues) => {
+    if (!settings.data) return;
+    try {
+      await updateOrderManagementSettings({
+        timeZone: settings.data.timeZone,
+        autoAddStatus: settings.data.autoAddStatus,
+        autoAddBoardId: settings.data.autoAddBoardId,
+        autoAddStageId: settings.data.autoAddStageId,
+        dueDateRules,
+      });
+      await settings.mutate();
+      message.success('Правила срока сохранены');
+    } catch {
+      message.error('Не удалось сохранить правила срока');
     }
   };
 
@@ -304,6 +347,87 @@ export const OrderManagementSettingsPage: FC = () => {
             <Button htmlType="submit" type="primary">
               Сохранить
             </Button>
+          </Form>
+        )}
+      </Card>
+      <Card className={styles.card} title="Автоматический срок сдачи">
+        {settings.error || groupStatuses.error ? (
+          <Alert showIcon type="error" title="Не удалось загрузить настройки" />
+        ) : settings.isLoading || groupStatuses.isLoading ? (
+          <Typography.Text>Загрузка…</Typography.Text>
+        ) : (
+          <Form
+            form={dueDateRulesForm}
+            key={JSON.stringify(settings.data?.dueDateRules)}
+            initialValues={{ dueDateRules: settings.data?.dueDateRules ?? [] }}
+            onFinish={saveDueDateRules}
+          >
+            <Form.List name="dueDateRules">
+              {(fields, { add, remove }) => (
+                <div className={styles.dueDateRules}>
+                  {fields.map((field) => (
+                    <div className={styles.dueDateRule} key={field.key}>
+                      <Form.Item
+                        {...field}
+                        label="При переходе в статус"
+                        name={[field.name, 'status']}
+                        rules={[{ required: true, message: 'Выберите статус' }]}
+                      >
+                        <Select options={lifecycleOptions} />
+                      </Form.Item>
+                      <Form.Item
+                        {...field}
+                        label="Пользовательский статус"
+                        name={[field.name, 'customStatusId']}
+                      >
+                        <Select
+                          allowClear
+                          placeholder="Любой"
+                          options={(groupStatuses.data?.items ?? [])
+                            .filter((status) => !status.archivedAt)
+                            .map((status) => ({
+                              value: status.id,
+                              label: status.name,
+                            }))}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        {...field}
+                        label="Рабочих дней"
+                        name={[field.name, 'workingDays']}
+                        rules={[{ required: true, message: 'Укажите срок' }]}
+                      >
+                        <InputNumber min={0} max={1000} precision={0} />
+                      </Form.Item>
+                      <Button
+                        danger
+                        aria-label="Удалить правило"
+                        icon={<MinusCircleOutlined />}
+                        type="text"
+                        onClick={() => remove(field.name)}
+                      />
+                    </div>
+                  ))}
+                  <Space>
+                    <Button
+                      icon={<PlusOutlined />}
+                      onClick={() =>
+                        add({
+                          status: 'in_production',
+                          customStatusId: null,
+                          workingDays: 20,
+                        })
+                      }
+                    >
+                      Добавить правило
+                    </Button>
+                    <Button htmlType="submit" type="primary">
+                      Сохранить
+                    </Button>
+                  </Space>
+                </div>
+              )}
+            </Form.List>
           </Form>
         )}
       </Card>
