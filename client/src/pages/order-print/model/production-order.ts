@@ -6,6 +6,7 @@ export type ProductionOrderRow = {
   height?: number;
   width?: number;
   thickness?: number;
+  comment: string;
   unit: string;
   calculatedQuantity: number;
   costPerUnit: number;
@@ -49,11 +50,13 @@ export const buildProductionOrderDocuments = (
           result.calculatedThickness === undefined
             ? item.characteristics.thickness
             : (result.calculatedThickness ?? undefined);
+        const comment = item.characteristics.comment || '';
         const rowKey = [
           normalizedName,
           height,
           width,
           thickness,
+          comment,
           result.calculationMethod,
           result.costPerUnit,
         ].join('\u0000');
@@ -79,6 +82,7 @@ export const buildProductionOrderDocuments = (
             height,
             width,
             thickness,
+            comment,
             unit: result.calculationMethod,
             calculatedQuantity: result.calculatedQuantity,
             costPerUnit: result.costPerUnit,

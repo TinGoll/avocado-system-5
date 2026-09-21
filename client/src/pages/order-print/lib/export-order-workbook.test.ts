@@ -46,6 +46,7 @@ describe('order workbook export', () => {
               {
                 key: 'row-1',
                 renderedName: 'Фасад',
+                comment: 'Срочно',
                 unit: 'per_item',
                 calculatedQuantity: 2,
                 costPerUnit: 100,
@@ -74,6 +75,7 @@ describe('order workbook export', () => {
 
     expect(itemRow?.getCell(6).value).toBe(2);
     expect(itemRow?.getCell(8).value).toBe(200);
+    expect(itemRow?.getCell(9).value).toBe('Срочно');
   });
 
   it('creates only the selected customer worksheet', () => {

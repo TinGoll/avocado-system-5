@@ -254,6 +254,7 @@ export const ProductionOrderPrintForm: FC<ProductionOrderPrintFormProps> = ({
                 <th>Кол-во, ед.</th>
                 <th>Стоимость, ₽</th>
                 <th>Сумма, ₽</th>
+                <th>Комментарий</th>
               </tr>
             </thead>
             <tbody>
@@ -270,6 +271,7 @@ export const ProductionOrderPrintForm: FC<ProductionOrderPrintFormProps> = ({
                   </td>
                   <td>{moneyFormatter.format(row.costPerUnit)}</td>
                   <td>{moneyFormatter.format(row.totalCost)}</td>
+                  <td>{row.comment}</td>
                 </tr>
               ))}
             </tbody>

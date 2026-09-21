@@ -249,6 +249,7 @@ const addProductionWorksheet = (
     { width: 12 },
     { width: 16 },
     { width: 16 },
+    { width: 32 },
     { width: 16 },
   ];
 
@@ -265,6 +266,7 @@ const addProductionWorksheet = (
       'Кол-во',
       'Стоимость, ₽',
       'Сумма, ₽',
+      'Комментарий',
     ]);
 
     rows.forEach((item, index) => {
@@ -277,6 +279,7 @@ const addProductionWorksheet = (
         item.calculatedQuantity,
         item.costPerUnit,
         item.totalCost,
+        item.comment,
       ]);
       row.eachCell((cell) => {
         cell.border = border;

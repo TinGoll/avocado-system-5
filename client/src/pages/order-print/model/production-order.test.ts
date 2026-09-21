@@ -80,6 +80,28 @@ describe('buildProductionOrderDocuments', () => {
     expect(documents[0].sheets[0].rows).toHaveLength(2);
   });
 
+  it('keeps comments and does not merge rows with different comments', () => {
+    const documents = buildProductionOrderDocuments([
+      makeOrder([
+        {
+          quantity: 1,
+          characteristics: { comment: 'Левый элемент' },
+          productionOperationResults: [result('Филёнка: 780х420', 1, 100)],
+        },
+        {
+          quantity: 1,
+          characteristics: { comment: 'Правый элемент' },
+          productionOperationResults: [result('Филёнка: 780х420', 1, 100)],
+        },
+      ]),
+    ]);
+
+    expect(documents[0].sheets[0].rows).toEqual([
+      expect.objectContaining({ comment: 'Левый элемент' }),
+      expect.objectContaining({ comment: 'Правый элемент' }),
+    ]);
+  });
+
   it('creates a separate sheet for each order document', () => {
     const documents = buildProductionOrderDocuments([
       makeOrder(
