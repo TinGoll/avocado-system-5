@@ -45,7 +45,7 @@ export const useOptimisticAddItem = ({ orderID }: { orderID: string }) => {
       }
 
       const previousOrder = currentOrder;
-      setCurrentOrder({
+      const optimisticOrder = {
         ...currentOrder,
         items: [
           ...(currentOrder.items ?? []),
@@ -54,12 +54,20 @@ export const useOptimisticAddItem = ({ orderID }: { orderID: string }) => {
             position: currentOrder.items?.length ?? 0,
           },
         ],
-      });
+      };
+      setCurrentOrder(optimisticOrder);
 
       try {
         const updatedOrder = await create.trigger(toDto(props));
-        setCurrentOrder(updatedOrder);
-        return updatedOrder;
+        const completeOrder = {
+          ...previousOrder,
+          ...updatedOrder,
+          characteristics:
+            updatedOrder.characteristics ?? previousOrder.characteristics,
+          items: updatedOrder.items ?? optimisticOrder.items,
+        };
+        setCurrentOrder(completeOrder);
+        return completeOrder;
       } catch (error) {
         setCurrentOrder(previousOrder);
         throw error;
