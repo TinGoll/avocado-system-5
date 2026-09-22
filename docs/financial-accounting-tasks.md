@@ -209,7 +209,64 @@
 
 ### Результат FA-02
 
-Заполняется агентом после реализации.
+Создан переносимый фундамент финансового домена без HTTP API, команд и
+автоматического заполнения данных.
+
+- Добавлен `FinanceModule`, подключенный к `AppModule`, и четыре сущности:
+  `FinancialAccrual` (`financial_accruals`), `FinancialAccrualEntry`
+  (`financial_accrual_entries`), `FinancialPayment` (`financial_payments`) и
+  `FinancialPaymentAllocation` (`financial_payment_allocations`). Контроллеры и
+  публичные команды отсутствуют.
+- Фактические enum: source `order|manual`; accrual status
+  `active|cancelled`; entry kind `initial|adjustment|reversal`; payment method
+  `cash|card|bank_transfer|other`; payment status `posted|cancelled`;
+  allocation status `active|released`. В БД это переносимые `text` + именованные
+  `CHECK`, не PostgreSQL enum.
+- Все денежные поля называются `amountMinor` и представлены в TypeScript как
+  `number`. `SafeBigintTransformer` одинаково читает PostgreSQL `string` и
+  SQLite `number`, отклоняя дробные и выходящие за `Number.MAX_SAFE_INTEGER`
+  значения.
+- Money API: `parseRublesToMinor(value, { allowNegative?, allowZero? })`
+  принимает только строку рублей с точкой и максимум двумя знаками;
+  `formatMinorToRubles(amountMinor)` возвращает строку с двумя знаками;
+  `assertSafeMinorAmount` проверяет целое безопасного диапазона. По умолчанию
+  парсинг требует положительную ненулевую сумму; отрицательное значение
+  включается явно для корректировок.
+- Парные миграции: `1789700000000-AddFinancialCore.ts` для PostgreSQL и SQLite.
+  Они создают четыре пустые таблицы, FK `RESTRICT`, уникальные `requestId`
+  отдельно у entries и payments, уникальные `orderGroupId` и
+  `reversesEntryId`, обязательные CHECK сумм/source/status/method и индексы из
+  архитектуры. Cascade/hard delete финансовой истории не используется.
+- `requestId` уникален в области таблицы/команды: отдельно для денежных
+  операций начисления и отдельно для создания оплаты. У accrual/allocation
+  requestId в согласованной модели FA-02 отсутствует.
+- SQLite-миграция FA-01 дополнена восстановлением двух существовавших индексов
+  `order_groups` после table rebuild; это устранило обнаруженный schema diff.
+
+Проверки:
+
+- `npm run test:cov -- --runInBand modules/finance/finance-money.spec.ts modules/finance/safe-bigint.transformer.spec.ts modules/database/add-financial-core.migration.spec.ts modules/database/add-order-group-customer-link.migration.spec.ts` — успешно, 4 suites / 23 tests.
+- `npm run test:e2e:sqlite` — успешно, 5/5; чистая БД мигрируется, ORM schema
+  diff пуст, `foreign_key_check` пуст.
+- `npm test -- --runInBand modules/database` — 9/10 suites и 22/27 tests
+  успешно; существующий `add-order-management.migration.spec.ts` исключает
+  миграцию `AddOrderManagement`, но затем запускает зависящую от нее
+  `AddProductionAutoAssignment`, поэтому падает с
+  `no such table: order_management_settings`. Релевантные FA-01/FA-02 и
+  остальные database suites проходят.
+- Миграционный тест существующей SQLite БД подтверждает сохранность заказа,
+  документа и цены, пустые финансовые таблицы, CHECK/FK/unique, rollback и цикл
+  down/up.
+- `npm run build` — успешно.
+- ESLint по всем новым/измененным TypeScript-файлам без `--fix` — успешно.
+- PostgreSQL-файл создан с эквивалентными именами таблиц, ограничений и
+  индексов, но физический прогон и PostgreSQL schema diff не выполнены: команда
+  `docker` в среде отсутствует и доступная тестовая PostgreSQL БД не найдена.
+
+Ограничения для следующих задач: данные не создаются и не изменяются
+автоматически; сервисы команд, DTO и API намеренно отсутствуют; межстрочные
+суммовые и customer-инварианты должны проверяться будущим транзакционным
+сервисом поверх этой схемы.
 
 <a id="fa-03"></a>
 ## FA-03. Команды и API начислений

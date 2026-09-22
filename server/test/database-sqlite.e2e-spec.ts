@@ -30,7 +30,7 @@ describe('SQLite database', () => {
   });
 
   it('applies the baseline once and supports all entity metadata', async () => {
-    expect(dataSource.entityMetadatas).toHaveLength(24);
+    expect(dataSource.entityMetadatas).toHaveLength(30);
     expect(await dataSource.runMigrations()).toEqual([]);
     const schemaChanges = await dataSource.driver.createSchemaBuilder().log();
     expect(schemaChanges.upQueries).toEqual([]);
@@ -47,6 +47,10 @@ describe('SQLite database', () => {
         'price_modifiers',
         'product_templates',
         'client_errors',
+        'financial_accruals',
+        'financial_accrual_entries',
+        'financial_payments',
+        'financial_payment_allocations',
       ]),
     );
   });

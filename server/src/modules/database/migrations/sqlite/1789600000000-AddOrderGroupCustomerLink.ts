@@ -47,6 +47,12 @@ export class AddOrderGroupCustomerLink1789600000000
         onDelete: 'RESTRICT',
       }),
     );
+    await queryRunner.query(
+      `CREATE INDEX IF NOT EXISTS "IDX_order_groups_custom_status" ON "order_groups" ("customStatusId")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX IF NOT EXISTS "IDX_order_groups_status_due_date" ON "order_groups" ("status", "dueDate")`,
+    );
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {
@@ -56,5 +62,11 @@ export class AddOrderGroupCustomerLink1789600000000
     );
     await queryRunner.dropIndex('order_groups', 'IDX_order_groups_customer');
     await queryRunner.dropColumn('order_groups', 'customerId');
+    await queryRunner.query(
+      `CREATE INDEX IF NOT EXISTS "IDX_order_groups_custom_status" ON "order_groups" ("customStatusId")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX IF NOT EXISTS "IDX_order_groups_status_due_date" ON "order_groups" ("status", "dueDate")`,
+    );
   }
 }
