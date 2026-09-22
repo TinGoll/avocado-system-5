@@ -8,12 +8,19 @@ import { OrderItem } from '../orders/entities/order-item.entity';
 import { PricingModule } from '../pricing/pricing.module';
 import { ProductTemplate } from '../products/entities/product-template.entity';
 import { OrderManagementModule } from '../order-management/order-management.module';
+import { Customer } from '../customers/entities/customer.entity';
 
 @Module({
   imports: [
     OrderManagementModule,
     PricingModule,
-    TypeOrmModule.forFeature([OrderGroup, Order, OrderItem, ProductTemplate]),
+    TypeOrmModule.forFeature([
+      OrderGroup,
+      Order,
+      OrderItem,
+      ProductTemplate,
+      Customer,
+    ]),
   ],
   controllers: [OrderGroupsController],
   providers: [OrderGroupsService],

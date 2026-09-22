@@ -1,9 +1,9 @@
 import {
   IsDate,
   IsNotEmpty,
-  IsObject,
   IsOptional,
   IsString,
+  IsUUID,
 } from 'class-validator';
 
 export class CreateOrderGroupDto {
@@ -15,9 +15,9 @@ export class CreateOrderGroupDto {
   @IsOptional()
   startedAt: Date;
 
-  @IsObject()
   @IsOptional()
-  customer?: object;
+  @IsUUID()
+  customerId?: string | null;
 
   @IsString()
   @IsOptional()

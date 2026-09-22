@@ -1,4 +1,5 @@
 import { CustomOrderStatus } from '../../order-management/entities/custom-order-status.entity';
+import { Customer } from '../../customers/entities/customer.entity';
 import { Order } from 'src/modules/orders/entities/order.entity';
 import { DatabaseJsonColumn } from 'src/modules/database/database-json-column';
 import {
@@ -24,6 +25,7 @@ export enum OrderStatus {
 
 @Entity('order_groups')
 @Index('IDX_order_groups_custom_status', ['customStatusId'])
+@Index('IDX_order_groups_customer', ['customerId'])
 @Index('IDX_order_groups_status_due_date', ['status', 'dueDate'])
 export class OrderGroup {
   @PrimaryGeneratedColumn()
@@ -34,6 +36,16 @@ export class OrderGroup {
 
   @DatabaseJsonColumn({ defaultEmptyObject: true })
   customer: Record<string, any>;
+
+  @Column({ type: 'uuid', nullable: true })
+  customerId: string | null;
+
+  @ManyToOne(() => Customer, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({
+    name: 'customerId',
+    foreignKeyConstraintName: 'FK_order_groups_customer',
+  })
+  customerRecord: Customer | null;
 
   @Column({ type: 'text', nullable: true })
   comment?: string;

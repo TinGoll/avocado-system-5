@@ -8,6 +8,7 @@ import { Order } from '../orders/entities/order.entity';
 import { PricingService } from '../pricing/pricing.service';
 import { OrderManagementService } from '../order-management/order-management.service';
 import { OrderItem } from '../orders/entities/order-item.entity';
+import { Customer } from '../customers/entities/customer.entity';
 
 export type OrderGroupRecalculationError = {
   orderId: string;
@@ -31,6 +32,8 @@ export class OrderGroupsService {
   constructor(
     @InjectRepository(OrderGroup)
     private readonly repository: Repository<OrderGroup>,
+    @InjectRepository(Customer)
+    private readonly customerRepository: Repository<Customer>,
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
     private readonly dataSource: DataSource,
@@ -38,9 +41,40 @@ export class OrderGroupsService {
     private readonly management: OrderManagementService,
   ) {}
 
-  create(createDto: CreateOrderGroupDto) {
-    const item = this.repository.create(createDto);
+  async create(createDto: CreateOrderGroupDto) {
+    const { customerId, ...details } = createDto;
+    const customer = await this.resolveCustomer(customerId);
+    const item = this.repository.create({
+      ...details,
+      customerId: customer?.id ?? null,
+      customer: this.createCustomerSnapshot(customer),
+    });
     return this.repository.save(item);
+  }
+
+  async findCustomerLinkIssues() {
+    const rows = await this.repository
+      .createQueryBuilder('order_group')
+      .select('order_group.id', 'id')
+      .addSelect('order_group.orderNumber', 'orderNumber')
+      .addSelect('order_group.customer', 'customer')
+      .where('order_group.customerId IS NULL')
+      .orderBy('order_group.id', 'ASC')
+      .getRawMany<{ id: number; orderNumber: string; customer: unknown }>();
+
+    return rows.map((row) => {
+      const customer = this.parseCustomerSnapshot(row.customer);
+      const snapshotCustomerId = customer?.id;
+      return {
+        id: Number(row.id),
+        orderNumber: row.orderNumber,
+        customer,
+        reason:
+          typeof snapshotCustomerId === 'string' && snapshotCustomerId
+            ? 'customer_not_found'
+            : 'missing_or_invalid_customer_id',
+      };
+    });
   }
 
   async findAll() {
@@ -166,8 +200,14 @@ export class OrderGroupsService {
       expectedVersion,
       reason,
       confirmIncompleteProduction,
+      customerId,
       ...details
     } = updateDto;
+    const customerUpdate =
+      customerId === undefined
+        ? {}
+        : await this.buildCustomerUpdate(customerId);
+    const updatedDetails = { ...details, ...customerUpdate };
     if (status !== undefined) {
       await this.management.updateGroup(
         id,
@@ -177,12 +217,12 @@ export class OrderGroupsService {
           reason,
           confirmIncompleteProduction,
         },
-        details,
+        updatedDetails,
       );
     } else {
       await this.findOne(id);
-      if (Object.values(details).some((value) => value !== undefined))
-        await this.repository.update(id, details);
+      if (Object.values(updatedDetails).some((value) => value !== undefined))
+        await this.repository.update(id, updatedDetails);
     }
     return this.findOne(id);
   }
@@ -271,5 +311,66 @@ export class OrderGroupsService {
 
   async remove(id: number) {
     return this.management.removeGroup(id);
+  }
+
+  private async resolveCustomer(customerId?: string | null) {
+    if (!customerId) return null;
+    const customer = await this.customerRepository.findOneBy({
+      id: customerId,
+    });
+    if (!customer) {
+      throw new NotFoundException(`Customer with ID "${customerId}" not found`);
+    }
+    return customer;
+  }
+
+  private async buildCustomerUpdate(customerId: string | null) {
+    const customer = await this.resolveCustomer(customerId);
+    return {
+      customerId: customer?.id ?? null,
+      customer: this.createCustomerSnapshot(customer),
+    };
+  }
+
+  private createCustomerSnapshot(customer: Customer | null) {
+    if (!customer) return {};
+    const {
+      id,
+      name,
+      companyName,
+      address,
+      phone,
+      email,
+      comment,
+      attributes,
+      level,
+    } = customer;
+    return {
+      id,
+      name,
+      companyName,
+      address,
+      phone,
+      email,
+      comment,
+      attributes,
+      level,
+    };
+  }
+
+  private parseCustomerSnapshot(
+    value: unknown,
+  ): Record<string, unknown> | null {
+    if (value && typeof value === 'object')
+      return value as Record<string, unknown>;
+    if (typeof value !== 'string') return null;
+    try {
+      const parsed: unknown = JSON.parse(value);
+      return parsed && typeof parsed === 'object'
+        ? (parsed as Record<string, unknown>)
+        : null;
+    } catch {
+      return null;
+    }
   }
 }

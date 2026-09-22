@@ -1,11 +1,7 @@
 import { Typography } from 'antd';
 import { type FC } from 'react';
 
-import {
-  CustomerSelect,
-  useCustomerMap,
-  type Customer,
-} from '@entities/customer';
+import { CustomerSelect } from '@entities/customer';
 import { useOrderStore } from '@entities/order';
 import { Editable, Field } from '@shared/ui';
 
@@ -17,13 +13,11 @@ const { Text } = Typography;
 
 export const CustomerField: FC = () => {
   const { currentGroup } = useOrderStore();
-  const { customers } = useCustomerMap();
   const { updateGroup, isMutating } = useOptimisticUpdateOrderGroup();
 
-  const handleUpdate = (item?: Customer) => {
-    const updateItem = item ?? ({} as Customer);
+  const handleUpdate = (customerId?: string) => {
     updateGroup({
-      customer: updateItem,
+      customerId: customerId ?? null,
     });
   };
 
@@ -38,7 +32,7 @@ export const CustomerField: FC = () => {
           className={styles.editable}
           loading={isMutating}
           onSave={(_, value) => {
-            return handleUpdate(value ? customers?.[value] : undefined);
+            return handleUpdate(value);
           }}
           defaultValue={currentGroup?.customer?.name}
           block

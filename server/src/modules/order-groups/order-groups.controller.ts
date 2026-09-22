@@ -33,6 +33,11 @@ export class OrderGroupsController {
     return this.orderGroupsService.search(query.q, query.limit);
   }
 
+  @Get('customer-link-issues')
+  findCustomerLinkIssues() {
+    return this.orderGroupsService.findCustomerLinkIssues();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.orderGroupsService.findOne(+id);

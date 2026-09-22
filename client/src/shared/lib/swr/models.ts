@@ -206,7 +206,8 @@ export interface OrderCustomStatus {
 export interface OrderGroup {
   id: number;
   orderNumber: string;
-  customer: Customer;
+  customerId: string | null;
+  customer: Partial<Customer>;
   comment?: string;
   status: OrderStatus;
   startedAt?: Date;

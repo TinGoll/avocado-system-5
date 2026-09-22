@@ -118,7 +118,55 @@
 
 ### Результат FA-01
 
-Заполняется агентом после реализации.
+Реализована надежная nullable-связь заказа с заказчиком без добавления
+финансового домена.
+
+- Поле и relation: `OrderGroup.customerId: string | null`, индекс
+  `IDX_order_groups_customer`, relation `customerRecord`, FK
+  `FK_order_groups_customer` на `customers.id` с `ON DELETE RESTRICT`.
+  JSON-поле `OrderGroup.customer` сохранено как исторический снимок.
+- Create/update DTO принимают только `customerId?: UUID | null`. Переданный ID
+  проверяется по справочнику; неизвестный ID дает `404`. Сервер формирует снимок
+  из `id`, `name`, `companyName`, `address`, `phone`, `email`, `comment`,
+  `attributes`, `level`. При update отсутствие `customerId` сохраняет текущую
+  связь, а явный `null` атомарно записывает `customerId = null` и `customer = {}`.
+- Диагностика: `GET /api/order-groups/customer-link-issues` возвращает
+  `{ id, orderNumber, customer, reason }[]`; `reason` равен
+  `customer_not_found` для снимка с прежним ID либо
+  `missing_or_invalid_customer_id` для отсутствующего/поврежденного ID.
+- Удаление заказчика, связанного с заказом, возвращает `409 Conflict` до
+  выполнения физического удаления.
+- Клиентские create/edit-запросы передают `customerId`; `customer` остается
+  только ответным snapshot-полем. Добавлен тест payload создания заказа.
+- Миграции:
+  `1789600000000-AddOrderGroupCustomerLink.ts` для PostgreSQL и SQLite.
+  Backfill выполняется только при точном совпадении `customer.id` из валидного
+  JSON с существующим `customers.id`; имя, телефон и email не используются.
+  SQLite-тест подтверждает сохранность поврежденного снимка, документов и цен,
+  а также пустой `PRAGMA foreign_key_check`.
+
+Проверки:
+
+- `server: npm run test:cov -- --runInBand modules/order-groups/order-groups.service.spec.ts modules/customers/customers.service.spec.ts modules/database/add-order-group-customer-link.migration.spec.ts` — успешно, 3 suites / 11 tests.
+- `server: npm run build` — успешно.
+- `client: npm run coverage -- src/features/create-order/hooks/useCreateOrder.test.ts` — успешно, 1 test.
+- `client: npm run build` — успешно (только существующие предупреждения Vite о
+  размере/circular chunks).
+- Точечный ESLint всех измененных TypeScript-файлов server/client — успешно;
+  исправляющий lint по всему репозиторию не запускался.
+- `server: npm run test:e2e:sqlite` — 4/5 тестов успешно; общий тест имеет
+  существующее рассогласование счетчика metadata: ожидает 24, фактически 26.
+  Новая отдельная миграционная suite полностью успешна.
+- `client: npm run fsd:check` — существующий blocker вне FA-01:
+  `src/app/ui` нарушает `fsd/no-ui-in-app`; измененные файлы новых FSD-ошибок не
+  добавили.
+- Эквивалентный прогон PostgreSQL не выполнен: в среде отсутствует команда
+  `docker`, доступная тестовая PostgreSQL БД не обнаружена. PostgreSQL-миграция
+  добавлена парно, но требует фактического прогона перед выпуском.
+
+Ограничения для следующих задач: заказы без заказчика по-прежнему разрешены;
+диагностика read-only и ничего не связывает автоматически; поиск продолжает
+использовать сохраненный JSON-снимок; финансовые таблицы и команды не созданы.
 
 <a id="fa-02"></a>
 ## FA-02. Финансовая схема, сущности и денежные примитивы
