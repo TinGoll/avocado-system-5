@@ -567,7 +567,72 @@ Read-модель возвращает исходные неизменяемые
 
 ### Результат FA-06
 
-Заполняется агентом после реализации.
+Реализован отдельный `FinanceReportsService` с агрегирующими read-запросами;
+mutation-сервисы начислений, оплат и распределений не расширялись.
+
+Endpoints:
+
+- `GET /api/finance/summary` — текущие `accrued`, `paid`, `balance`, `debt`,
+  `advance`, `allocated`, `unallocated` и их поля `*Minor`, плюс
+  `customerLinkIssuesCount`;
+- `GET /api/finance/customers/:customerId` — заказчик, те же итоги, до 10
+  последних операций и открытые начисления;
+- `GET /api/finance/order-groups/:orderGroupId` — текущая сумма документов,
+  проведено, распределено, остаток, разница для sync и общий нераспределенный
+  аванс заказчика;
+- `GET /api/finance/accruals` и `GET /api/finance/payments` — списки в явном
+  формате `{ items, meta: { limit, nextCursor } }`, который глобальный
+  `WrapItemsInterceptor` не оборачивает повторно.
+
+Общие query-параметры списков: `dateFrom`, `dateTo` (`YYYY-MM-DD`),
+`customerId`, `search`, `cursor`, `limit` (по умолчанию 50, максимум 100).
+Начисления дополнительно принимают `sourceType=order|manual` и
+`status=unpaid|partially_paid|paid|cancelled`. Оплаты принимают
+`method=cash|card|bank_transfer|other`, `status=posted|cancelled` и
+`allocationState=unallocated|partial|allocated`. DTO отклоняют неизвестные и
+невалидные значения существующим validation pipe.
+
+Cursor — opaque base64url JSON пары `{ businessDate, id }`; сортировка идет по
+дате и UUID по убыванию. Для начисления business date — дата initial entry,
+для оплаты — `paymentDate`. Некорректный cursor возвращает `400`; отсутствующий
+заказчик или заказ — `404`. Поиск параметризован и использует `lower/ILIKE` в
+PostgreSQL и существующую `unicode_lower/LIKE` в SQLite. Он охватывает
+заказчика, название начисления/номер и комментарий заказа, а для оплаты —
+заказчика, внешний номер и комментарий.
+
+Все деньги возвращаются парой безопасный integer копеек `*Minor` и строка RUB
+с двумя знаками. `debt` и `advance` сначала вычисляются отдельно по каждому
+заказчику, поэтому не схлопываются общим сальдо. Allocations не вычитаются из
+balance повторно; в агрегаты входят только active allocations, posted payments
+и сумма immutable accrual entries. Cancelled payment исключается из текущей
+оплаты, reversal cancelled accrual обнуляет начисление. История customer view
+при этом сохраняет исходную оплату и отдельную отрицательную операцию отмены.
+
+Списки строятся одним запросом каждый через grouped derived tables; summary,
+customer и order view используют фиксированное число агрегирующих/batched
+запросов независимо от числа строк. Entities с relations построчно не
+загружаются, очевидного N+1 нет. Для будущего SWR после mutations нужно
+инвалидировать соответствующий detail/list, customer view, order view и общую
+summary; контракт ключей клиента остается задачей FA-07.
+
+Файлы: `dto/finance-read.dto.ts`, `finance-reports.service.ts`,
+`finance-reports.service.spec.ts`, а также регистрация GET-маршрутов и provider
+в существующих `finance.controller.ts` / `finance.module.ts`. Схема и миграции
+не менялись.
+
+Проверки:
+
+- `npm run test:cov -- --runInBand src/modules/finance/finance-reports.service.spec.ts`
+  — успешно, 5 tests: пустая база, несколько заказчиков, cancelled/released,
+  формулы, поиск, cursor на одинаковой дате, состояния и order view;
+- `npm test -- --runInBand src/modules/finance` — успешно, 8 suites / 58 tests;
+- `npm run test:e2e:sqlite` — успешно, 5/5;
+- точечный ESLint измененных server-файлов без `--fix` — успешно;
+- `npm run build` — успешно.
+
+Реальная PostgreSQL БД в среде не запускалась. PostgreSQL-ветка поиска и raw
+aliases реализованы переносимо и прошли TypeScript build, но физический прогон
+остается обязательной проверкой перед выпуском.
 
 <a id="fa-07"></a>
 ## FA-07. Read-only раздел `/finance`

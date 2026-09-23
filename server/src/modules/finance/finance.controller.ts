@@ -6,6 +6,8 @@ import {
   ParseUUIDPipe,
   Post,
   Put,
+  Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import {
   AdjustAccrualDto,
@@ -22,10 +24,43 @@ import {
 } from './dto/payment.dto';
 import { FinancePaymentsService } from './finance-payments.service';
 import { FinanceAllocationsService } from './finance-allocations.service';
+import { FinanceReportsService } from './finance-reports.service';
+import {
+  AccrualListQueryDto,
+  PaymentListQueryDto,
+} from './dto/finance-read.dto';
+
+@Controller('finance')
+export class FinanceReportsController {
+  constructor(private readonly reports: FinanceReportsService) {}
+
+  @Get('summary')
+  summary() {
+    return this.reports.getSummary();
+  }
+
+  @Get('customers/:customerId')
+  customer(@Param('customerId', ParseUUIDPipe) customerId: string) {
+    return this.reports.getCustomer(customerId);
+  }
+
+  @Get('order-groups/:orderGroupId')
+  orderGroup(@Param('orderGroupId', ParseIntPipe) orderGroupId: number) {
+    return this.reports.getOrderGroup(orderGroupId);
+  }
+}
 
 @Controller('finance/accruals')
 export class FinanceController {
-  constructor(private readonly accruals: FinanceAccrualsService) {}
+  constructor(
+    private readonly accruals: FinanceAccrualsService,
+    private readonly reports: FinanceReportsService,
+  ) {}
+
+  @Get()
+  findAll(@Query() query: AccrualListQueryDto) {
+    return this.reports.listAccruals(query);
+  }
 
   @Post('from-order')
   createFromOrder(@Body() dto: CreateOrderAccrualDto) {
@@ -67,7 +102,13 @@ export class FinancePaymentsController {
   constructor(
     private readonly payments: FinancePaymentsService,
     private readonly allocations: FinanceAllocationsService,
+    private readonly reports: FinanceReportsService,
   ) {}
+
+  @Get()
+  findAll(@Query() query: PaymentListQueryDto) {
+    return this.reports.listPayments(query);
+  }
 
   @Post()
   create(@Body() dto: CreatePaymentDto) {
