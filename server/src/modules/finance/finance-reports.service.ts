@@ -94,6 +94,48 @@ export class FinanceReportsService {
     };
   }
 
+  async listCustomers(search?: string) {
+    const [rows, allocations] = await Promise.all([
+      this.customerBalances(),
+      this.customerAllocations(),
+    ]);
+    const allocationByCustomer = new Map(
+      allocations.map((row) => [row.customerId, this.number(row.amount)]),
+    );
+    const term = search?.trim().toLocaleLowerCase('ru-RU');
+    const customers = await this.source.getRepository(Customer).find({
+      select: { id: true, name: true, companyName: true },
+      order: { name: 'ASC', id: 'ASC' },
+    });
+    const balanceByCustomer = new Map(rows.map((row) => [row.customerId, row]));
+    const items = customers
+      .filter((customer) =>
+        term
+          ? `${customer.name} ${customer.companyName ?? ''}`
+              .toLocaleLowerCase('ru-RU')
+              .includes(term)
+          : true,
+      )
+      .map((customer) => {
+        const row = balanceByCustomer.get(customer.id);
+        const accruedMinor = this.number(row?.accrued);
+        const paidMinor = this.number(row?.paid);
+        const allocatedMinor = allocationByCustomer.get(customer.id) ?? 0;
+        return {
+          id: customer.id,
+          name: customer.name,
+          companyName: customer.companyName ?? null,
+          ...this.moneyFields('debt', Math.max(accruedMinor - paidMinor, 0)),
+          ...this.moneyFields('advance', Math.max(paidMinor - accruedMinor, 0)),
+          ...this.moneyFields(
+            'unallocated',
+            Math.max(paidMinor - allocatedMinor, 0),
+          ),
+        };
+      });
+    return { items, meta: { count: items.length } };
+  }
+
   async getOrderGroup(orderGroupId: number) {
     const group = await this.source
       .getRepository(OrderGroup)
@@ -339,6 +381,27 @@ export class FinanceReportsService {
     return qb
       .getRawOne<{ amount: string | number }>()
       .then((row) => row ?? { amount: 0 });
+  }
+
+  private customerAllocations() {
+    return this.source
+      .getRepository(FinancialPaymentAllocation)
+      .createQueryBuilder('allocation')
+      .innerJoin(
+        FinancialPayment,
+        'payment',
+        'payment.id = allocation.paymentId',
+      )
+      .select('payment.customerId', 'customerId')
+      .addSelect('SUM(allocation.amountMinor)', 'amount')
+      .where('allocation.status = :active', {
+        active: FinancialPaymentAllocationStatus.ACTIVE,
+      })
+      .andWhere('payment.status = :posted', {
+        posted: FinancialPaymentStatus.POSTED,
+      })
+      .groupBy('payment.customerId')
+      .getRawMany<{ customerId: string; amount: string | number }>();
   }
 
   private async recentCustomerOperations(customerId: string) {

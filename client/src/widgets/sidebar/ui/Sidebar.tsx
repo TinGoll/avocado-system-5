@@ -15,6 +15,7 @@ import {
   SettingOutlined,
   ShoppingCartOutlined,
   TeamOutlined,
+  WalletOutlined,
 } from '@ant-design/icons';
 import { css } from '@emotion/css';
 import { Button, Menu } from 'antd';
@@ -86,6 +87,11 @@ export const Sidebar: FC = () => {
             key: '/notifications',
             icon: <BellOutlined />,
             label: <Link to="/notifications">Уведомления</Link>,
+          },
+          {
+            key: '/finance',
+            icon: <WalletOutlined />,
+            label: <Link to="/finance">Финансы</Link>,
           },
           {
             key: 'catalogs',

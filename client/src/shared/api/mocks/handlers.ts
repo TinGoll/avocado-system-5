@@ -899,6 +899,148 @@ const productOutputVariables = [
   ),
 ];
 
+const financePaymentId = '11111111-1111-4111-8111-111111111111';
+const financeCustomerId = '22222222-2222-4222-8222-222222222222';
+const financeAccrualId = '33333333-3333-4333-8333-333333333333';
+const financeHandlers = [
+  http.get('*/finance/summary', () =>
+    HttpResponse.json({
+      accruedMinor: 28500000,
+      accrued: '285000.00',
+      paidMinor: 21000000,
+      paid: '210000.00',
+      balanceMinor: 7500000,
+      balance: '75000.00',
+      debtMinor: 9500000,
+      debt: '95000.00',
+      advanceMinor: 2000000,
+      advance: '20000.00',
+      allocatedMinor: 19000000,
+      allocated: '190000.00',
+      unallocatedMinor: 2000000,
+      unallocated: '20000.00',
+      customerLinkIssuesCount: 1,
+    }),
+  ),
+  http.get('*/finance/payments', () =>
+    HttpResponse.json({
+      items: [
+        {
+          id: financePaymentId,
+          customerId: financeCustomerId,
+          customerName: 'Мастерская Северный дуб',
+          businessDate: '2026-09-23',
+          method: 'bank_transfer',
+          externalReference: 'Платёжное поручение 154',
+          comment: 'Оплата по двум заказам',
+          status: 'posted',
+          version: 0,
+          amountMinor: 15000000,
+          amount: '150000.00',
+          allocatedMinor: 13000000,
+          allocated: '130000.00',
+          unallocatedMinor: 2000000,
+          unallocated: '20000.00',
+          allocationState: 'partial',
+        },
+      ],
+      meta: { limit: 30, nextCursor: null },
+    }),
+  ),
+  http.get('*/finance/payments/:id', () =>
+    HttpResponse.json({
+      id: financePaymentId,
+      allocations: [
+        {
+          id: '44444444-4444-4444-8444-444444444444',
+          accrualId: financeAccrualId,
+          amountMinor: 13000000,
+          amount: '130000.00',
+          status: 'active',
+          releasedAt: null,
+          releaseReason: null,
+        },
+      ],
+    }),
+  ),
+  http.get('*/finance/accruals', () =>
+    HttpResponse.json({
+      items: [
+        {
+          id: financeAccrualId,
+          customerId: financeCustomerId,
+          customerName: 'Мастерская Северный дуб',
+          sourceType: 'order',
+          orderGroupId: 1,
+          orderNumber: 'ORD-2026-154',
+          title: 'ORD-2026-154',
+          status: 'active',
+          version: 0,
+          businessDate: '2026-09-22',
+          amountMinor: 18500000,
+          amount: '185000.00',
+          allocatedMinor: 13000000,
+          allocated: '130000.00',
+          remainingMinor: 5500000,
+          remaining: '55000.00',
+          state: 'partially_paid',
+        },
+      ],
+      meta: { limit: 30, nextCursor: null },
+    }),
+  ),
+  http.get('*/finance/customers', () =>
+    HttpResponse.json({
+      items: [
+        {
+          id: financeCustomerId,
+          name: 'Мастерская Северный дуб',
+          companyName: 'ООО Северный дуб',
+          debtMinor: 3500000,
+          debt: '35000.00',
+          advanceMinor: 0,
+          advance: '0.00',
+          unallocatedMinor: 2000000,
+          unallocated: '20000.00',
+        },
+      ],
+      meta: { count: 1 },
+    }),
+  ),
+  http.get('*/finance/customers/:id', () =>
+    HttpResponse.json({
+      customer: {
+        id: financeCustomerId,
+        name: 'Мастерская Северный дуб',
+        companyName: 'ООО Северный дуб',
+      },
+      recentOperations: [
+        {
+          kind: 'payment',
+          businessDate: '2026-09-23',
+          id: financePaymentId,
+          amountMinor: 15000000,
+          amount: '150000.00',
+          title: 'Платёжное поручение 154',
+        },
+      ],
+      openAccruals: [],
+    }),
+  ),
+  http.get('*/order-groups/customer-link-issues', () =>
+    HttpResponse.json({
+      items: [
+        {
+          id: 7,
+          orderNumber: 'ARCHIVE-007',
+          reason: 'missing_or_invalid_customer_id',
+        },
+      ],
+      meta: { count: 1 },
+    }),
+  ),
+];
+
 export const handlers = [
   http.get('*/health', () => HttpResponse.json({ status: 'ok' })),
   http.get('*/template-variables', ({ request }) => {
@@ -928,5 +1070,6 @@ export const handlers = [
   ...managementHandlers,
   ...productionBoardHandlers,
   ...orderHandlers,
+  ...financeHandlers,
   ...entityHandlers,
 ];

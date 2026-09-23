@@ -5,3 +5,4 @@ export {
 } from './report-client-error';
 export * from './order-management';
 export * from './production-board';
+export * from './finance';

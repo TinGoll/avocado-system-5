@@ -179,6 +179,17 @@ describe('FinanceReportsService (SQLite)', () => {
       allocatedMinor: 6_000,
       unallocatedMinor: 6_000,
     });
+    await expect(reports.listCustomers('альфа')).resolves.toMatchObject({
+      items: [
+        {
+          id: firstCustomer.id,
+          debtMinor: 3_000,
+          advanceMinor: 0,
+          unallocatedMinor: 1_000,
+        },
+      ],
+      meta: { count: 1 },
+    });
   });
 
   it('searches with normalized parameters and paginates equal dates without duplicates', async () => {

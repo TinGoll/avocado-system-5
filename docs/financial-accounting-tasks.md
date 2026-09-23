@@ -677,7 +677,62 @@ aliases реализованы переносимо и прошли TypeScript b
 
 ### Результат FA-07
 
-Заполняется агентом после реализации.
+Реализован read-only раздел `/finance`; mutation-формы и команды FA-08 не
+добавлялись.
+
+- Маршрут загружается lazy через `pages/finance`, в Sidebar добавлен пункт
+  верхнего уровня «Финансы».
+- Page slice: `pages/finance/api/finance-data.ts` содержит SWR keys и
+  page-local hooks с дедупликацией cursor-страниц;
+  `model/finance-display.ts` — подписи и форматирование;
+  `ui/FinancePage.tsx` — сводка, вкладки и состояния экрана; наружу экспортируется
+  только `pages/finance/index.ts`.
+- Чистые transport types и GET adapters находятся в
+  `shared/api/finance/{finance.ts,index.ts}`. `entities/finance`, новые features
+  и Zustand не создавались.
+- SWR keys: `finance/summary`, tuple keys списков с `search/customerId`,
+  `finance/customers`, `finance/customers/:id`, `finance/payments/:id` и
+  `order-groups/customer-link-issues`.
+- URL хранит `tab`, `search` и `customerId`. Выбор заказчика раскрывает последние
+  операции, устанавливает `customerId` и тем самым фильтрует оплаты/начисления;
+  фильтр можно явно сбросить.
+- Таблица оплат показывает способ, сумму, распределение, остаток и cancelled;
+  detail с active/released allocations загружается только при раскрытии строки.
+  Таблица начислений показывает источник, суммы и серверное состояние, ссылка
+  заказа ведет на `/order/:groupID`. Обе таблицы продолжаются кнопкой «Загрузить
+  ещё» по server cursor без дубликатов.
+- Добавлены loading/error/empty, retry, баннер диагностики старых заказов без
+  `customerId`, адаптивная сетка карточек и горизонтальная прокрутка внутри
+  таблиц. Статические стили выполнены через Emotion.
+- Для MSW добавлены минимальные read-only fixtures summary, списков, detail и
+  диагностики.
+
+Уточнение фактического API: требования FA-07 включают агрегированную таблицу
+заказчиков, но FA-06 передал только detail одного заказчика. Чтобы не выполнять
+N+1 с клиента, в `FinanceReportsService` добавлен read-only
+`GET /api/finance/customers?search=`. Он фиксированным набором batched-запросов
+возвращает `{ items, meta: { count } }` с `debt`, `advance` и `unallocated`.
+Схема БД и mutation API не менялись.
+
+Проверки:
+
+- `npm run coverage -- src/pages/finance/ui/FinancePage.test.tsx` — успешно,
+  3 tests: сводка/диагностика/cancelled/длинные значения, URL-фильтр и переход
+  в заказ, loading/error;
+- client `npm run build` — успешно (существующие предупреждения Vite о
+  circular/large chunks);
+- точечный client ESLint без `--fix` — успешно;
+- `npm run fsd:check` — единственный существующий blocker `src/app/ui`
+  (`fsd/no-ui-in-app`); новый finance slice нарушений не добавляет;
+- визуально проверены фактический экран, раскрытие allocations и вкладка
+  заказчиков на ширине 805 px; переполнение ограничено областью таблицы;
+- server finance tests, SQLite e2e, build и точечный ESLint — успешно;
+  физический PostgreSQL runtime-прогон по-прежнему недоступен в среде.
+
+Подтвержденные места будущих форм FA-08: действия страницы остаются в
+`pages/finance`; после mutations должны инвалидироваться перечисленные SWR
+keys summary/list/detail/customer/order. Общие features до второго потребителя
+не извлекаются.
 
 <a id="fa-08"></a>
 ## FA-08. Формы финансовых операций и распределения

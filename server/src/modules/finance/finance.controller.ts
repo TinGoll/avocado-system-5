@@ -39,6 +39,11 @@ export class FinanceReportsController {
     return this.reports.getSummary();
   }
 
+  @Get('customers')
+  customers(@Query('search') search?: string) {
+    return this.reports.listCustomers(search);
+  }
+
   @Get('customers/:customerId')
   customer(@Param('customerId', ParseUUIDPipe) customerId: string) {
     return this.reports.getCustomer(customerId);
