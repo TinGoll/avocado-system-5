@@ -429,7 +429,31 @@ orderGroupId, title, status, version, amountMinor, amount }`, где `amountMino
 
 ### Результат FA-04
 
-Заполняется агентом после реализации.
+Реализованы `FinancePaymentsService` и API:
+
+- `POST /api/finance/payments` — создание независимой оплаты/аванса без allocations;
+- `GET /api/finance/payments/:id` — детальная read-модель оплаты;
+- `POST /api/finance/payments/:id/cancel` — аннулирование с освобождением всех active allocations в одной транзакции.
+
+Точные DTO:
+
+- создание: `customerId` (UUID), `amount` (положительная строка рублей с максимум двумя знаками после точки), `paymentDate` (`YYYY-MM-DD`), `method` (`cash | card | bank_transfer | other`), optional `externalReference` (до 500 символов), optional `comment` (до 1000 символов), `requestId` (UUID);
+- отмена: `cancellationDate` (`YYYY-MM-DD`), непустая `reason` (до 1000 символов), `expectedVersion` (целое неотрицательное), `requestId` (UUID).
+
+Read-модель возвращает исходные неизменяемые реквизиты, `status`, `version`, cancellation-поля и `reportOperations`. У проведенной оплаты это одна положительная операция на `paymentDate`; после отмены добавляется отрицательная операция той же суммы на `cancellationDate`. Деньги возвращаются одновременно как безопасный integer `amountMinor` и строка `amount` с двумя знаками после точки.
+
+Создание с тем же `requestId` и теми же данными идемпотентно, с другими данными дает `409`. Для отмены добавлен отдельный уникальный `cancellationRequestId`: точный повтор отмены идемпотентен независимо от уже увеличенной версии, повтор с новым `requestId` или другими данными дает `409`. Исходный `requestId` создания при отмене сохраняется. Условное обновление `version` и блокировка PostgreSQL защищают от конкурентной отмены; SQLite-транзакции сериализуются общим transaction helper. Проведенные реквизиты не имеют PATCH endpoint.
+
+Добавлены парные миграции PostgreSQL/SQLite для `cancellationRequestId`, unit-тесты DTO и SQLite integration-тесты сервиса: четыре способа оплаты, сумма/дата/текст, неизвестный заказчик, идемпотентность и конфликт, stale version, отмена, повтор, освобождение allocation, rollback и две отчетные даты.
+
+Проверки:
+
+- `npm test -- --runInBand src/modules/finance/dto/payment.dto.spec.ts src/modules/finance/finance-payments.service.spec.ts` — 2 suites, 17 tests passed;
+- `npm run test:cov -- --runInBand src/modules/finance/dto/payment.dto.spec.ts src/modules/finance/finance-payments.service.spec.ts` — 2 suites, 17 tests passed; `finance-payments.service.ts`: 82.89% statements / 84.72% lines, `payment.dto.ts`: 100% statements / lines;
+- `npm run test:e2e:sqlite` — 1 suite, 5 tests passed, включая применение всех SQLite migrations и metadata;
+- ESLint измененных файлов — passed;
+- `npm run build` — passed;
+- PostgreSQL runtime-проверка не запускалась: Docker CLI в окружении отсутствует; PostgreSQL-миграция и код успешно прошли TypeScript build.
 
 <a id="fa-05"></a>
 ## FA-05. Транзакционное распределение оплат

@@ -43,6 +43,13 @@ export enum FinancialPaymentStatus {
 @Index('IDX_financial_payments_date', ['paymentDate', 'id'])
 @Index('IDX_financial_payments_method_date', ['method', 'paymentDate', 'id'])
 @Index('UQ_financial_payments_request', ['requestId'], { unique: true })
+@Index(
+  'UQ_financial_payments_cancellation_request',
+  ['cancellationRequestId'],
+  {
+    unique: true,
+  },
+)
 export class FinancialPayment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -80,6 +87,9 @@ export class FinancialPayment {
 
   @Column({ type: 'uuid' })
   requestId: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  cancellationRequestId: string | null;
 
   @FinanceCreateDateColumn()
   createdAt: Date;

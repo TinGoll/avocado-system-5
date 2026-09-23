@@ -1,4 +1,11 @@
-import { Body, Controller, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+} from '@nestjs/common';
 import {
   AdjustAccrualDto,
   CancelAccrualDto,
@@ -7,6 +14,8 @@ import {
   SyncOrderAccrualDto,
 } from './dto/accrual.dto';
 import { FinanceAccrualsService } from './finance-accruals.service';
+import { CancelPaymentDto, CreatePaymentDto } from './dto/payment.dto';
+import { FinancePaymentsService } from './finance-payments.service';
 
 @Controller('finance/accruals')
 export class FinanceController {
@@ -44,5 +53,28 @@ export class FinanceController {
     @Body() dto: CancelAccrualDto,
   ) {
     return this.accruals.cancel(id, dto);
+  }
+}
+
+@Controller('finance/payments')
+export class FinancePaymentsController {
+  constructor(private readonly payments: FinancePaymentsService) {}
+
+  @Post()
+  create(@Body() dto: CreatePaymentDto) {
+    return this.payments.create(dto);
+  }
+
+  @Get(':id')
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.payments.findOne(id);
+  }
+
+  @Post(':id/cancel')
+  cancel(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CancelPaymentDto,
+  ) {
+    return this.payments.cancel(id, dto);
   }
 }
