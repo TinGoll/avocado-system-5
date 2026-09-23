@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateOrderGroupDto } from './dto/create-order-group.dto';
 import { UpdateOrderGroupDto } from './dto/update-order-group.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -9,6 +13,7 @@ import { PricingService } from '../pricing/pricing.service';
 import { OrderManagementService } from '../order-management/order-management.service';
 import { OrderItem } from '../orders/entities/order-item.entity';
 import { Customer } from '../customers/entities/customer.entity';
+import { FinancialAccrual } from '../finance/entities/financial-accrual.entity';
 
 export type OrderGroupRecalculationError = {
   orderId: string;
@@ -34,6 +39,8 @@ export class OrderGroupsService {
     private readonly repository: Repository<OrderGroup>,
     @InjectRepository(Customer)
     private readonly customerRepository: Repository<Customer>,
+    @InjectRepository(FinancialAccrual)
+    private readonly accrualRepository: Repository<FinancialAccrual>,
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
     private readonly dataSource: DataSource,
@@ -203,6 +210,17 @@ export class OrderGroupsService {
       customerId,
       ...details
     } = updateDto;
+    if (customerId !== undefined) {
+      const current = await this.findOne(id);
+      if (
+        current.customerId !== customerId &&
+        (await this.accrualRepository.existsBy({ orderGroupId: id }))
+      ) {
+        throw new ConflictException(
+          'Order group customer cannot be changed after accrual creation',
+        );
+      }
+    }
     const customerUpdate =
       customerId === undefined
         ? {}
@@ -310,6 +328,11 @@ export class OrderGroupsService {
   }
 
   async remove(id: number) {
+    if (await this.accrualRepository.existsBy({ orderGroupId: id })) {
+      throw new ConflictException(
+        'Order group with an accrual cannot be deleted',
+      );
+    }
     return this.management.removeGroup(id);
   }
 

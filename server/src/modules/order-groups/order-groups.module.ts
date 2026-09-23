@@ -9,6 +9,7 @@ import { PricingModule } from '../pricing/pricing.module';
 import { ProductTemplate } from '../products/entities/product-template.entity';
 import { OrderManagementModule } from '../order-management/order-management.module';
 import { Customer } from '../customers/entities/customer.entity';
+import { FinancialAccrual } from '../finance/entities/financial-accrual.entity';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { Customer } from '../customers/entities/customer.entity';
       OrderItem,
       ProductTemplate,
       Customer,
+      FinancialAccrual,
     ]),
   ],
   controllers: [OrderGroupsController],

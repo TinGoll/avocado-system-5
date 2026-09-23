@@ -319,7 +319,73 @@
 
 ### Результат FA-03
 
-Заполняется агентом после реализации.
+Реализованы команды начислений и узкий HTTP API без списков, отчетов и
+клиентского UI.
+
+Endpoints и request DTO:
+
+- `POST /api/finance/accruals/from-order` — `{ orderGroupId: integer,
+  effectiveDate: YYYY-MM-DD, requestId: UUID }`.
+- `POST /api/finance/accruals/manual` — `{ customerId: UUID, title,
+  amount: string, effectiveDate: YYYY-MM-DD, reason?: string, requestId:
+  UUID }`.
+- `POST /api/finance/accruals/:id/sync-order-total` — `{ expectedVersion,
+  effectiveDate: YYYY-MM-DD, requestId: UUID }`.
+- `POST /api/finance/accruals/:id/adjustments` — `{ amount: signed string,
+  reason, expectedVersion, effectiveDate: YYYY-MM-DD, requestId: UUID }`.
+- `POST /api/finance/accruals/:id/cancel` — `{ reason, expectedVersion,
+  effectiveDate: YYYY-MM-DD, requestId: UUID }`.
+
+Все ответы используют минимальную read-модель `{ id, customerId, sourceType,
+orderGroupId, title, status, version, amountMinor, amount }`, где `amountMinor`
+— безопасное целое число копеек, а `amount` — каноническая API-строка рублей с
+двумя знаками.
+
+Фактические правила:
+
+- Проведение заказа заново читает `OrderGroup` и все `Order` внутри
+  `runDatabaseTransaction`; каждый `totalPrice` нормализуется до копеек на
+  сервере, затем суммы складываются. Клиентская сумма не принимается.
+- Заказ без `customerId`, с итогом `<= 0` отклоняется `422`; отсутствующая
+  запись дает `404`; повторное проведение другого request дает `409`.
+- Ручное начисление проверяет существование customer и создает только accrual
+  с initial entry. Каталог услуг или заказ не создаются.
+- Sync создает ровно одну adjustment entry на разницу; при нулевой разнице не
+  пишет entry и не увеличивает version. Customer заказа повторно сверяется с
+  customer начисления.
+- Корректировка допускает положительную/отрицательную ненулевую сумму и требует
+  reason. Отмена создает reversal на отрицательную текущую сумму и атомарно
+  переводит accrual в `cancelled`.
+- Перед уменьшением проверяется сумма существующих active allocations; результат
+  ниже нее дает `422`. Entries после insert не изменяются и не удаляются.
+- Для PostgreSQL изменяемый accrual блокируется `pessimistic_write`; SQLite
+  использует общую сериализацию `runDatabaseTransaction`. Независимо от БД
+  version меняется условным `UPDATE ... WHERE version = expectedVersion`;
+  устаревшая версия дает `409`.
+- Повтор того же `requestId` с эквивалентными сохраненными полями возвращает
+  прежнее состояние; несовпадающие accrual/payload дают `409`. Область
+  idempotency — unique `financial_accrual_entries.requestId`. Нулевая sync
+  не создает entry и потому не резервирует requestId.
+- Старый update заказа запрещает смену `customerId`, если accrual уже существует;
+  delete такого заказа также дает понятный `409`. Lifecycle переходы заказа не
+  вызывают finance-команды.
+- `400` используется для DTO/денежного формата, `404` для отсутствующих
+  сущностей, `409` для version/idempotency/state conflicts, `422` для
+  невозможной финансовой суммы.
+
+Проверки:
+
+- Релевантный coverage — успешно, 5 suites / 35 tests: несколько документов,
+  заказ без customer, нулевой итог, повторное проведение, manual DTO,
+  idempotency, sync вверх/вниз/без изменения, stale version, adjustment,
+  allocation floor, cancel/reversal, rollback и lifecycle без автоначисления.
+- `npm run test:e2e:sqlite` — успешно, 5/5; миграции и schema diff остаются
+  корректными.
+- `npm run build` — успешно.
+- ESLint измененных server-файлов без `--fix` — успешно.
+- PostgreSQL integration не выполнена: в среде нет команды `docker` и не
+  обнаружена доступная тестовая PostgreSQL БД. PostgreSQL locking/query path
+  реализован, но требует физического прогона перед выпуском.
 
 <a id="fa-04"></a>
 ## FA-04. Команды и API оплат

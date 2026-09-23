@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import type { OrderManagementService } from '../order-management/order-management.service';
 import type { DataSource, EntityManager, Repository } from 'typeorm';
 
@@ -7,6 +7,7 @@ import { OrderGroupsService } from './order-groups.service';
 import type { Order } from '../orders/entities/order.entity';
 import type { PricingService } from '../pricing/pricing.service';
 import type { Customer } from '../customers/entities/customer.entity';
+import type { FinancialAccrual } from '../finance/entities/financial-accrual.entity';
 
 describe('OrderGroupsService', () => {
   const findOneBy = jest.fn();
@@ -15,11 +16,13 @@ describe('OrderGroupsService', () => {
   const create = jest.fn();
   const update = jest.fn();
   const findCustomer = jest.fn();
+  const accrualExists = jest.fn().mockResolvedValue(false);
   const transaction = jest.fn();
   const calculateProductionCost = jest.fn();
   const service = new OrderGroupsService(
     { findOneBy, save, create, update } as unknown as Repository<OrderGroup>,
     { findOneBy: findCustomer } as unknown as Repository<Customer>,
+    { existsBy: accrualExists } as unknown as Repository<FinancialAccrual>,
     {} as Repository<Order>,
     { transaction } as unknown as DataSource,
     { calculateProductionCost } as unknown as PricingService,
@@ -28,6 +31,7 @@ describe('OrderGroupsService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    accrualExists.mockResolvedValue(false);
   });
 
   it('creates a customer snapshot from the referenced customer', async () => {
@@ -108,6 +112,24 @@ describe('OrderGroupsService', () => {
       customerId: null,
       customer: {},
     });
+  });
+
+  it('blocks changing the customer after accrual creation', async () => {
+    findOneBy.mockResolvedValue({ id: 1, customerId: 'old-customer' });
+    accrualExists.mockResolvedValue(true);
+
+    await expect(
+      service.update(1, {
+        customerId: '33333333-3333-4333-8333-333333333333',
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('blocks deleting an order group with an accrual', async () => {
+    accrualExists.mockResolvedValue(true);
+
+    await expect(service.remove(1)).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('moves a draft order group into production', async () => {
