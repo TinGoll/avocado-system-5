@@ -19,6 +19,10 @@ import {
   FinancialPaymentStatus,
 } from './entities/financial-payment.entity';
 import { formatMinorToRubles, parseRublesToMinor } from './finance-money';
+import {
+  FinanceAllocationsService,
+  FinancialPaymentAllocationView,
+} from './finance-allocations.service';
 
 export type FinancialPaymentView = {
   id: string;
@@ -39,6 +43,11 @@ export type FinancialPaymentView = {
     amountMinor: number;
     amount: string;
   }>;
+  allocations: FinancialPaymentAllocationView[];
+  allocatedMinor: number;
+  allocated: string;
+  unallocatedMinor: number;
+  unallocated: string;
 };
 
 @Injectable()
@@ -47,6 +56,7 @@ export class FinancePaymentsService {
     private readonly source: DataSource,
     @InjectRepository(FinancialPayment)
     private readonly payments: Repository<FinancialPayment>,
+    private readonly allocations: FinanceAllocationsService,
   ) {}
 
   async create(dto: CreatePaymentDto): Promise<FinancialPaymentView> {
@@ -62,6 +72,7 @@ export class FinancePaymentsService {
         throw new ConflictException('requestId was already used');
       }
       this.assertCreateReplay(replay, dto, amountMinor);
+      await this.assertAllocationReplay(replay, dto);
       return this.read(replay);
     }
 
@@ -89,7 +100,12 @@ export class FinancePaymentsService {
           cancellationDate: null,
           cancellationReason: null,
         });
-        return this.read(payment);
+        await this.allocations.createInitial(
+          manager,
+          payment,
+          dto.allocations ?? [],
+        );
+        return this.read(payment, manager);
       });
     } catch (error) {
       if (error instanceof QueryFailedError) {
@@ -98,6 +114,7 @@ export class FinancePaymentsService {
         });
         if (existing) {
           this.assertCreateReplay(existing, dto, amountMinor);
+          await this.assertAllocationReplay(existing, dto);
           return this.read(existing);
         }
         throw new ConflictException('Payment conflicts with existing data');
@@ -127,7 +144,7 @@ export class FinancePaymentsService {
           replay.cancellationDate === dto.cancellationDate &&
           replay.cancellationReason === dto.reason
         ) {
-          return this.read(replay);
+          return this.read(replay, manager);
         }
         throw new ConflictException(
           'requestId was already used with different command data',
@@ -146,7 +163,7 @@ export class FinancePaymentsService {
           payment.cancellationDate === dto.cancellationDate &&
           payment.cancellationReason === dto.reason
         )
-          return this.read(payment);
+          return this.read(payment, manager);
         throw new ConflictException('Payment is already cancelled');
       }
       if (payment.version !== dto.expectedVersion) {
@@ -200,7 +217,7 @@ export class FinancePaymentsService {
       payment.cancellationRequestId = dto.requestId;
       payment.cancellationDate = dto.cancellationDate;
       payment.cancellationReason = dto.reason;
-      return this.read(payment);
+      return this.read(payment, manager);
     });
   }
 
@@ -223,7 +240,32 @@ export class FinancePaymentsService {
     }
   }
 
-  private read(payment: FinancialPayment): FinancialPaymentView {
+  private async assertAllocationReplay(
+    payment: FinancialPayment,
+    dto: CreatePaymentDto,
+  ) {
+    const detail = await this.allocations.read(payment.id);
+    const actual = detail.allocations
+      .filter((row) => row.status === FinancialPaymentAllocationStatus.ACTIVE)
+      .map((row) => `${row.accrualId}:${row.amountMinor}`)
+      .sort();
+    const expected = (dto.allocations ?? [])
+      .map((row) => `${row.accrualId}:${this.parsePositive(row.amount)}`)
+      .sort();
+    if (
+      actual.length !== expected.length ||
+      actual.some((row, index) => row !== expected[index])
+    ) {
+      throw new ConflictException(
+        'requestId was already used with different command data',
+      );
+    }
+  }
+
+  private async read(
+    payment: FinancialPayment,
+    manager = this.source.manager,
+  ): Promise<FinancialPaymentView> {
     const reportOperations: FinancialPaymentView['reportOperations'] = [
       {
         kind: 'payment',
@@ -243,6 +285,9 @@ export class FinancePaymentsService {
         amount: formatMinorToRubles(-payment.amountMinor),
       });
     }
+    const allocationDetail = await this.allocations.read(payment.id, manager);
+    const unallocatedMinor =
+      payment.amountMinor - allocationDetail.allocatedMinor;
     return {
       id: payment.id,
       customerId: payment.customerId,
@@ -257,6 +302,9 @@ export class FinancePaymentsService {
       cancellationDate: payment.cancellationDate,
       cancellationReason: payment.cancellationReason,
       reportOperations,
+      ...allocationDetail,
+      unallocatedMinor,
+      unallocated: formatMinorToRubles(unallocatedMinor),
     };
   }
 

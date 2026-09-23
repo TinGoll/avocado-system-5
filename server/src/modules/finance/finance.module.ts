@@ -10,6 +10,7 @@ import {
 } from './finance.controller';
 import { FinanceAccrualsService } from './finance-accruals.service';
 import { FinancePaymentsService } from './finance-payments.service';
+import { FinanceAllocationsService } from './finance-allocations.service';
 import { OrderGroup } from '../order-groups/entities/order-group.entity';
 import { Order } from '../orders/entities/order.entity';
 import { Customer } from '../customers/entities/customer.entity';
@@ -27,6 +28,10 @@ import { Customer } from '../customers/entities/customer.entity';
     ]),
   ],
   controllers: [FinanceController, FinancePaymentsController],
-  providers: [FinanceAccrualsService, FinancePaymentsService],
+  providers: [
+    FinanceAccrualsService,
+    FinancePaymentsService,
+    FinanceAllocationsService,
+  ],
 })
 export class FinanceModule {}

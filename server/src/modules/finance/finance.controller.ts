@@ -5,6 +5,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
 } from '@nestjs/common';
 import {
   AdjustAccrualDto,
@@ -14,8 +15,13 @@ import {
   SyncOrderAccrualDto,
 } from './dto/accrual.dto';
 import { FinanceAccrualsService } from './finance-accruals.service';
-import { CancelPaymentDto, CreatePaymentDto } from './dto/payment.dto';
+import {
+  CancelPaymentDto,
+  CreatePaymentDto,
+  ReplacePaymentAllocationsDto,
+} from './dto/payment.dto';
 import { FinancePaymentsService } from './finance-payments.service';
+import { FinanceAllocationsService } from './finance-allocations.service';
 
 @Controller('finance/accruals')
 export class FinanceController {
@@ -58,7 +64,10 @@ export class FinanceController {
 
 @Controller('finance/payments')
 export class FinancePaymentsController {
-  constructor(private readonly payments: FinancePaymentsService) {}
+  constructor(
+    private readonly payments: FinancePaymentsService,
+    private readonly allocations: FinanceAllocationsService,
+  ) {}
 
   @Post()
   create(@Body() dto: CreatePaymentDto) {
@@ -67,6 +76,15 @@ export class FinancePaymentsController {
 
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.payments.findOne(id);
+  }
+
+  @Put(':id/allocations')
+  async replaceAllocations(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ReplacePaymentAllocationsDto,
+  ) {
+    await this.allocations.replace(id, dto);
     return this.payments.findOne(id);
   }
 

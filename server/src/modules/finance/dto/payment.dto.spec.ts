@@ -1,7 +1,11 @@
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 import { FinancialPaymentMethod } from '../entities/financial-payment.entity';
-import { CancelPaymentDto, CreatePaymentDto } from './payment.dto';
+import {
+  CancelPaymentDto,
+  CreatePaymentDto,
+  ReplacePaymentAllocationsDto,
+} from './payment.dto';
 
 describe('payment DTOs', () => {
   const validCreate = {
@@ -48,5 +52,25 @@ describe('payment DTOs', () => {
       requestId: validCreate.requestId,
     });
     expect(await validate(dto)).toHaveLength(3);
+  });
+
+  it('validates nested allocation rows and replacement metadata', async () => {
+    const invalidCreate = plainToInstance(CreatePaymentDto, {
+      ...validCreate,
+      allocations: [{ accrualId: 'invalid', amount: '0' }],
+    });
+    expect(await validate(invalidCreate)).not.toHaveLength(0);
+
+    const validReplace = plainToInstance(ReplacePaymentAllocationsDto, {
+      allocations: [
+        {
+          accrualId: '33333333-3333-4333-8333-333333333333',
+          amount: '1.25',
+        },
+      ],
+      expectedVersion: 0,
+      reason: 'Reallocate',
+    });
+    expect(await validate(validReplace)).toHaveLength(0);
   });
 });

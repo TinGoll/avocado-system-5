@@ -500,7 +500,30 @@ Read-модель возвращает исходные неизменяемые
 
 ### Результат FA-05
 
-Заполняется агентом после реализации.
+Реализован отдельный `FinanceAllocationsService`, отвечающий только за проверку и атомарную замену полной активной карты распределения.
+
+Контракты:
+
+- `PUT /api/finance/payments/:id/allocations`: `{ allocations: Array<{ accrualId: UUID, amount: positive money string }>, expectedVersion: non-negative integer, reason?: string }`;
+- `reason` обязателен, если новая карта изменяет или удаляет хотя бы одну active allocation; пустая карта корректно освобождает все строки;
+- `POST /api/finance/payments` принимает optional `allocations` того же формата и создает оплату с ними в одной транзакции;
+- detail оплаты дополнен полной историей `allocations` (active и released), а также `allocatedMinor`/`allocated` и `unallocatedMinor`/`unallocated`.
+
+Полная карта проверяется до записи: duplicate `accrualId`, положительность денег, существование начислений, совпадение заказчика, active-статусы оплаты и начислений, сумма по оплате и доступный остаток каждого начисления. Измененные и удаленные строки переводятся в `released` с причиной и временем, новые суммы создаются отдельными active-строками, неизмененные сохраняются. Ошибка любой строки откатывает создание оплаты или замену целиком.
+
+Порядок блокировок PostgreSQL: payment, затем все затронутые accrual в порядке UUID (включая удаляемые из старой карты), затем active allocations в порядке `(accrualId, id)`. При распределении версия accrual не увеличивается: защита суммы обеспечивается общей pessimistic-блокировкой accrual, которую использует и корректировка начисления. В SQLite все финансовые транзакции сериализуются `runDatabaseTransaction`. После каждого успешного PUT `payment.version` условно увеличивается ровно один раз; два запроса одной версии дают один успех и один `409`.
+
+Начальные allocations участвуют в проверке идемпотентного повтора создания и не дублируются. Аннулирование оплаты по-прежнему освобождает все active allocations в той же транзакции с причиной отмены.
+
+Проверены: одна оплата на несколько начислений, несколько оплат на одно начисление, частичное распределение и аванс, обе границы суммы, чужой customer, cancelled payment/accrual, duplicate ID, замена/частичное и полное освобождение, released history, stale/concurrent version, rollback создания и замены, а также конкурентная отрицательная корректировка начисления без нарушения инварианта.
+
+Проверки:
+
+- `npm run test:cov -- --runInBand src/modules/finance/dto/payment.dto.spec.ts src/modules/finance/finance-payments.service.spec.ts src/modules/finance/finance-allocations.service.spec.ts src/modules/finance/finance-accruals.service.spec.ts` — 4 suites, 33 tests passed; `finance-allocations.service.ts`: 96.93% statements / 97.75% lines;
+- `npm run test:e2e:sqlite` — 1 suite, 5 tests passed, включая все migrations и entity metadata;
+- ESLint измененных файлов — passed;
+- `npm run build` — passed;
+- реальный PostgreSQL не запущен: Docker CLI отсутствует в окружении. PostgreSQL-ветви блокировок прошли TypeScript build; транзакционные инварианты и параллельные сценарии выполнены на SQLite.
 
 <a id="fa-06"></a>
 ## FA-06. Read API, сводки, поиск и пагинация

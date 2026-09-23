@@ -33,6 +33,8 @@ describe('FinancePaymentsService (SQLite)', () => {
       require('./entities/financial-payment-allocation.entity') as typeof import('./entities/financial-payment-allocation.entity'));
     const { FinancePaymentsService } =
       require('./finance-payments.service') as typeof import('./finance-payments.service');
+    const { FinanceAllocationsService } =
+      require('./finance-allocations.service') as typeof import('./finance-allocations.service');
     source = new typeorm.DataSource({
       type: 'better-sqlite3',
       database: ':memory:',
@@ -51,6 +53,7 @@ describe('FinancePaymentsService (SQLite)', () => {
     service = new FinancePaymentsService(
       source,
       source.getRepository(FinancialPayment),
+      new FinanceAllocationsService(source),
     );
   });
 
