@@ -10,8 +10,6 @@ export class AddCustomerAttributes1787900000000 implements MigrationInterface {
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `ALTER TABLE "customers" DROP COLUMN "attributes"`,
-    );
+    await queryRunner.query(`ALTER TABLE "customers" DROP COLUMN "attributes"`);
   }
 }
