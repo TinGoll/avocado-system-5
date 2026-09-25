@@ -13,6 +13,11 @@ import {
 import { FinancePage } from './FinancePage';
 
 vi.mock('@shared/api', () => ({
+  adjustFinanceAccrual: vi.fn(),
+  cancelFinanceAccrual: vi.fn(),
+  cancelFinancePayment: vi.fn(),
+  createFinancePayment: vi.fn(),
+  createManualAccrual: vi.fn(),
   getCustomerLinkIssues: vi.fn(),
   getFinanceAccruals: vi.fn(),
   getFinanceCustomer: vi.fn(),
@@ -20,6 +25,8 @@ vi.mock('@shared/api', () => ({
   getFinancePayment: vi.fn(),
   getFinancePayments: vi.fn(),
   getFinanceSummary: vi.fn(),
+  replaceFinanceAllocations: vi.fn(),
+  syncFinanceAccrual: vi.fn(),
 }));
 
 vi.mock('../api/finance-data', async (importOriginal) => {

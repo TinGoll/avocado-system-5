@@ -13,7 +13,7 @@ import {
   Tag,
   Typography,
 } from 'antd';
-import { type FC, type ReactNode } from 'react';
+import { type FC, type ReactNode, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import useSWR from 'swr';
 
@@ -40,6 +40,11 @@ import {
   formatFinanceMoney,
   paymentMethodLabel,
 } from '../model/finance-display';
+
+import {
+  type FinanceDialogAction,
+  FinanceMutationModals,
+} from './FinanceMutationModals';
 
 const styles = {
   page: css`
@@ -161,7 +166,8 @@ const PaymentAllocations: FC<{ paymentId: string }> = ({ paymentId }) => {
 const PaymentsTable: FC<{
   search: string;
   customerId?: string;
-}> = ({ search, customerId }) => {
+  onAction: (action: FinanceDialogAction) => void;
+}> = ({ search, customerId, onAction }) => {
   const page = useFinancePayments({ search, customerId, limit: 30 });
   return (
     <LoadState
@@ -223,6 +229,32 @@ const PaymentsTable: FC<{
                 </Tag>
               ),
           },
+          {
+            title: 'Действия',
+            key: 'actions',
+            render: (_, item) =>
+              item.status === 'posted' ? (
+                <Space>
+                  <Button
+                    size="small"
+                    onClick={() =>
+                      onAction({ type: 'allocations', payment: item })
+                    }
+                  >
+                    Распределить
+                  </Button>
+                  <Button
+                    danger
+                    size="small"
+                    onClick={() =>
+                      onAction({ type: 'cancel-payment', payment: item })
+                    }
+                  >
+                    Аннулировать
+                  </Button>
+                </Space>
+              ) : null,
+          },
         ]}
       />
       {page.nextCursor && (
@@ -242,7 +274,8 @@ const PaymentsTable: FC<{
 const AccrualsTable: FC<{
   search: string;
   customerId?: string;
-}> = ({ search, customerId }) => {
+  onAction: (action: FinanceDialogAction) => void;
+}> = ({ search, customerId, onAction }) => {
   const page = useFinanceAccruals({ search, customerId, limit: 30 });
   return (
     <LoadState
@@ -305,6 +338,42 @@ const AccrualsTable: FC<{
                 {accrualStateLabel[value]}
               </Tag>
             ),
+          },
+          {
+            title: 'Действия',
+            key: 'actions',
+            render: (_, item) =>
+              item.status === 'active' ? (
+                <Space>
+                  {item.sourceType === 'order' && (
+                    <Button
+                      size="small"
+                      onClick={() =>
+                        onAction({ type: 'sync-accrual', accrual: item })
+                      }
+                    >
+                      Обновить
+                    </Button>
+                  )}
+                  <Button
+                    size="small"
+                    onClick={() =>
+                      onAction({ type: 'adjust-accrual', accrual: item })
+                    }
+                  >
+                    Корректировать
+                  </Button>
+                  <Button
+                    danger
+                    size="small"
+                    onClick={() =>
+                      onAction({ type: 'cancel-accrual', accrual: item })
+                    }
+                  >
+                    Аннулировать
+                  </Button>
+                </Space>
+              ) : null,
           },
         ]}
       />
@@ -411,6 +480,10 @@ export const FinancePage: FC = () => {
   const customerId = params.get('customerId') ?? undefined;
   const summary = useFinanceSummary();
   const issues = useCustomerLinkIssues();
+  const customers = useFinanceCustomers('');
+  const [dialogAction, setDialogAction] = useState<FinanceDialogAction | null>(
+    null,
+  );
 
   const updateParam = (key: string, value?: string) => {
     const next = new URLSearchParams(params);
@@ -464,6 +537,17 @@ export const FinancePage: FC = () => {
           placeholder="Заказчик, заказ, услуга, комментарий…"
           onSearch={(value) => updateParam('search', value.trim())}
         />
+        <Space wrap>
+          <Button
+            type="primary"
+            onClick={() => setDialogAction({ type: 'payment' })}
+          >
+            Добавить оплату
+          </Button>
+          <Button onClick={() => setDialogAction({ type: 'manual-accrual' })}>
+            Добавить начисление
+          </Button>
+        </Space>
         {customerId && (
           <Button onClick={() => updateParam('customerId')}>
             Сбросить фильтр заказчика
@@ -477,14 +561,22 @@ export const FinancePage: FC = () => {
               key: 'payments',
               label: 'Оплаты',
               children: (
-                <PaymentsTable search={search} customerId={customerId} />
+                <PaymentsTable
+                  search={search}
+                  customerId={customerId}
+                  onAction={setDialogAction}
+                />
               ),
             },
             {
               key: 'accruals',
               label: 'Начисления',
               children: (
-                <AccrualsTable search={search} customerId={customerId} />
+                <AccrualsTable
+                  search={search}
+                  customerId={customerId}
+                  onAction={setDialogAction}
+                />
               ),
             },
             {
@@ -499,6 +591,11 @@ export const FinancePage: FC = () => {
               ),
             },
           ]}
+        />
+        <FinanceMutationModals
+          action={dialogAction}
+          customers={customers.data?.items ?? []}
+          onClose={() => setDialogAction(null)}
         />
       </Space>
     </section>

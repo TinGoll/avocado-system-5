@@ -116,6 +116,47 @@ export type FinanceListParams = {
   limit?: number;
 };
 
+export type FinanceAllocationInput = { accrualId: string; amount: string };
+export type CreateManualAccrualInput = {
+  customerId: string;
+  title: string;
+  amount: string;
+  effectiveDate: string;
+  reason?: string;
+  requestId: string;
+};
+export type CreatePaymentInput = {
+  customerId: string;
+  amount: string;
+  paymentDate: string;
+  method: FinancePayment['method'];
+  externalReference?: string;
+  comment?: string;
+  requestId: string;
+  allocations?: FinanceAllocationInput[];
+};
+export type VersionedFinanceCommand = {
+  expectedVersion: number;
+  effectiveDate: string;
+  requestId: string;
+};
+export type AdjustAccrualInput = VersionedFinanceCommand & {
+  amount: string;
+  reason: string;
+};
+export type CancelAccrualInput = VersionedFinanceCommand & { reason: string };
+export type ReplaceAllocationsInput = {
+  allocations: FinanceAllocationInput[];
+  expectedVersion: number;
+  reason?: string;
+};
+export type CancelPaymentInput = {
+  cancellationDate: string;
+  reason: string;
+  expectedVersion: number;
+  requestId: string;
+};
+
 const queryString = (params: FinanceListParams = {}) => {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -146,4 +187,50 @@ export const getFinanceCustomer = (id: string) =>
 export const getCustomerLinkIssues = () =>
   fetcher<{ items: CustomerLinkIssue[]; meta: { count: number } }>({
     url: 'order-groups/customer-link-issues',
+  });
+
+export const createManualAccrual = (data: CreateManualAccrualInput) =>
+  fetcher<FinanceAccrual, CreateManualAccrualInput>({
+    url: 'finance/accruals/manual',
+    method: 'POST',
+    data,
+  });
+export const createFinancePayment = (data: CreatePaymentInput) =>
+  fetcher<FinancePaymentDetail, CreatePaymentInput>({
+    url: 'finance/payments',
+    method: 'POST',
+    data,
+  });
+export const syncFinanceAccrual = (id: string, data: VersionedFinanceCommand) =>
+  fetcher<FinanceAccrual, VersionedFinanceCommand>({
+    url: `finance/accruals/${id}/sync-order-total`,
+    method: 'POST',
+    data,
+  });
+export const adjustFinanceAccrual = (id: string, data: AdjustAccrualInput) =>
+  fetcher<FinanceAccrual, AdjustAccrualInput>({
+    url: `finance/accruals/${id}/adjustments`,
+    method: 'POST',
+    data,
+  });
+export const cancelFinanceAccrual = (id: string, data: CancelAccrualInput) =>
+  fetcher<FinanceAccrual, CancelAccrualInput>({
+    url: `finance/accruals/${id}/cancel`,
+    method: 'POST',
+    data,
+  });
+export const replaceFinanceAllocations = (
+  id: string,
+  data: ReplaceAllocationsInput,
+) =>
+  fetcher<FinancePaymentDetail, ReplaceAllocationsInput>({
+    url: `finance/payments/${id}/allocations`,
+    method: 'PUT',
+    data,
+  });
+export const cancelFinancePayment = (id: string, data: CancelPaymentInput) =>
+  fetcher<FinancePaymentDetail, CancelPaymentInput>({
+    url: `finance/payments/${id}/cancel`,
+    method: 'POST',
+    data,
   });
