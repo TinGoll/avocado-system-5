@@ -103,6 +103,29 @@ export type FinanceCustomer = FinanceSummary & {
   openAccruals: FinanceAccrual[];
 };
 
+export type OrderFinance = {
+  orderGroup: {
+    id: number;
+    orderNumber: string;
+    customerId: string | null;
+  };
+  orderTotalMinor: number;
+  orderTotal: string;
+  accruedMinor: number;
+  accrued: string;
+  allocatedMinor: number;
+  allocated: string;
+  remainingMinor: number;
+  remaining: string;
+  syncDifferenceMinor: number;
+  syncDifference: string;
+  customerUnallocatedAdvanceMinor: number;
+  customerUnallocatedAdvance: string;
+  accrualId: string | null;
+  accrualStatus: 'active' | 'cancelled' | null;
+  accrualVersion: number | null;
+};
+
 export type CustomerLinkIssue = {
   id: number;
   orderNumber: string;
@@ -123,6 +146,11 @@ export type CreateManualAccrualInput = {
   amount: string;
   effectiveDate: string;
   reason?: string;
+  requestId: string;
+};
+export type CreateOrderAccrualInput = {
+  orderGroupId: number;
+  effectiveDate: string;
   requestId: string;
 };
 export type CreatePaymentInput = {
@@ -184,6 +212,8 @@ export const getFinanceCustomers = (search?: string) =>
   });
 export const getFinanceCustomer = (id: string) =>
   fetcher<FinanceCustomer>({ url: `finance/customers/${id}` });
+export const getFinanceOrderGroup = (id: number) =>
+  fetcher<OrderFinance>({ url: `finance/order-groups/${id}` });
 export const getCustomerLinkIssues = () =>
   fetcher<{ items: CustomerLinkIssue[]; meta: { count: number } }>({
     url: 'order-groups/customer-link-issues',
@@ -192,6 +222,12 @@ export const getCustomerLinkIssues = () =>
 export const createManualAccrual = (data: CreateManualAccrualInput) =>
   fetcher<FinanceAccrual, CreateManualAccrualInput>({
     url: 'finance/accruals/manual',
+    method: 'POST',
+    data,
+  });
+export const createOrderAccrual = (data: CreateOrderAccrualInput) =>
+  fetcher<FinanceAccrual, CreateOrderAccrualInput>({
+    url: 'finance/accruals/from-order',
     method: 'POST',
     data,
   });

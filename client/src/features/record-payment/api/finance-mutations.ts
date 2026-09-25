@@ -6,6 +6,7 @@ import {
   cancelFinancePayment,
   createFinancePayment,
   createManualAccrual,
+  createOrderAccrual,
   replaceFinanceAllocations,
   syncFinanceAccrual,
 } from '@shared/api';
@@ -29,6 +30,7 @@ export const useFinanceMutations = () => {
 
   return {
     createManualAccrual,
+    createOrderAccrual,
     createFinancePayment,
     syncFinanceAccrual,
     adjustFinanceAccrual,

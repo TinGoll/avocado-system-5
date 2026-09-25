@@ -48,6 +48,7 @@ import {
 } from '../model/orderSection';
 
 import { OrderDocumentView } from './OrderDocumentView';
+import { OrderFinanceCard } from './OrderFinanceCard';
 import { OrderLifecycleActions } from './OrderLifecycleActions';
 import { OrderManagementHistory } from './OrderManagementHistory';
 import { OrderProductionSummary } from './OrderProductionSummary';
@@ -579,6 +580,8 @@ const OrderPage: FC = () => {
           <MarkdownPreview className={styles.fieldText} value={group.comment} />
         </div>
       </div>
+
+      <OrderFinanceCard group={group} />
 
       {activeSection === ORDER_SECTION ? (
         <>

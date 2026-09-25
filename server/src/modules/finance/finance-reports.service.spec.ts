@@ -289,6 +289,7 @@ describe('FinanceReportsService (SQLite)', () => {
       syncDifferenceMinor: 2_000,
       customerUnallocatedAdvanceMinor: 15_000,
       accrualId: accrual.id,
+      accrualVersion: 0,
     });
   });
 });

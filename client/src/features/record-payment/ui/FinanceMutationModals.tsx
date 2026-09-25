@@ -33,7 +33,12 @@ import {
 
 export type FinanceDialogAction =
   | { type: 'manual-accrual' }
-  | { type: 'payment' }
+  | {
+      type: 'payment';
+      customerId?: string;
+      initialAllocation?: { accrualId: string; amount: string };
+    }
+  | { type: 'create-order-accrual'; orderGroupId: number }
   | { type: 'allocations'; payment: FinancePayment }
   | { type: 'cancel-payment'; payment: FinancePayment }
   | { type: 'sync-accrual'; accrual: FinanceAccrual }
@@ -97,6 +102,7 @@ export const FinanceMutationModals: FC<{
   const watchedAllocations = Form.useWatch('allocations', form);
   const selectedCustomer =
     customerId ??
+    (action?.type === 'payment' ? action.customerId : undefined) ??
     (action && 'payment' in action ? action.payment.customerId : undefined) ??
     (action && 'accrual' in action ? action.accrual.customerId : undefined);
   const [activeAccruals, setActiveAccruals] = useState<FinanceAccrual[]>([]);
@@ -127,6 +133,14 @@ export const FinanceMutationModals: FC<{
     attempt.current.changePayload();
     form.resetFields();
     form.setFieldsValue({ date: today(), method: 'bank_transfer' });
+    if (action.type === 'payment' && action.customerId) {
+      form.setFieldsValue({
+        customerId: action.customerId,
+        amount: action.initialAllocation?.amount,
+        allocations: action.initialAllocation ? [action.initialAllocation] : [],
+      });
+      void loadAccruals(action.customerId);
+    }
     if ('payment' in action) {
       void loadAccruals(action.payment.customerId);
     }
@@ -227,6 +241,12 @@ export const FinanceMutationModals: FC<{
           reason: values.reason?.trim() || undefined,
           requestId: attempt.current.current(),
         });
+      } else if (action.type === 'create-order-accrual') {
+        await mutations.createOrderAccrual({
+          orderGroupId: action.orderGroupId,
+          effectiveDate: date,
+          requestId: attempt.current.current(),
+        });
       } else if (action.type === 'payment') {
         await mutations.createFinancePayment({
           customerId: values.customerId,
@@ -311,17 +331,19 @@ export const FinanceMutationModals: FC<{
   const title =
     action?.type === 'manual-accrual'
       ? 'Новое начисление'
-      : action?.type === 'payment'
-        ? 'Новая оплата'
-        : action?.type === 'allocations'
-          ? 'Распределение оплаты'
-          : action?.type === 'cancel-payment'
-            ? 'Аннулировать оплату'
-            : action?.type === 'sync-accrual'
-              ? 'Обновить сумму заказа'
-              : action?.type === 'adjust-accrual'
-                ? 'Корректировка начисления'
-                : 'Аннулировать начисление';
+      : action?.type === 'create-order-accrual'
+        ? 'Создать начисление заказа'
+        : action?.type === 'payment'
+          ? 'Новая оплата'
+          : action?.type === 'allocations'
+            ? 'Распределение оплаты'
+            : action?.type === 'cancel-payment'
+              ? 'Аннулировать оплату'
+              : action?.type === 'sync-accrual'
+                ? 'Обновить сумму заказа'
+                : action?.type === 'adjust-accrual'
+                  ? 'Корректировка начисления'
+                  : 'Аннулировать начисление';
 
   return (
     <Modal
@@ -415,8 +437,8 @@ export const FinanceMutationModals: FC<{
             {(fields, { add, remove }) => (
               <Space orientation="vertical" size="small">
                 <Typography.Text strong>Распределение</Typography.Text>
-                {fields.map((field) => (
-                  <div className={styles.allocation} key={field.key}>
+                {fields.map(({ key, ...field }) => (
+                  <div className={styles.allocation} key={key}>
                     <Form.Item
                       {...field}
                       name={[field.name, 'accrualId']}

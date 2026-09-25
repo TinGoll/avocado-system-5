@@ -61,6 +61,7 @@ describe('FinanceMutationModals', () => {
     mockedMutations.mockReturnValue({
       adjustFinanceAccrual: adjust,
       createManualAccrual: vi.fn(),
+      createOrderAccrual: vi.fn(),
       createFinancePayment: vi.fn(),
       syncFinanceAccrual: vi.fn(),
       cancelFinanceAccrual: vi.fn(),
@@ -214,5 +215,43 @@ describe('FinanceMutationModals', () => {
     expect(document.querySelector('.ant-modal')?.textContent).toContain(
       '20.00 ₽ — Перераспределено',
     );
+  });
+
+  it('prefills an order payment without submitting it', async () => {
+    await act(async () => {
+      root.render(
+        <FinanceMutationModals
+          action={{
+            type: 'payment',
+            customerId: 'customer-1',
+            initialAllocation: { accrualId: 'accrual-1', amount: '60.00' },
+          }}
+          customers={[
+            {
+              id: 'customer-1',
+              name: 'Заказчик',
+              companyName: null,
+              debtMinor: 6000,
+              debt: '60.00',
+              advanceMinor: 0,
+              advance: '0.00',
+              unallocatedMinor: 0,
+              unallocated: '0.00',
+            },
+          ]}
+          onClose={vi.fn()}
+        />,
+      );
+      await Promise.resolve();
+    });
+
+    const modal = document.querySelector('.ant-modal')!;
+    expect(modal.querySelector<HTMLInputElement>('#amount')?.value).toBe(
+      '60.00',
+    );
+    expect(
+      modal.querySelector<HTMLInputElement>('#allocations_0_amount')?.value,
+    ).toBe('60.00');
+    expect(mockedMutations().createFinancePayment).not.toHaveBeenCalled();
   });
 });

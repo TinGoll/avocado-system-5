@@ -191,6 +191,8 @@ export class FinanceReportsService {
       ),
       accrualId: accrualRow?.id ?? null,
       accrualStatus: accrualRow?.status ?? null,
+      accrualVersion:
+        accrualRow?.version == null ? null : Number(accrualRow.version),
     };
   }
 
@@ -508,11 +510,18 @@ export class FinanceReportsService {
       .leftJoin(FinancialAccrualEntry, 'entry', 'entry.accrualId = accrual.id')
       .select('accrual.id', 'id')
       .addSelect('accrual.status', 'status')
+      .addSelect('accrual.version', 'version')
       .addSelect('COALESCE(SUM(entry.amountMinor), 0)', 'amount')
       .where('accrual.orderGroupId = :orderGroupId', { orderGroupId })
       .groupBy('accrual.id')
       .addGroupBy('accrual.status')
-      .getRawOne<{ id: string; status: string; amount: string | number }>();
+      .addGroupBy('accrual.version')
+      .getRawOne<{
+        id: string;
+        status: string;
+        version: number | string;
+        amount: string | number;
+      }>();
   }
   private orderAllocated(orderGroupId: number) {
     return this.source

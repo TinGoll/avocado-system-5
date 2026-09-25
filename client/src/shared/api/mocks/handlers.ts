@@ -903,6 +903,30 @@ const financePaymentId = '11111111-1111-4111-8111-111111111111';
 const financeCustomerId = '22222222-2222-4222-8222-222222222222';
 const financeAccrualId = '33333333-3333-4333-8333-333333333333';
 const financeHandlers = [
+  http.get('*/finance/order-groups/:id', ({ params }) =>
+    HttpResponse.json({
+      orderGroup: {
+        id: Number(params.id),
+        orderNumber: 'ORD-2026-154',
+        customerId: financeCustomerId,
+      },
+      orderTotalMinor: 18500000,
+      orderTotal: '185000.00',
+      accruedMinor: 18500000,
+      accrued: '185000.00',
+      allocatedMinor: 13000000,
+      allocated: '130000.00',
+      remainingMinor: 5500000,
+      remaining: '55000.00',
+      syncDifferenceMinor: 0,
+      syncDifference: '0.00',
+      customerUnallocatedAdvanceMinor: 2000000,
+      customerUnallocatedAdvance: '20000.00',
+      accrualId: financeAccrualId,
+      accrualStatus: 'active',
+      accrualVersion: 0,
+    }),
+  ),
   http.get('*/finance/summary', () =>
     HttpResponse.json({
       accruedMinor: 28500000,

@@ -18,6 +18,10 @@ import { Link, useSearchParams } from 'react-router';
 import useSWR from 'swr';
 
 import {
+  type FinanceDialogAction,
+  FinanceMutationModals,
+} from '@features/record-payment';
+import {
   type FinanceAccrual,
   type FinanceCustomerListItem,
   type FinancePayment,
@@ -40,11 +44,6 @@ import {
   formatFinanceMoney,
   paymentMethodLabel,
 } from '../model/finance-display';
-
-import {
-  type FinanceDialogAction,
-  FinanceMutationModals,
-} from './FinanceMutationModals';
 
 const styles = {
   page: css`

@@ -851,7 +851,52 @@ FA-09 и финансовый блок заказа не добавлялись.
 
 ### Результат FA-09
 
-Заполняется агентом после реализации.
+Реализован финансовый блок на фактически используемом экране заказа;
+`OrderPageV2` не подключен маршрутизацией и не изменялся. Код отчетов FA-10 не
+добавлялся.
+
+- `/order/:groupID` экспортирует `pages/order/ui/OrderPage.tsx`; в него добавлен
+  адаптивный блок «Финансы заказа» с рассчитанной суммой документов,
+  начислением, оплатой по active allocations, остатком, разницей с текущей
+  ценой и нераспределенным авансом заказчика.
+- Явно отображаются состояния без `customerId`, без начисления, cancelled
+  начисления и полной оплаты. Отмена/завершение заказа не связаны с финансовыми
+  командами и не вызывают их автоматически.
+- Действия «Создать начисление», «Обновить начисление» и «Добавить оплату»
+  доступны только по явному нажатию. Оплата открывается с предвыбранными
+  заказчиком, начислением и остатком, но не отправляется автоматически.
+- Подтвержденный общий workflow FA-08 механически перенесен из `pages/finance`
+  в `features/record-payment` с публичным `index.ts`; `/finance` продолжает
+  использовать тот же компонент без изменения поведения.
+- В `entities/finance` добавлен минимальный public API read-модели заказа:
+  `useOrderFinance`, `orderFinanceKey`, `formatFinanceMoney`. HTTP transport и
+  DTO остаются в `shared/api/finance`.
+- `GET /api/finance/order-groups/:orderGroupId` дополнен `accrualVersion`, чтобы
+  sync из заказа отправлял корректный `expectedVersion`; схема БД и mutation
+  semantics не изменялись.
+- После команд общий invalidation matcher обновляет finance/order keys, поэтому
+  блок заказа и `/finance` перечитывают связанные представления.
+
+Проверки:
+
+- client coverage — 4 suites / 16 tests: состояния блока заказа, totals,
+  аванс/разница, отсутствие заказчика/начисления, cancelled/paid, предзаполнение
+  оплаты без отправки, регрессия `/finance` и сценарии `requestId`/`409`;
+- client production build и точечный ESLint без `--fix` — успешно;
+- `npm run fsd:check` — только существующий blocker `src/app/ui`
+  (`fsd/no-ui-in-app`); новые `entities/finance` и `features/record-payment`
+  нарушений не добавляют;
+- server finance reports coverage — 1 suite / 5 tests; server build и точечный
+  ESLint — успешно;
+- визуально проверены фактический `/order/1`, финансовый блок и общая форма
+  оплаты с предзаполненным allocation на ширине 805 px; отправка финансовой
+  операции во время визуальной проверки не выполнялась.
+
+Public API для следующих задач:
+`@entities/finance` экспортирует `useOrderFinance`, `orderFinanceKey` и
+`formatFinanceMoney`; `@features/record-payment` экспортирует
+`FinanceMutationModals` и `FinanceDialogAction`; transport-функции остаются в
+`@shared/api`.
 
 <a id="fa-10"></a>
 ## FA-10. Отчеты и XLSX-экспорт

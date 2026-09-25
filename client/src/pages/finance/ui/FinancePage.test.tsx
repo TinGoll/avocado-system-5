@@ -29,6 +29,10 @@ vi.mock('@shared/api', () => ({
   syncFinanceAccrual: vi.fn(),
 }));
 
+vi.mock('@features/record-payment', () => ({
+  FinanceMutationModals: () => null,
+}));
+
 vi.mock('../api/finance-data', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/finance-data')>();
   return {
