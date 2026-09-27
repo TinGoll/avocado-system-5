@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useOrderFinance } from '@entities/finance';
 import type { OrderGroup } from '@entities/order';
 
-import { OrderFinanceCard } from './OrderFinanceCard';
+import { OrderFinanceCard, OrderPaidTag } from './OrderFinanceCard';
 
 vi.mock('@entities/finance', () => ({
   formatFinanceMoney: (value?: string) => `${value ?? '0.00'} ₽`,
@@ -162,5 +162,24 @@ describe('OrderFinanceCard', () => {
     } as unknown as ReturnType<typeof useOrderFinance>);
     renderCard();
     expect(container.textContent).toContain(text);
+  });
+
+  it('shows the paid tag only for a fully paid active accrual', () => {
+    mockedFinance.mockReturnValue({
+      data: { ...financeData, remainingMinor: 0, remaining: '0.00' },
+      isLoading: false,
+      mutate: vi.fn(),
+    } as unknown as ReturnType<typeof useOrderFinance>);
+
+    act(() => root.render(<OrderPaidTag groupId={group.id} />));
+    expect(container.textContent).toBe('Заказ полностью оплачен');
+
+    mockedFinance.mockReturnValue({
+      data: financeData,
+      isLoading: false,
+      mutate: vi.fn(),
+    } as unknown as ReturnType<typeof useOrderFinance>);
+    act(() => root.render(<OrderPaidTag groupId={group.id} />));
+    expect(container.textContent).toBe('');
   });
 });

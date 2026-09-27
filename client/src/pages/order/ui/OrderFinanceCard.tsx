@@ -23,6 +23,19 @@ const styles = {
   `,
 };
 
+export const OrderPaidTag: FC<{ groupId: number }> = ({ groupId }) => {
+  const finance = useOrderFinance(groupId);
+
+  if (
+    finance.data?.accrualStatus !== 'active' ||
+    finance.data.remainingMinor !== 0
+  ) {
+    return null;
+  }
+
+  return <Tag color="success">Заказ полностью оплачен</Tag>;
+};
+
 export const OrderFinanceCard: FC<{ group: OrderGroup }> = ({ group }) => {
   const finance = useOrderFinance(group.id);
   const [action, setAction] = useState<FinanceDialogAction | null>(null);
