@@ -27,7 +27,9 @@ import { FinanceAllocationsService } from './finance-allocations.service';
 import { FinanceReportsService } from './finance-reports.service';
 import {
   AccrualListQueryDto,
+  CustomerStatementQueryDto,
   PaymentListQueryDto,
+  TurnoverReportQueryDto,
 } from './dto/finance-read.dto';
 
 @Controller('finance')
@@ -47,6 +49,19 @@ export class FinanceReportsController {
   @Get('customers/:customerId')
   customer(@Param('customerId', ParseUUIDPipe) customerId: string) {
     return this.reports.getCustomer(customerId);
+  }
+
+  @Get('customers/:customerId/statement')
+  statement(
+    @Param('customerId', ParseUUIDPipe) customerId: string,
+    @Query() query: CustomerStatementQueryDto,
+  ) {
+    return this.reports.getCustomerStatement(customerId, query);
+  }
+
+  @Get('reports/turnover')
+  turnover(@Query() query: TurnoverReportQueryDto) {
+    return this.reports.getTurnover(query);
   }
 
   @Get('order-groups/:orderGroupId')

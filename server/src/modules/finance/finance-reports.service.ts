@@ -10,9 +10,12 @@ import { Order } from '../orders/entities/order.entity';
 import {
   AccrualListQueryDto,
   AccrualPaymentState,
+  CustomerStatementQueryDto,
   FinanceListQueryDto,
+  FinanceTurnoverReportType,
   PaymentAllocationState,
   PaymentListQueryDto,
+  TurnoverReportQueryDto,
 } from './dto/finance-read.dto';
 import { FinancialAccrualEntry } from './entities/financial-accrual-entry.entity';
 import {
@@ -25,6 +28,7 @@ import {
 } from './entities/financial-payment-allocation.entity';
 import {
   FinancialPayment,
+  FinancialPaymentMethod,
   FinancialPaymentStatus,
 } from './entities/financial-payment.entity';
 import {
@@ -34,6 +38,12 @@ import {
 } from './finance-money';
 
 type Cursor = { businessDate: string; id: string };
+type ReportCursor = {
+  businessDate: string;
+  createdAt: string;
+  id: string;
+  kind: string;
+};
 type MoneyTotals = {
   accruedMinor: number;
   paidMinor: number;
@@ -323,6 +333,436 @@ export class FinanceReportsService {
       .take(query.limit + 1)
       .getRawMany<Record<string, unknown>>();
     return this.page(rows, query.limit, (row) => this.paymentListView(row));
+  }
+
+  async getTurnover(query: TurnoverReportQueryDto) {
+    this.assertDateRange(query);
+    if (query.reportType === FinanceTurnoverReportType.ACCRUALS)
+      return this.getAccrualTurnover(query);
+    return this.getPaymentTurnover(query);
+  }
+
+  async getCustomerStatement(
+    customerId: string,
+    query: CustomerStatementQueryDto,
+  ) {
+    this.assertDateRange(query);
+    const customer = await this.source
+      .getRepository(Customer)
+      .findOneBy({ id: customerId });
+    if (!customer) throw new NotFoundException('Customer not found');
+
+    const [entryRows, paymentRows, allocationRows] = await Promise.all([
+      this.source
+        .getRepository(FinancialAccrualEntry)
+        .createQueryBuilder('entry')
+        .innerJoin(FinancialAccrual, 'accrual', 'accrual.id = entry.accrualId')
+        .select('entry.id', 'id')
+        .addSelect('entry.effectiveDate', 'businessDate')
+        .addSelect('entry.createdAt', 'createdAt')
+        .addSelect('entry.kind', 'entryKind')
+        .addSelect('entry.amountMinor', 'amount')
+        .addSelect('entry.reason', 'reason')
+        .addSelect('accrual.title', 'title')
+        .where('accrual.customerId = :customerId', { customerId })
+        .getRawMany<Record<string, unknown>>(),
+      this.source
+        .getRepository(FinancialPayment)
+        .createQueryBuilder('payment')
+        .select('payment.id', 'id')
+        .addSelect('payment.paymentDate', 'paymentDate')
+        .addSelect('payment.createdAt', 'createdAt')
+        .addSelect('payment.amountMinor', 'amount')
+        .addSelect('payment.method', 'method')
+        .addSelect('payment.externalReference', 'externalReference')
+        .addSelect('payment.comment', 'comment')
+        .addSelect('payment.cancellationDate', 'cancellationDate')
+        .addSelect('payment.cancelledAt', 'cancelledAt')
+        .addSelect('payment.cancellationReason', 'cancellationReason')
+        .where('payment.customerId = :customerId', { customerId })
+        .getRawMany<Record<string, unknown>>(),
+      this.source
+        .getRepository(FinancialPaymentAllocation)
+        .createQueryBuilder('allocation')
+        .innerJoin(
+          FinancialPayment,
+          'payment',
+          'payment.id = allocation.paymentId',
+        )
+        .select('allocation.amountMinor', 'amount')
+        .addSelect('allocation.createdAt', 'createdAt')
+        .addSelect('allocation.releasedAt', 'releasedAt')
+        .addSelect('payment.paymentDate', 'paymentDate')
+        .addSelect('payment.cancellationDate', 'cancellationDate')
+        .where('payment.customerId = :customerId', { customerId })
+        .getRawMany<Record<string, unknown>>(),
+    ]);
+
+    const entries = [
+      ...entryRows.map((row) =>
+        this.statementEntry({
+          id: String(row.id),
+          kind: `accrual_${String(row.entryKind)}`,
+          businessDate: String(row.businessDate),
+          createdAt: this.iso(row.createdAt),
+          title: String(row.title),
+          details: this.nullableString(row.reason),
+          accrualMinor: this.number(row.amount),
+          paymentMinor: 0,
+        }),
+      ),
+      ...paymentRows.flatMap((row) => {
+        const amountMinor = this.number(row.amount);
+        const title =
+          this.nullableString(row.externalReference) ??
+          this.nullableString(row.comment) ??
+          'Оплата';
+        const rows = [
+          this.statementEntry({
+            id: String(row.id),
+            kind: 'payment',
+            businessDate: String(row.paymentDate),
+            createdAt: this.iso(row.createdAt),
+            title,
+            details: this.nullableString(row.method),
+            accrualMinor: 0,
+            paymentMinor: amountMinor,
+          }),
+        ];
+        if (row.cancellationDate)
+          rows.push(
+            this.statementEntry({
+              id: String(row.id),
+              kind: 'payment_cancellation',
+              businessDate: this.dateValue(row.cancellationDate),
+              createdAt: this.iso(row.cancelledAt),
+              title: `Сторно: ${title}`,
+              details: this.nullableString(row.cancellationReason),
+              accrualMinor: 0,
+              paymentMinor: -amountMinor,
+            }),
+          );
+        return rows;
+      }),
+    ].sort((a, b) => this.compareReportRows(a, b));
+
+    const before = entries.filter(
+      (entry) => query.dateFrom && entry.businessDate < query.dateFrom,
+    );
+    const period = entries.filter(
+      (entry) =>
+        (!query.dateFrom || entry.businessDate >= query.dateFrom) &&
+        (!query.dateTo || entry.businessDate <= query.dateTo),
+    );
+    const openingBalanceMinor = before.reduce(
+      (sum, entry) => sum + entry.balanceChangeMinor,
+      0,
+    );
+    const accruedMinor = period.reduce(
+      (sum, entry) => sum + entry.accrualMinor,
+      0,
+    );
+    const paidMinor = period.reduce(
+      (sum, entry) => sum + entry.paymentMinor,
+      0,
+    );
+    const closingBalanceMinor = openingBalanceMinor + accruedMinor - paidMinor;
+    const asOfDate = query.dateTo ?? '9999-12-31';
+    const paymentAsOfMinor = paymentRows.reduce((sum, row) => {
+      if (String(row.paymentDate) > asOfDate) return sum;
+      const cancelled =
+        row.cancellationDate &&
+        this.dateValue(row.cancellationDate) <= asOfDate;
+      return sum + (cancelled ? 0 : this.number(row.amount));
+    }, 0);
+    const allocatedAsOfMinor = allocationRows.reduce((sum, row) => {
+      if (String(row.paymentDate) > asOfDate) return sum;
+      if (
+        row.cancellationDate &&
+        this.dateValue(row.cancellationDate) <= asOfDate
+      )
+        return sum;
+      const createdDate = this.iso(row.createdAt).slice(0, 10);
+      const releasedDate = row.releasedAt
+        ? this.iso(row.releasedAt).slice(0, 10)
+        : null;
+      return createdDate <= asOfDate &&
+        (!releasedDate || releasedDate > asOfDate)
+        ? sum + this.number(row.amount)
+        : sum;
+    }, 0);
+    const totals = {
+      ...this.moneyFields('openingBalance', openingBalanceMinor),
+      ...this.moneyFields('accrued', accruedMinor),
+      ...this.moneyFields('paid', paidMinor),
+      ...this.moneyFields('closingBalance', closingBalanceMinor),
+      ...this.moneyFields(
+        'unallocatedAdvance',
+        Math.max(paymentAsOfMinor - allocatedAsOfMinor, 0),
+      ),
+    };
+    const page = this.reportPage(period, query.limit, query.cursor);
+    return {
+      customer: {
+        id: customer.id,
+        name: customer.name,
+        companyName: customer.companyName ?? null,
+      },
+      items: page.items,
+      totals,
+      meta: page.meta,
+    };
+  }
+
+  private async getAccrualTurnover(query: TurnoverReportQueryDto) {
+    if (query.method || query.allocationState)
+      throw new BadRequestException(
+        'Payment filters are not valid for an accrual turnover report',
+      );
+    if (query.status === FinancialPaymentStatus.POSTED)
+      throw new BadRequestException(
+        'Payment status is not valid for an accrual turnover report',
+      );
+    const qb = this.source
+      .getRepository(FinancialAccrualEntry)
+      .createQueryBuilder('entry')
+      .innerJoin(FinancialAccrual, 'accrual', 'accrual.id = entry.accrualId')
+      .innerJoin(Customer, 'customer', 'customer.id = accrual.customerId')
+      .leftJoin(
+        OrderGroup,
+        'order_group',
+        'order_group.id = accrual.orderGroupId',
+      )
+      .select('entry.id', 'id')
+      .addSelect('entry.effectiveDate', 'businessDate')
+      .addSelect('entry.createdAt', 'createdAt')
+      .addSelect('entry.kind', 'entryKind')
+      .addSelect('entry.amountMinor', 'amount')
+      .addSelect('entry.reason', 'reason')
+      .addSelect('accrual.id', 'accrualId')
+      .addSelect('accrual.customerId', 'customerId')
+      .addSelect('customer.name', 'customerName')
+      .addSelect('accrual.sourceType', 'sourceType')
+      .addSelect('accrual.orderGroupId', 'orderGroupId')
+      .addSelect('order_group.orderNumber', 'orderNumber')
+      .addSelect('accrual.title', 'title')
+      .addSelect('accrual.status', 'status');
+    if (query.customerId)
+      qb.andWhere('accrual.customerId = :customerId', {
+        customerId: query.customerId,
+      });
+    if (query.sourceType)
+      qb.andWhere('accrual.sourceType = :sourceType', {
+        sourceType: query.sourceType,
+      });
+    if (query.status)
+      qb.andWhere('accrual.status = :status', { status: query.status });
+    const rows = await qb.getRawMany<Record<string, unknown>>();
+    const term = query.search?.trim().toLocaleLowerCase('ru-RU');
+    const items = rows
+      .map((row) => {
+        const amountMinor = this.number(row.amount);
+        const entryKind = String(row.entryKind);
+        return {
+          id: String(row.id),
+          kind: 'accrual' as const,
+          businessDate: String(row.businessDate),
+          createdAt: this.iso(row.createdAt),
+          accrualId: String(row.accrualId),
+          customerId: String(row.customerId),
+          customerName: String(row.customerName),
+          sourceType: String(row.sourceType),
+          orderGroupId:
+            row.orderGroupId == null ? null : Number(row.orderGroupId),
+          orderNumber: this.nullableString(row.orderNumber),
+          title: String(row.title),
+          status: String(row.status),
+          entryKind,
+          reason: this.nullableString(row.reason),
+          ...this.moneyFields(
+            'initial',
+            entryKind === 'initial' ? amountMinor : 0,
+          ),
+          ...this.moneyFields(
+            'adjustments',
+            entryKind === 'initial' ? 0 : amountMinor,
+          ),
+          ...this.moneyFields('amount', amountMinor),
+        };
+      })
+      .filter(
+        (item) =>
+          (!query.dateFrom || item.businessDate >= query.dateFrom) &&
+          (!query.dateTo || item.businessDate <= query.dateTo) &&
+          (!term ||
+            `${item.customerName} ${item.title} ${item.orderNumber ?? ''} ${item.reason ?? ''}`
+              .toLocaleLowerCase('ru-RU')
+              .includes(term)),
+      )
+      .sort((a, b) => this.compareReportRows(a, b));
+    const totalMinor = items.reduce((sum, item) => sum + item.amountMinor, 0);
+    const page = this.reportPage(items, query.limit, query.cursor);
+    return {
+      reportType: query.reportType,
+      items: page.items,
+      totals: {
+        count: items.length,
+        ...this.moneyFields(
+          'initial',
+          items.reduce((sum, item) => sum + item.initialMinor, 0),
+        ),
+        ...this.moneyFields(
+          'adjustments',
+          items.reduce((sum, item) => sum + item.adjustmentsMinor, 0),
+        ),
+        ...this.moneyFields('amount', totalMinor),
+      },
+      meta: page.meta,
+    };
+  }
+
+  private async getPaymentTurnover(query: TurnoverReportQueryDto) {
+    if (query.sourceType)
+      throw new BadRequestException(
+        'Accrual filters are not valid for a payment turnover report',
+      );
+    if (query.status === FinancialAccrualStatus.ACTIVE)
+      throw new BadRequestException(
+        'Accrual status is not valid for a payment turnover report',
+      );
+    const allocations = this.source
+      .getRepository(FinancialPaymentAllocation)
+      .createQueryBuilder('allocation')
+      .select('allocation.paymentId', 'payment_id')
+      .addSelect(
+        `SUM(CASE WHEN allocation.status = 'active' THEN allocation.amountMinor ELSE 0 END)`,
+        'allocated',
+      )
+      .groupBy('allocation.paymentId');
+    const qb = this.source
+      .getRepository(FinancialPayment)
+      .createQueryBuilder('payment')
+      .innerJoin(Customer, 'customer', 'customer.id = payment.customerId')
+      .leftJoin(
+        `(${allocations.getQuery()})`,
+        'allocation_total',
+        'allocation_total.payment_id = payment.id',
+      )
+      .select('payment.id', 'id')
+      .addSelect('payment.customerId', 'customerId')
+      .addSelect('customer.name', 'customerName')
+      .addSelect('payment.amountMinor', 'amount')
+      .addSelect('payment.paymentDate', 'paymentDate')
+      .addSelect('payment.createdAt', 'createdAt')
+      .addSelect('payment.method', 'method')
+      .addSelect('payment.externalReference', 'externalReference')
+      .addSelect('payment.comment', 'comment')
+      .addSelect('payment.status', 'status')
+      .addSelect('payment.cancellationDate', 'cancellationDate')
+      .addSelect('payment.cancelledAt', 'cancelledAt')
+      .addSelect('payment.cancellationReason', 'cancellationReason')
+      .addSelect('COALESCE(allocation_total.allocated, 0)', 'allocated');
+    if (query.customerId)
+      qb.andWhere('payment.customerId = :customerId', {
+        customerId: query.customerId,
+      });
+    if (query.method)
+      qb.andWhere('payment.method = :method', { method: query.method });
+    if (query.status)
+      qb.andWhere('payment.status = :status', { status: query.status });
+    const rows = await qb.getRawMany<Record<string, unknown>>();
+    const term = query.search?.trim().toLocaleLowerCase('ru-RU');
+    const items = rows
+      .flatMap((row) => {
+        const amountMinor = this.number(row.amount);
+        const allocatedMinor = this.number(row.allocated);
+        const base = {
+          id: String(row.id),
+          customerId: String(row.customerId),
+          customerName: String(row.customerName),
+          method: String(row.method),
+          externalReference: this.nullableString(row.externalReference),
+          comment: this.nullableString(row.comment),
+          status: String(row.status),
+        };
+        const result = [
+          {
+            ...base,
+            kind: 'payment',
+            businessDate: String(row.paymentDate),
+            createdAt: this.iso(row.createdAt),
+            cancelled: false,
+            ...this.moneyFields('amount', amountMinor),
+            ...this.moneyFields('allocated', allocatedMinor),
+            ...this.moneyFields(
+              'unallocated',
+              Math.max(amountMinor - allocatedMinor, 0),
+            ),
+          },
+        ];
+        if (row.cancellationDate)
+          result.push({
+            ...base,
+            kind: 'payment_cancellation',
+            businessDate: this.dateValue(row.cancellationDate),
+            createdAt: this.iso(row.cancelledAt),
+            cancelled: true,
+            ...this.moneyFields('amount', -amountMinor),
+            ...this.moneyFields('allocated', -allocatedMinor),
+            ...this.moneyFields(
+              'unallocated',
+              -Math.max(amountMinor - allocatedMinor, 0),
+            ),
+          });
+        return result;
+      })
+      .filter((item) => {
+        const allocationState =
+          Math.abs(item.allocatedMinor) === 0
+            ? PaymentAllocationState.UNALLOCATED
+            : Math.abs(item.allocatedMinor) < Math.abs(item.amountMinor)
+              ? PaymentAllocationState.PARTIAL
+              : PaymentAllocationState.ALLOCATED;
+        return (
+          (!query.dateFrom || item.businessDate >= query.dateFrom) &&
+          (!query.dateTo || item.businessDate <= query.dateTo) &&
+          (!query.allocationState ||
+            allocationState === query.allocationState) &&
+          (!term ||
+            `${item.customerName} ${item.externalReference ?? ''} ${item.comment ?? ''}`
+              .toLocaleLowerCase('ru-RU')
+              .includes(term))
+        );
+      })
+      .sort((a, b) => this.compareReportRows(a, b));
+    const byMethod = Object.values(FinancialPaymentMethod).map((method) => {
+      const amountMinor = items
+        .filter((item) => item.method === String(method))
+        .reduce((sum, item) => sum + item.amountMinor, 0);
+      return { method, ...this.moneyFields('amount', amountMinor) };
+    });
+    const page = this.reportPage(items, query.limit, query.cursor);
+    return {
+      reportType: query.reportType,
+      items: page.items,
+      totals: {
+        count: items.length,
+        ...this.moneyFields(
+          'amount',
+          items.reduce((sum, item) => sum + item.amountMinor, 0),
+        ),
+        ...this.moneyFields(
+          'allocated',
+          items.reduce((sum, item) => sum + item.allocatedMinor, 0),
+        ),
+        ...this.moneyFields(
+          'unallocated',
+          items.reduce((sum, item) => sum + item.unallocatedMinor, 0),
+        ),
+        byMethod,
+      },
+      meta: page.meta,
+    };
   }
 
   private async customerBalances(customerId?: string) {
@@ -676,6 +1116,114 @@ export class FinanceReportsService {
       ),
       allocationState,
     };
+  }
+
+  private statementEntry(input: {
+    id: string;
+    kind: string;
+    businessDate: string;
+    createdAt: string;
+    title: string;
+    details: string | null;
+    accrualMinor: number;
+    paymentMinor: number;
+  }) {
+    return {
+      ...input,
+      ...this.moneyFields('accrual', input.accrualMinor),
+      ...this.moneyFields('payment', input.paymentMinor),
+      ...this.moneyFields(
+        'balanceChange',
+        input.accrualMinor - input.paymentMinor,
+      ),
+    };
+  }
+
+  private assertDateRange(query: FinanceListQueryDto) {
+    if (query.dateFrom && query.dateTo && query.dateFrom > query.dateTo)
+      throw new BadRequestException('dateFrom must not be after dateTo');
+  }
+
+  private reportPage<
+    T extends {
+      businessDate: string;
+      createdAt: string;
+      id: string;
+      kind: string;
+    },
+  >(items: T[], limit: number, cursorValue?: string) {
+    const cursor = cursorValue ? this.decodeReportCursor(cursorValue) : null;
+    const remaining = cursor
+      ? items.filter((item) => this.compareReportRows(item, cursor) > 0)
+      : items;
+    const visible = remaining.slice(0, limit);
+    const last = visible.at(-1);
+    return {
+      items: visible,
+      meta: {
+        limit,
+        nextCursor:
+          remaining.length > limit && last
+            ? this.encodeReportCursor(last)
+            : null,
+      },
+    };
+  }
+
+  private compareReportRows(left: ReportCursor, right: ReportCursor): number {
+    return (
+      left.businessDate.localeCompare(right.businessDate) ||
+      left.createdAt.localeCompare(right.createdAt) ||
+      left.id.localeCompare(right.id) ||
+      left.kind.localeCompare(right.kind)
+    );
+  }
+
+  private encodeReportCursor(cursor: ReportCursor) {
+    return Buffer.from(
+      JSON.stringify({
+        businessDate: cursor.businessDate,
+        createdAt: cursor.createdAt,
+        id: cursor.id,
+        kind: cursor.kind,
+      }),
+      'utf8',
+    ).toString('base64url');
+  }
+
+  private decodeReportCursor(value: string): ReportCursor {
+    try {
+      const parsed = JSON.parse(
+        Buffer.from(value, 'base64url').toString('utf8'),
+      ) as Partial<ReportCursor>;
+      if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(parsed.businessDate ?? '') ||
+        typeof parsed.createdAt !== 'string' ||
+        typeof parsed.id !== 'string' ||
+        typeof parsed.kind !== 'string' ||
+        !parsed.createdAt ||
+        !parsed.id ||
+        !parsed.kind
+      )
+        throw new Error();
+      return parsed as ReportCursor;
+    } catch {
+      throw new BadRequestException('Invalid finance report cursor');
+    }
+  }
+
+  private iso(value: unknown) {
+    if (value instanceof Date) return value.toISOString();
+    const parsed = new Date(String(value));
+    if (Number.isNaN(parsed.getTime()))
+      throw new BadRequestException('Invalid finance operation timestamp');
+    return parsed.toISOString();
+  }
+
+  private dateValue(value: unknown) {
+    if (typeof value === 'string') return value.slice(0, 10);
+    if (value instanceof Date) return value.toISOString().slice(0, 10);
+    throw new BadRequestException('Invalid finance business date');
   }
 
   private page<T>(

@@ -45,6 +45,8 @@ import {
   paymentMethodLabel,
 } from '../model/finance-display';
 
+import { FinanceReports } from './FinanceReports';
+
 const styles = {
   page: css`
     width: 100%;
@@ -586,6 +588,18 @@ export const FinancePage: FC = () => {
                   search={search}
                   selectedId={customerId}
                   onSelect={(id) => updateParam('customerId', id)}
+                />
+              ),
+            },
+            {
+              key: 'reports',
+              label: 'Отчёты',
+              children: (
+                <FinanceReports
+                  params={params}
+                  search={search}
+                  customers={customers.data?.items ?? []}
+                  updateParam={updateParam}
                 />
               ),
             },

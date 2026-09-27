@@ -940,7 +940,65 @@ Public API для следующих задач:
 
 ### Результат FA-10
 
-Заполняется агентом после реализации.
+Реализованы серверные отчеты, вкладка «Отчеты» и XLSX-экспорт без изменений
+схемы БД и без перехода к FA-11.
+
+- Добавлены endpoints `GET /api/finance/reports/turnover` и
+  `GET /api/finance/customers/:customerId/statement`. Turnover принимает
+  `reportType=payments|accruals`, `dateFrom/dateTo`, `customerId`, `search` и
+  применимые к типу отчета `sourceType`, `method`, `status`,
+  `allocationState`; несовместимые фильтры и обратный диапазон дат дают `400`.
+- Оплата сохраняется положительной строкой на `paymentDate`, а при отмене
+  получает отдельную отрицательную строку на `cancellationDate`. Начисления,
+  корректировки и reversal выводятся по собственному `effectiveDate`.
+  События сортируются хронологически по `businessDate`, `createdAt`, `id` и
+  `kind`.
+- Акт возвращает `openingBalance`, обороты `accrued`/`paid`,
+  `closingBalance` и `unallocatedAdvance` as-of `dateTo`. Формула сальдо:
+  `начисления - оплаты`; сторно входит в оплаты отрицательной суммой.
+  Нераспределенный аванс as-of учитывает даты оплаты/отмены и технические даты
+  создания/освобождения allocations, а не только их текущий статус.
+- Оба отчета используют cursor, содержащий `businessDate`, `createdAt`, `id` и
+  `kind`. `totals` рассчитываются до применения cursor/limit и одинаковы на
+  всех страницах полного фильтра.
+- В `/finance?tab=reports` добавлены тип отчета, период, заказчик и согласованные
+  фильтры. Все воспроизводимые значения сохраняются в query string. Для акта
+  показаны начальное/конечное сальдо, обороты и аванс; таблицы имеют loading,
+  error, empty и «Загрузить еще».
+- Экспорт последовательно получает все страницы по 100 строк, отображает число
+  полученных строк и поддерживает отмену через `AbortController`. XLSX содержит
+  название, период, фильтры, время формирования, все строки, денежный формат,
+  итоги и отдельный признак `Сторно`; PDF и новые зависимости не добавлялись.
+- Фактические основные файлы: серверные `finance-reports.service.ts`,
+  `finance.controller.ts`, `dto/finance-read.dto.ts`; клиентские
+  `shared/api/finance/finance.ts`, `pages/finance/ui/FinanceReports.tsx`,
+  `pages/finance/lib/collect-finance-report.ts` и
+  `pages/finance/lib/finance-report-workbook.ts`.
+
+Проверки:
+
+- server SQLite coverage: `finance-reports.service.spec.ts` — 7 тестов успешно;
+  покрыты opening balance, одинаковые totals при `limit=1`, корректировка,
+  reversal и отмена оплаты в другом периоде;
+- server build и точечный ESLint без `--fix` — успешно;
+- client coverage: `FinancePage.test.tsx` и
+  `finance-report-workbook.test.ts` — 4 теста успешно; отдельный тест collector
+  подтверждает получение двух cursor-страниц;
+- XLSX повторно открыт через `@protobi/exceljs`; проверены обе строки, фильтр,
+  итог и отметка сторно;
+- client production build и точечный ESLint без `--fix` — успешно; только
+  существующие предупреждения Vite о circular/large chunks;
+- `npm run fsd:check` — единственный существующий blocker `src/app/ui`
+  (`fsd/no-ui-in-app`), новые файлы нарушений не добавили;
+- визуально проверен фактический `/finance?tab=reports`: фильтры, итоги,
+  таблица, горизонтальная прокрутка и кнопка XLSX; финансовые команды и загрузка
+  файла во время smoke-проверки не выполнялись;
+- PostgreSQL integration не выполнена: Docker CLI в текущей среде отсутствует.
+  PostgreSQL-ветка остается обязательной непроверенной частью FA-11.
+
+Ограничение размера: сервер ограничивает одну страницу 100 строками, клиентский
+экспорт снимает это ограничение последовательным обходом cursor-страниц; общий
+жесткий лимит экспорта не вводился.
 
 <a id="fa-11"></a>
 ## FA-11. Сквозная приемка PostgreSQL, SQLite, web и desktop

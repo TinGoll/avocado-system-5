@@ -133,10 +133,117 @@ export type CustomerLinkIssue = {
 };
 
 export type FinanceListParams = {
+  dateFrom?: string;
+  dateTo?: string;
   search?: string;
   customerId?: string;
   cursor?: string;
   limit?: number;
+};
+
+export type FinanceTurnoverParams = FinanceListParams & {
+  reportType: 'payments' | 'accruals';
+  sourceType?: FinanceAccrual['sourceType'];
+  method?: FinancePayment['method'];
+  status?: string;
+  allocationState?: FinancePayment['allocationState'];
+};
+
+type FinanceReportRowBase = {
+  id: string;
+  kind: string;
+  businessDate: string;
+  createdAt: string;
+  customerId: string;
+  customerName: string;
+  amountMinor: number;
+  amount: string;
+};
+
+export type FinancePaymentTurnoverRow = FinanceReportRowBase & {
+  kind: 'payment' | 'payment_cancellation';
+  method: FinancePayment['method'];
+  externalReference: string | null;
+  comment: string | null;
+  status: FinancePayment['status'];
+  cancelled: boolean;
+  allocatedMinor: number;
+  allocated: string;
+  unallocatedMinor: number;
+  unallocated: string;
+};
+
+export type FinanceAccrualTurnoverRow = FinanceReportRowBase & {
+  kind: 'accrual';
+  accrualId: string;
+  sourceType: FinanceAccrual['sourceType'];
+  orderGroupId: number | null;
+  orderNumber: string | null;
+  title: string;
+  status: FinanceAccrual['status'];
+  entryKind: 'initial' | 'adjustment' | 'reversal';
+  reason: string | null;
+  initialMinor: number;
+  initial: string;
+  adjustmentsMinor: number;
+  adjustments: string;
+};
+
+export type FinanceTurnoverRow =
+  | FinancePaymentTurnoverRow
+  | FinanceAccrualTurnoverRow;
+
+export type FinanceTurnover = FinancePage<FinanceTurnoverRow> & {
+  reportType: FinanceTurnoverParams['reportType'];
+  totals: {
+    count: number;
+    amountMinor: number;
+    amount: string;
+    initialMinor?: number;
+    initial?: string;
+    adjustmentsMinor?: number;
+    adjustments?: string;
+    allocatedMinor?: number;
+    allocated?: string;
+    unallocatedMinor?: number;
+    unallocated?: string;
+    byMethod?: Array<{
+      method: FinancePayment['method'];
+      amountMinor: number;
+      amount: string;
+    }>;
+  };
+};
+
+export type FinanceStatementEntry = {
+  id: string;
+  kind: string;
+  businessDate: string;
+  createdAt: string;
+  title: string;
+  details: string | null;
+  accrualMinor: number;
+  accrual: string;
+  paymentMinor: number;
+  payment: string;
+  balanceChangeMinor: number;
+  balanceChange: string;
+};
+
+export type FinanceCustomerStatement = FinancePage<FinanceStatementEntry> & {
+  customer: { id: string; name: string; companyName: string | null };
+  totals: {
+    openingBalanceMinor: number;
+    openingBalance: string;
+    accruedMinor: number;
+    accrued: string;
+    paidMinor: number;
+    paid: string;
+    closingBalanceMinor: number;
+    closingBalance: string;
+    unallocatedAdvanceMinor: number;
+    unallocatedAdvance: string;
+  };
 };
 
 export type FinanceAllocationInput = { accrualId: string; amount: string };
@@ -217,6 +324,23 @@ export const getFinanceOrderGroup = (id: number) =>
 export const getCustomerLinkIssues = () =>
   fetcher<{ items: CustomerLinkIssue[]; meta: { count: number } }>({
     url: 'order-groups/customer-link-issues',
+  });
+export const getFinanceTurnover = (
+  params: FinanceTurnoverParams,
+  signal?: AbortSignal,
+) =>
+  fetcher<FinanceTurnover>({
+    url: `finance/reports/turnover${queryString(params)}`,
+    config: { signal },
+  });
+export const getFinanceCustomerStatement = (
+  customerId: string,
+  params: FinanceListParams,
+  signal?: AbortSignal,
+) =>
+  fetcher<FinanceCustomerStatement>({
+    url: `finance/customers/${customerId}/statement${queryString(params)}`,
+    config: { signal },
   });
 
 export const createManualAccrual = (data: CreateManualAccrualInput) =>

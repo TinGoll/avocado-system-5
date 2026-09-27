@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   IsEnum,
   IsInt,
+  IsIn,
   IsOptional,
   IsString,
   IsUUID,
@@ -29,6 +30,11 @@ export enum PaymentAllocationState {
   UNALLOCATED = 'unallocated',
   PARTIAL = 'partial',
   ALLOCATED = 'allocated',
+}
+
+export enum FinanceTurnoverReportType {
+  ACCRUALS = 'accruals',
+  PAYMENTS = 'payments',
 }
 
 export class FinanceListQueryDto {
@@ -84,3 +90,26 @@ export class PaymentListQueryDto extends FinanceListQueryDto {
   @IsEnum(PaymentAllocationState)
   allocationState?: PaymentAllocationState;
 }
+
+export class TurnoverReportQueryDto extends FinanceListQueryDto {
+  @IsEnum(FinanceTurnoverReportType)
+  reportType: FinanceTurnoverReportType;
+
+  @IsOptional()
+  @IsEnum(FinancialAccrualSourceType)
+  sourceType?: FinancialAccrualSourceType;
+
+  @IsOptional()
+  @IsEnum(FinancialPaymentMethod)
+  method?: FinancialPaymentMethod;
+
+  @IsOptional()
+  @IsIn(['active', 'cancelled', 'posted'])
+  status?: string;
+
+  @IsOptional()
+  @IsEnum(PaymentAllocationState)
+  allocationState?: PaymentAllocationState;
+}
+
+export class CustomerStatementQueryDto extends FinanceListQueryDto {}

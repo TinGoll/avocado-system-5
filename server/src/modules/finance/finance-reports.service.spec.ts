@@ -292,4 +292,102 @@ describe('FinanceReportsService (SQLite)', () => {
       accrualVersion: 0,
     });
   });
+
+  it('keeps turnover totals independent from cursor page size', async () => {
+    const accrual = await createAccrual(firstCustomer.id, 10_000, 'Печать');
+    await source.getRepository(FinancialAccrualEntry).save([
+      {
+        accrualId: accrual.id,
+        kind: 'adjustment',
+        amountMinor: 2_000,
+        effectiveDate: '2026-09-24',
+        reason: 'Доплата',
+        reversesEntryId: null,
+        requestId: randomUUID(),
+      },
+      {
+        accrualId: accrual.id,
+        kind: 'reversal',
+        amountMinor: -2_000,
+        effectiveDate: '2026-09-25',
+        reason: 'Сторно корректировки',
+        reversesEntryId: null,
+        requestId: randomUUID(),
+      },
+    ]);
+
+    const firstPage = await reports.getTurnover({
+      reportType: 'accruals',
+      dateFrom: '2026-09-23',
+      dateTo: '2026-09-25',
+      limit: 1,
+    } as never);
+    expect(firstPage.items).toHaveLength(1);
+    expect(firstPage.meta.nextCursor).not.toBeNull();
+    expect(firstPage.totals).toMatchObject({
+      count: 3,
+      initialMinor: 10_000,
+      adjustmentsMinor: 0,
+      amountMinor: 10_000,
+    });
+
+    const secondPage = await reports.getTurnover({
+      reportType: 'accruals',
+      dateFrom: '2026-09-23',
+      dateTo: '2026-09-25',
+      limit: 1,
+      cursor: firstPage.meta.nextCursor!,
+    } as never);
+    expect(secondPage.totals).toEqual(firstPage.totals);
+  });
+
+  it('builds an as-of statement with opening balance and dated payment cancellation', async () => {
+    const accrual = await createAccrual(firstCustomer.id, 10_000, 'Печать');
+    await source.getRepository(FinancialAccrualEntry).save({
+      accrualId: accrual.id,
+      kind: 'adjustment',
+      amountMinor: 2_000,
+      effectiveDate: '2026-09-24',
+      reason: 'Доплата',
+      reversesEntryId: null,
+      requestId: randomUUID(),
+    });
+    await source.getRepository(FinancialPayment).save({
+      customerId: firstCustomer.id,
+      amountMinor: 4_000,
+      paymentDate: '2026-09-22',
+      method: 'cash',
+      externalReference: null,
+      comment: 'Аванс',
+      status: 'cancelled',
+      version: 1,
+      requestId: randomUUID(),
+      cancellationRequestId: randomUUID(),
+      cancelledAt: new Date('2026-09-25T09:00:00.000Z'),
+      cancellationDate: '2026-09-25',
+      cancellationReason: 'Ошибка кассира',
+    });
+
+    const statement = await reports.getCustomerStatement(firstCustomer.id, {
+      dateFrom: '2026-09-23',
+      dateTo: '2026-09-25',
+      limit: 10,
+    });
+    expect(statement.totals).toMatchObject({
+      openingBalanceMinor: -4_000,
+      accruedMinor: 12_000,
+      paidMinor: -4_000,
+      closingBalanceMinor: 12_000,
+      unallocatedAdvanceMinor: 0,
+    });
+    expect(statement.items.map((item) => item.kind)).toEqual([
+      'accrual_initial',
+      'accrual_adjustment',
+      'payment_cancellation',
+    ]);
+    expect(statement.items.at(-1)).toMatchObject({
+      businessDate: '2026-09-25',
+      paymentMinor: -4_000,
+    });
+  });
 });
