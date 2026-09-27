@@ -22,7 +22,7 @@ describe('Financial core migration (SQLite)', () => {
     await source.initialize();
     const migrations = source.migrations;
     source.migrations = migrations.filter(
-      ({ name }) => name !== 'AddFinancialCore1789700000000',
+      ({ name }) => Number(name.slice(-13)) < 1789700000000,
     );
     await source.runMigrations();
     await source.query(

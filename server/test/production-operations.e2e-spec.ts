@@ -65,7 +65,7 @@ describe('Production operations flow (SQLite)', () => {
     expect(nameResponse.body.variables).toContainEqual(
       expect.objectContaining({
         path: 'item.name',
-        label: 'Название продукта',
+        label: 'Название',
       }),
     );
     expect(nameResponse.body.variables[0]).not.toHaveProperty('scopes');
@@ -106,9 +106,16 @@ describe('Production operations flow (SQLite)', () => {
       expect.objectContaining({ id: operationId }),
     ]);
 
+    const customerResponse = await request(app.getHttpServer())
+      .post('/api/customers')
+      .send({ name: 'Заказчик OP-09', level: 'bronze' })
+      .expect(201);
     const groupResponse = await request(app.getHttpServer())
       .post('/api/order-groups')
-      .send({ orderNumber: 'OP-09-E2E', customer: { name: 'Заказчик' } })
+      .send({
+        orderNumber: 'OP-09-E2E',
+        customerId: customerResponse.body.id,
+      })
       .expect(201);
     const groupId = groupResponse.body.id as number;
 
@@ -157,9 +164,12 @@ describe('Production operations flow (SQLite)', () => {
       savedSnapshot.body.items[0].productionOperationResults[0].totalCost,
     ).toBe(32.76);
 
-    const draftUpdate = await request(app.getHttpServer())
+    await request(app.getHttpServer())
       .patch(`/api/orders/${orderId}/items/${itemId}`)
       .send({ quantity: 2 })
+      .expect(200);
+    const draftUpdate = await request(app.getHttpServer())
+      .get(`/api/orders/${orderId}/with-items`)
       .expect(200);
     expect(
       draftUpdate.body.items[0].productionOperationResults[0].totalCost,
@@ -167,16 +177,19 @@ describe('Production operations flow (SQLite)', () => {
 
     await request(app.getHttpServer())
       .patch(`/api/order-groups/${groupId}`)
-      .send({ status: 'in_production' })
+      .send({ status: 'in_production', expectedVersion: 0 })
       .expect(200);
     await request(app.getHttpServer())
       .patch(`/api/production-operations/${operationId}`)
       .send({ costPerUnit: 300 })
       .expect(200);
 
-    const productionUpdate = await request(app.getHttpServer())
+    await request(app.getHttpServer())
       .patch(`/api/orders/${orderId}/items/${itemId}`)
       .send({ quantity: 3 })
+      .expect(200);
+    const productionUpdate = await request(app.getHttpServer())
+      .get(`/api/orders/${orderId}/with-items`)
       .expect(200);
     expect(
       productionUpdate.body.items[0].productionOperationResults[0].totalCost,

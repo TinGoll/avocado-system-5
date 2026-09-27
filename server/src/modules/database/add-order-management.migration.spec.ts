@@ -33,11 +33,7 @@ describe('Order management migration and transactional journal (SQLite)', () => 
     await source.initialize();
     const allMigrations = source.migrations;
     source.migrations = allMigrations.filter(
-      (migration) =>
-        ![
-          'AddOrderManagement1788800000000',
-          'AddMultipleCustomStatuses1789300000000',
-        ].includes(migration.name),
+      (migration) => Number(migration.name.slice(-13)) < 1788800000000,
     );
     await source.runMigrations();
     await source.query(
@@ -98,7 +94,16 @@ describe('Order management migration and transactional journal (SQLite)', () => 
     );
     expect(
       await source.query('SELECT * FROM order_management_settings'),
-    ).toEqual([{ id: 1, timeZone: 'Europe/Moscow' }]);
+    ).toEqual([
+      {
+        id: 1,
+        timeZone: 'Europe/Moscow',
+        autoAddBoardId: null,
+        autoAddStageId: null,
+        autoAddStatus: null,
+        dueDateRules: '[]',
+      },
+    ]);
     expect(await source.runMigrations()).toEqual([]);
     expect((await source.driver.createSchemaBuilder().log()).upQueries).toEqual(
       [],

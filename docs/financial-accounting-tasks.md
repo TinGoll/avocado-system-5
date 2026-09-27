@@ -1048,7 +1048,29 @@ Public API для следующих задач:
 
 ### Результат FA-11
 
-Заполняется агентом после реализации.
+Выполнена сквозная приемка в доступной среде и создан воспроизводимый отчет
+`docs/financial-accounting-mvp-acceptance.md`. Итоговая рекомендация — **NO-GO**:
+критерии 1–12 подтверждены тестами SQLite/web, критерий 13 заблокирован отсутствием
+фактической PostgreSQL-проверки и полного desktop UI smoke.
+
+- Server: 36 suites и 200 tests с coverage, полный e2e 6 suites/57 tests,
+  SQLite e2e 5/5, build и точечный ESLint успешно. Подготовительные migration
+  specs исправлены так, чтобы более поздние зависимые миграции не запускались
+  раньше проверяемой.
+- Client: 41 test files и 137 tests с coverage, build и точечный ESLint успешно.
+  Локальный timeout тяжелого Ant Design теста увеличен до 10 секунд; production-код
+  не изменялся. `fsd:check` по-прежнему блокируется существующим `src/app/ui`.
+- Нагрузочный SQLite-сценарий с 205 платежами проходит cursor-страницы `100/100/5`
+  без дублей; одна проверка заняла около 0,46 с, SLA не устанавливался.
+- Desktop build и win32-x64 package успешны (Forge потребовал
+  `NODE_OPTIONS=--use-system-ca`). Изолированный UI restart/write/export не
+  выполнен из-за уже работающего single-instance приложения.
+- PostgreSQL не проверен: `docker`, `psql`, `pg_dump` и `pg_restore` недоступны.
+  Это явно оставлено release blocker. В отчете приведены процедуры backup и
+  rehearsal для SQLite и PostgreSQL без destructive down пользовательской БД.
+- Визуальный web smoke `/finance?tab=reports`, выполненный на FA-10, учтен вместе
+  с актуальными route/UI/XLSX тестами; пользовательские денежные данные не
+  изменялись.
 
 ## Готовый запрос для запуска первой задачи
 

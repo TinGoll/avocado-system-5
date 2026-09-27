@@ -341,6 +341,46 @@ describe('FinanceReportsService (SQLite)', () => {
     expect(secondPage.totals).toEqual(firstPage.totals);
   });
 
+  it('walks a 205-row turnover through three cursor pages without duplicates', async () => {
+    await source.getRepository(FinancialPayment).save(
+      Array.from({ length: 205 }, (_, index) => ({
+        customerId: firstCustomer.id,
+        amountMinor: index + 1,
+        paymentDate: '2026-09-23',
+        method: 'bank_transfer',
+        externalReference: `LOAD-${index}`,
+        comment: null,
+        status: 'posted',
+        version: 0,
+        requestId: randomUUID(),
+        cancellationRequestId: null,
+        cancelledAt: null,
+        cancellationDate: null,
+        cancellationReason: null,
+      })),
+    );
+
+    const ids = new Set<string>();
+    const pageSizes: number[] = [];
+    let cursor: string | undefined;
+    do {
+      const page = await reports.getTurnover({
+        reportType: 'payments',
+        dateFrom: '2026-09-23',
+        dateTo: '2026-09-23',
+        limit: 100,
+        cursor,
+      } as never);
+      pageSizes.push(page.items.length);
+      page.items.forEach((item: { id: string }) => ids.add(item.id));
+      cursor = page.meta.nextCursor ?? undefined;
+      expect(page.totals.count).toBe(205);
+    } while (cursor);
+
+    expect(pageSizes).toEqual([100, 100, 5]);
+    expect(ids.size).toBe(205);
+  });
+
   it('builds an as-of statement with opening balance and dated payment cancellation', async () => {
     const accrual = await createAccrual(firstCustomer.id, 10_000, 'Печать');
     await source.getRepository(FinancialAccrualEntry).save({
