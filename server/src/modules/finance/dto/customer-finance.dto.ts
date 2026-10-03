@@ -27,6 +27,7 @@ export class CustomerFinancePageDto {
     city: string | null;
   };
   unallocatedBalance: string;
+  revision: string;
   availableSystemStatuses: OrderStatus[];
   orders: CustomerFinanceOrderDto[];
 }

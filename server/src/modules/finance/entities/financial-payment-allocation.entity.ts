@@ -14,6 +14,7 @@ import {
   FinanceCreateDateColumn,
   FinanceDateTimeColumn,
 } from '../finance-datetime-column';
+import { FinancialAllocationBatch } from './financial-allocation-batch.entity';
 
 export enum FinancialPaymentAllocationStatus {
   ACTIVE = 'active',
@@ -34,6 +35,7 @@ export enum FinancialPaymentAllocationStatus {
   'accrualId',
   'status',
 ])
+@Index('IDX_financial_payment_allocations_batch', ['batchId'])
 export class FinancialPaymentAllocation {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -61,6 +63,19 @@ export class FinancialPaymentAllocation {
     foreignKeyConstraintName: 'FK_financial_payment_allocations_accrual',
   })
   accrual: FinancialAccrual;
+
+  @Column({ type: 'integer', nullable: true })
+  batchId: number | null;
+
+  @ManyToOne(() => FinancialAllocationBatch, (batch) => batch.allocations, {
+    nullable: true,
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({
+    name: 'batchId',
+    foreignKeyConstraintName: 'FK_financial_payment_allocations_batch',
+  })
+  batch: FinancialAllocationBatch | null;
 
   @Column({ type: 'bigint', transformer: new SafeBigintTransformer() })
   amountMinor: number;

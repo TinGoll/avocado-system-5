@@ -17,6 +17,8 @@ import { Order } from '../orders/entities/order.entity';
 import { Customer } from '../customers/entities/customer.entity';
 import { FinanceReportsService } from './finance-reports.service';
 import { CustomerFinanceService } from './customer-finance.service';
+import { FinancialAllocationBatch } from './entities/financial-allocation-batch.entity';
+import { FinanceAllocationBatchesService } from './finance-allocation-batches.service';
 
 @Module({
   imports: [
@@ -25,6 +27,7 @@ import { CustomerFinanceService } from './customer-finance.service';
       FinancialAccrualEntry,
       FinancialPayment,
       FinancialPaymentAllocation,
+      FinancialAllocationBatch,
       OrderGroup,
       Order,
       Customer,
@@ -41,6 +44,7 @@ import { CustomerFinanceService } from './customer-finance.service';
     FinanceAllocationsService,
     FinanceReportsService,
     CustomerFinanceService,
+    FinanceAllocationBatchesService,
   ],
 })
 export class FinanceModule {}

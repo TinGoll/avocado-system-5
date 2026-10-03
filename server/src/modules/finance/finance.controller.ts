@@ -32,12 +32,15 @@ import {
   TurnoverReportQueryDto,
 } from './dto/finance-read.dto';
 import { CustomerFinanceService } from './customer-finance.service';
+import { CreateAllocationBatchDto } from './dto/allocation-batch.dto';
+import { FinanceAllocationBatchesService } from './finance-allocation-batches.service';
 
 @Controller('finance')
 export class FinanceReportsController {
   constructor(
     private readonly reports: FinanceReportsService,
     private readonly customerFinance: CustomerFinanceService,
+    private readonly allocationBatches: FinanceAllocationBatchesService,
   ) {}
 
   @Get('summary')
@@ -58,6 +61,16 @@ export class FinanceReportsController {
   @Get('customers/:customerId/allocation')
   customerAllocation(@Param('customerId', ParseUUIDPipe) customerId: string) {
     return this.customerFinance.getPage(customerId);
+  }
+
+  @Post('allocation-batches')
+  createAllocationBatch(@Body() dto: CreateAllocationBatchDto) {
+    return this.allocationBatches.create(dto);
+  }
+
+  @Get('allocation-batches/:id')
+  allocationBatch(@Param('id', ParseIntPipe) id: number) {
+    return this.allocationBatches.getResult(id);
   }
 
   @Get('customers/:customerId/statement')

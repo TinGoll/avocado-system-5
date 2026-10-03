@@ -29,6 +29,7 @@ import {
   formatMinorToRubles,
   parseRublesToMinor,
 } from './finance-money';
+import { getCustomerFinanceRevision } from './customer-finance-revision';
 
 type AccrualTotals = {
   id: string;
@@ -53,9 +54,10 @@ export class CustomerFinanceService {
       order: { createdAt: 'DESC', id: 'DESC' },
     });
     const groupIds = groups.map((group) => group.id);
-    const [accruals, unallocatedMinor] = await Promise.all([
+    const [accruals, unallocatedMinor, revision] = await Promise.all([
       this.getAccrualTotals(customerId, groupIds),
       this.getUnallocatedMinor(customerId),
+      getCustomerFinanceRevision(this.source.manager, customerId),
     ]);
     const accrualByGroup = new Map(
       accruals.map((accrual) => [accrual.orderGroupId, accrual]),
@@ -72,6 +74,7 @@ export class CustomerFinanceService {
             : null,
       },
       unallocatedBalance: formatMinorToRubles(unallocatedMinor),
+      revision,
       availableSystemStatuses: Object.values(OrderStatus),
       orders: groups.map((group) => {
         const totalMinor = group.orders.reduce(

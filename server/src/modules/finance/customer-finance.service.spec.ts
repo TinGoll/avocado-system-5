@@ -164,6 +164,7 @@ describe('CustomerFinanceService (SQLite)', () => {
         city: 'Москва',
       },
       unallocatedBalance: '40.00',
+      revision: expect.stringMatching(/^[a-f0-9]{64}$/),
       availableSystemStatuses: [
         'draft',
         'in_production',
