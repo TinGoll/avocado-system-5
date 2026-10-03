@@ -31,10 +31,14 @@ import {
   PaymentListQueryDto,
   TurnoverReportQueryDto,
 } from './dto/finance-read.dto';
+import { CustomerFinanceService } from './customer-finance.service';
 
 @Controller('finance')
 export class FinanceReportsController {
-  constructor(private readonly reports: FinanceReportsService) {}
+  constructor(
+    private readonly reports: FinanceReportsService,
+    private readonly customerFinance: CustomerFinanceService,
+  ) {}
 
   @Get('summary')
   summary() {
@@ -49,6 +53,11 @@ export class FinanceReportsController {
   @Get('customers/:customerId')
   customer(@Param('customerId', ParseUUIDPipe) customerId: string) {
     return this.reports.getCustomer(customerId);
+  }
+
+  @Get('customers/:customerId/allocation')
+  customerAllocation(@Param('customerId', ParseUUIDPipe) customerId: string) {
+    return this.customerFinance.getPage(customerId);
   }
 
   @Get('customers/:customerId/statement')

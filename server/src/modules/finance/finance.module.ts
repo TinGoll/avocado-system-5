@@ -16,6 +16,7 @@ import { OrderGroup } from '../order-groups/entities/order-group.entity';
 import { Order } from '../orders/entities/order.entity';
 import { Customer } from '../customers/entities/customer.entity';
 import { FinanceReportsService } from './finance-reports.service';
+import { CustomerFinanceService } from './customer-finance.service';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { FinanceReportsService } from './finance-reports.service';
     FinancePaymentsService,
     FinanceAllocationsService,
     FinanceReportsService,
+    CustomerFinanceService,
   ],
 })
 export class FinanceModule {}
