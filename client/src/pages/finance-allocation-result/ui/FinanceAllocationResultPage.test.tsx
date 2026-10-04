@@ -1,3 +1,4 @@
+import { AxiosError } from 'axios';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { MemoryRouter, Route, Routes } from 'react-router';
@@ -8,6 +9,9 @@ import { FinanceAllocationResultPage } from './FinanceAllocationResultPage';
 
 vi.mock('../api/finance-allocation-result', () => ({
   useFinanceAllocationResult: vi.fn(),
+}));
+vi.mock('@entities/finance', () => ({
+  formatFinanceMoney: (value?: string) => `${value ?? '0.00'} ₽`,
 }));
 
 const mockedResult = vi.mocked(useFinanceAllocationResult);
@@ -89,9 +93,101 @@ describe('FinanceAllocationResultPage', () => {
     );
 
     expect(container.textContent).toContain('Распределение №7 от 04.10.2026');
+    expect(container.textContent).toContain('Заказчик · Компания');
+    expect(container.textContent).toContain('04.10.2026');
+    expect(container.textContent).toContain('50.00 ₽');
     expect(container.textContent).toContain('Комментарий');
     expect(container.querySelector('a[href="/order/42"]')?.textContent).toBe(
       'З-42',
     );
+    expect(
+      container.querySelector('a[href="/finance/customers/customer-1"]'),
+    ).not.toBeNull();
+  });
+
+  it('opens directly by URL and loads the requested operation', () => {
+    act(() =>
+      root.render(
+        <MemoryRouter initialEntries={['/finance/allocations/91']}>
+          <Routes>
+            <Route
+              path="/finance/allocations/:operationId"
+              element={<FinanceAllocationResultPage />}
+            />
+          </Routes>
+        </MemoryRouter>,
+      ),
+    );
+
+    expect(mockedResult).toHaveBeenCalledWith(91);
+  });
+
+  it('renders loading and not found states', () => {
+    mockedResult.mockReturnValueOnce({
+      isLoading: true,
+    } as ReturnType<typeof useFinanceAllocationResult>);
+    act(() =>
+      root.render(
+        <MemoryRouter initialEntries={['/finance/allocations/7']}>
+          <Routes>
+            <Route
+              path="/finance/allocations/:operationId"
+              element={<FinanceAllocationResultPage />}
+            />
+          </Routes>
+        </MemoryRouter>,
+      ),
+    );
+    expect(
+      container.querySelector(
+        '[aria-label="Загрузка результата распределения"]',
+      ),
+    ).not.toBeNull();
+
+    mockedResult.mockReturnValue({
+      error: Object.assign(new AxiosError('not found'), {
+        response: { status: 404 },
+      }),
+      isLoading: false,
+    } as ReturnType<typeof useFinanceAllocationResult>);
+    act(() =>
+      root.render(
+        <MemoryRouter initialEntries={['/finance/allocations/7']}>
+          <Routes>
+            <Route
+              path="/finance/allocations/:operationId"
+              element={<FinanceAllocationResultPage />}
+            />
+          </Routes>
+        </MemoryRouter>,
+      ),
+    );
+    expect(container.textContent).toContain('Распределение не найдено');
+  });
+
+  it('retries after a server error', () => {
+    const mutate = vi.fn();
+    mockedResult.mockReturnValue({
+      error: new Error('server error'),
+      isLoading: false,
+      mutate,
+    } as unknown as ReturnType<typeof useFinanceAllocationResult>);
+    act(() =>
+      root.render(
+        <MemoryRouter initialEntries={['/finance/allocations/7']}>
+          <Routes>
+            <Route
+              path="/finance/allocations/:operationId"
+              element={<FinanceAllocationResultPage />}
+            />
+          </Routes>
+        </MemoryRouter>,
+      ),
+    );
+    const retry = [...container.querySelectorAll('button')].find((button) =>
+      button.textContent?.includes('Повторить'),
+    );
+    act(() => retry?.click());
+    expect(mutate).toHaveBeenCalled();
   });
 });

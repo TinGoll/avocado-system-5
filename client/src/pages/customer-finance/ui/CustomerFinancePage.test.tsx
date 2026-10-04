@@ -153,6 +153,45 @@ describe('CustomerFinancePage', () => {
     expect(
       container.querySelector('a[href="/finance/allocations/7"]')?.textContent,
     ).toBe('Распределение №7');
+    expect(container.textContent).toContain('Распределение №750.00 ₽');
+  });
+
+  it('filters history by operation categories', () => {
+    renderPage();
+    const paymentFilter = [...container.querySelectorAll('label')].find(
+      (label) => label.textContent === 'Оплаты',
+    );
+    act(() => paymentFilter?.click());
+
+    const lastCall = mockedHistory.mock.calls.at(-1);
+    expect(lastCall?.[1]?.types).not.toContain('payment');
+    expect(lastCall?.[1]?.types).toContain('allocation');
+  });
+
+  it('loads the next cursor page and can return back', () => {
+    const historyState = mockedHistory('customer-1');
+    mockedHistory.mockReturnValue({
+      ...historyState,
+      data: {
+        ...historyState.data!,
+        meta: { limit: 10, nextCursor: 'next-page' },
+      },
+    } as ReturnType<typeof useCustomerFinanceHistory>);
+    renderPage();
+
+    const next = [...container.querySelectorAll('button')].find(
+      (button) => button.textContent === 'Далее',
+    );
+    act(() => next?.click());
+    expect(mockedHistory.mock.calls.at(-1)?.[1]?.cursor).toBe('next-page');
+    expect(container.textContent).toContain('Страница 2');
+
+    const back = [...container.querySelectorAll('button')].find(
+      (button) => button.textContent === 'Назад',
+    );
+    act(() => back?.click());
+    expect(mockedHistory.mock.calls.at(-1)?.[1]?.cursor).toBeUndefined();
+    expect(container.textContent).toContain('Страница 1');
   });
 
   it('opens payment modal with the route customer preselected', () => {

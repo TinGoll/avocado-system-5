@@ -13,6 +13,8 @@ import { isAxiosError } from 'axios';
 import type { FC } from 'react';
 import { Link, useParams } from 'react-router';
 
+import { formatFinanceMoney } from '@entities/finance';
+
 import { useFinanceAllocationResult } from '../api/finance-allocation-result';
 
 const styles = {
@@ -41,6 +43,12 @@ const styles = {
     margin-bottom: 20px;
   `,
 };
+
+const formatDateTime = (value: string) =>
+  new Intl.DateTimeFormat('ru-RU', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(value));
 
 export const FinanceAllocationResultPage: FC = () => {
   const rawId = useParams<{ operationId: string }>().operationId;
@@ -91,18 +99,23 @@ export const FinanceAllocationResultPage: FC = () => {
       <Card className={styles.card}>
         <Descriptions column={{ xs: 1, sm: 2 }}>
           <Descriptions.Item label="Заказчик">
-            {result.data.customer.companyName ?? result.data.customer.name}
+            {[result.data.customer.name, result.data.customer.companyName]
+              .filter(Boolean)
+              .join(' · ')}
           </Descriptions.Item>
           <Descriptions.Item label="Распределено">
-            {result.data.total} ₽
+            {formatFinanceMoney(result.data.total)}
           </Descriptions.Item>
           <Descriptions.Item label="Остаток">
-            {result.data.balanceAfter} ₽
+            {formatFinanceMoney(result.data.balanceAfter)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Дата и время">
+            {formatDateTime(result.data.createdAt)}
           </Descriptions.Item>
           <Descriptions.Item label="Сотрудник">
             {result.data.employee ?? 'Не указан'}
           </Descriptions.Item>
-          <Descriptions.Item label="Комментарий" span={2}>
+          <Descriptions.Item label="Комментарий">
             {result.data.comment ?? '—'}
           </Descriptions.Item>
         </Descriptions>
@@ -120,10 +133,21 @@ export const FinanceAllocationResultPage: FC = () => {
               <Link to={`/order/${item.orderGroupId}`}>{item.orderNumber}</Link>
             ),
           },
-          { title: 'Распределено', dataIndex: 'allocated' },
-          { title: 'Новый долг', dataIndex: 'newDebt' },
+          {
+            title: 'Распределено',
+            dataIndex: 'allocated',
+            render: formatFinanceMoney,
+          },
+          {
+            title: 'Новый долг',
+            dataIndex: 'newDebt',
+            render: formatFinanceMoney,
+          },
         ]}
       />
+      <Link to={`/finance/customers/${result.data.customer.id}`}>
+        <Button>Вернуться к финансам заказчика</Button>
+      </Link>
     </section>
   );
 };

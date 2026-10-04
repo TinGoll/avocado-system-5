@@ -3,6 +3,7 @@ import {
   Alert,
   Button,
   Card,
+  Checkbox,
   Empty,
   Input,
   Modal,
@@ -13,9 +14,10 @@ import {
   Typography,
 } from 'antd';
 import { isAxiosError } from 'axios';
-import { type FC, type ReactNode, useRef, useState } from 'react';
+import { type FC, type ReactNode, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 
+import { formatFinanceMoney } from '@entities/finance';
 import {
   type FinanceDialogAction,
   FinanceMutationModals,
@@ -23,6 +25,7 @@ import {
 import {
   createFinanceAllocationBatch,
   type CustomerFinanceHistoryItem,
+  type CustomerFinanceHistoryType,
 } from '@shared/api';
 
 import {
@@ -116,6 +119,35 @@ const styles = {
       grid-template-columns: 1fr;
     }
   `,
+  historyToolbar: css`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  `,
+};
+
+type HistoryCategory = 'payments' | 'allocations' | 'returns' | 'adjustments';
+
+const historyCategoryTypes: Record<
+  HistoryCategory,
+  CustomerFinanceHistoryType[]
+> = {
+  payments: ['payment'],
+  allocations: ['allocation'],
+  returns: ['payment_cancellation', 'allocation_release', 'reversal'],
+  adjustments: ['adjustment'],
+};
+
+const historyTypeLabels: Record<CustomerFinanceHistoryType, string> = {
+  payment: 'Оплата',
+  allocation: 'Распределение',
+  payment_cancellation: 'Аннулирование оплаты',
+  allocation_release: 'Возврат распределения',
+  adjustment: 'Корректировка',
+  reversal: 'Возврат',
 };
 
 const dateTime = (value: string) =>
@@ -154,8 +186,24 @@ const State: FC<{
 export const CustomerFinancePage: FC = () => {
   const { customerId } = useParams<{ customerId: string }>();
   const navigate = useNavigate();
+  const [historyCategories, setHistoryCategories] = useState<HistoryCategory[]>(
+    ['payments', 'allocations', 'returns', 'adjustments'],
+  );
+  const [historyCursor, setHistoryCursor] = useState<string>();
+  const [historyBackStack, setHistoryBackStack] = useState<
+    Array<string | undefined>
+  >([]);
+  const historyTypes = useMemo(
+    () =>
+      historyCategories.flatMap((category) => historyCategoryTypes[category]),
+    [historyCategories],
+  );
   const finance = useCustomerFinancePage(customerId);
-  const history = useCustomerFinanceHistory(customerId);
+  const history = useCustomerFinanceHistory(customerId, {
+    cursor: historyCursor,
+    limit: 10,
+    types: historyTypes,
+  });
   const [dialogAction, setDialogAction] = useState<FinanceDialogAction | null>(
     null,
   );
@@ -392,6 +440,53 @@ export const CustomerFinancePage: FC = () => {
               <Typography.Title className={styles.sectionTitle} level={4}>
                 История
               </Typography.Title>
+              <div className={styles.historyToolbar}>
+                <Checkbox.Group
+                  aria-label="Фильтр истории"
+                  value={historyCategories}
+                  options={[
+                    { label: 'Оплаты', value: 'payments' },
+                    { label: 'Распределения', value: 'allocations' },
+                    {
+                      label: 'Возвраты и аннулирования',
+                      value: 'returns',
+                    },
+                    { label: 'Корректировки', value: 'adjustments' },
+                  ]}
+                  onChange={(values) => {
+                    if (!values.length) return;
+                    setHistoryCategories(values as HistoryCategory[]);
+                    setHistoryCursor(undefined);
+                    setHistoryBackStack([]);
+                  }}
+                />
+                <Space>
+                  <Button
+                    disabled={!historyBackStack.length}
+                    onClick={() => {
+                      const previous = historyBackStack.at(-1);
+                      setHistoryBackStack((stack) => stack.slice(0, -1));
+                      setHistoryCursor(previous);
+                    }}
+                  >
+                    Назад
+                  </Button>
+                  <Typography.Text>
+                    Страница {historyBackStack.length + 1}
+                  </Typography.Text>
+                  <Button
+                    disabled={!history.data?.meta.nextCursor}
+                    onClick={() => {
+                      const next = history.data?.meta.nextCursor;
+                      if (!next) return;
+                      setHistoryBackStack((stack) => [...stack, historyCursor]);
+                      setHistoryCursor(next);
+                    }}
+                  >
+                    Далее
+                  </Button>
+                </Space>
+              </div>
               <State
                 loading={history.isLoading}
                 error={history.error}
@@ -413,7 +508,7 @@ export const CustomerFinancePage: FC = () => {
                             key={`${detail.orderGroupId}-${detail.orderNumber}-${detail.amount}`}
                           >
                             {detail.orderNumber ?? 'Без заказа'}:{' '}
-                            {detail.amount} ₽
+                            {formatFinanceMoney(detail.amount)}
                           </span>
                         ))}
                       </div>
@@ -421,6 +516,12 @@ export const CustomerFinancePage: FC = () => {
                   }}
                   columns={[
                     { title: 'Дата', dataIndex: 'createdAt', render: dateTime },
+                    {
+                      title: 'Тип',
+                      dataIndex: 'type',
+                      render: (type: CustomerFinanceHistoryType) =>
+                        historyTypeLabels[type],
+                    },
                     {
                       title: 'Операция',
                       render: (_, item) =>
@@ -432,9 +533,21 @@ export const CustomerFinancePage: FC = () => {
                           item.description
                         ),
                     },
-                    { title: 'Сумма', dataIndex: 'amount' },
-                    { title: 'Комментарий', dataIndex: 'comment' },
-                    { title: 'Сотрудник', dataIndex: 'employee' },
+                    {
+                      title: 'Сумма',
+                      dataIndex: 'amount',
+                      render: formatFinanceMoney,
+                    },
+                    {
+                      title: 'Комментарий',
+                      dataIndex: 'comment',
+                      render: (value: string | null) => value ?? '—',
+                    },
+                    {
+                      title: 'Сотрудник',
+                      dataIndex: 'employee',
+                      render: (value: string | null) => value ?? '—',
+                    },
                   ]}
                 />
               </State>
