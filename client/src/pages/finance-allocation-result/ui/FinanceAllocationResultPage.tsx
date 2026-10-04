@@ -20,13 +20,8 @@ import { useFinanceAllocationResult } from '../api/finance-allocation-result';
 const styles = {
   page: css`
     width: 100%;
-    max-width: 1100px;
     box-sizing: border-box;
-    margin: 0 auto;
-    padding: 24px;
-    @media (max-width: 720px) {
-      padding: 12px;
-    }
+    padding: 16px;
   `,
   center: css`
     display: flex;
