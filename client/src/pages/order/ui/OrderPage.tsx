@@ -41,6 +41,7 @@ import { useOrderProduction } from '../api/useOrderProduction';
 import { getCurrentProductionStatus } from '../model/currentProductionStatus';
 import { formatCurrency } from '../model/orderInvoice';
 import {
+  FINANCE_SECTION,
   getOrderSection,
   ORDER_SECTION,
   PRODUCTION_SECTION,
@@ -48,6 +49,7 @@ import {
 } from '../model/orderSection';
 
 import { OrderDocumentView } from './OrderDocumentView';
+import { OrderFinanceCard, OrderPaidTag } from './OrderFinanceCard';
 import { OrderLifecycleActions } from './OrderLifecycleActions';
 import { OrderManagementHistory } from './OrderManagementHistory';
 import { OrderProductionSummary } from './OrderProductionSummary';
@@ -477,6 +479,11 @@ const OrderPage: FC = () => {
             label: 'Производство и история',
             icon: <SettingOutlined />,
           },
+          {
+            key: FINANCE_SECTION,
+            label: 'Финансы',
+            icon: <DollarCircleOutlined />,
+          },
         ]}
         onChange={selectSection}
       />
@@ -505,6 +512,7 @@ const OrderPage: FC = () => {
                   ? 'Загрузка...'
                   : getCurrentProductionStatus(productionData?.documents ?? [])}
               </Tag>
+              <OrderPaidTag groupId={group.id} />
             </div>
           </div>
         </div>
@@ -630,11 +638,13 @@ const OrderPage: FC = () => {
             />
           )}
         </>
-      ) : (
+      ) : activeSection === PRODUCTION_SECTION ? (
         <div className={styles.productionLayout}>
           <OrderProductionSummary groupId={group.id} />
           <OrderManagementHistory groupId={group.id} />
         </div>
+      ) : (
+        <OrderFinanceCard group={group} />
       )}
     </section>
   );

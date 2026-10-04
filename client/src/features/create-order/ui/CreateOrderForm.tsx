@@ -11,7 +11,7 @@ import {
 import dayjs from 'dayjs';
 import type { FC } from 'react';
 
-import { CustomerSelect, useCustomerMap } from '@entities/customer';
+import { CustomerSelect } from '@entities/customer';
 import { useOrderStore, type OrderGroup } from '@entities/order';
 import { orderTemplates } from '@entities/order-template';
 import { DATE_DEFAULT_FORMAT } from '@shared/lib';
@@ -51,7 +51,6 @@ export const CreateOrderForm: FC<Props> = ({ onCancel, onCreated }) => {
   const [form] = Form.useForm();
   const { handleCreate } = useCreateOrder();
   const { isCreating } = useOrderStore();
-  const { customers } = useCustomerMap();
 
   const onFinish: FormProps<FieldType>['onFinish'] = async ({
     customerID,
@@ -66,7 +65,7 @@ export const CreateOrderForm: FC<Props> = ({ onCancel, onCreated }) => {
 
     const characteristics = template.getDefaultCharacteristics();
     const { group } = await handleCreate({
-      customer: customers[customerID],
+      customerId: customerID,
       startedAt: startedAt.startOf('day').toDate(),
       characteristics,
       ...values,

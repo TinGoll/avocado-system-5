@@ -8,11 +8,18 @@ import {
 
 type OrderGroupCreateDTO = {
   orderNumber: string;
-  customer: OrderGroup['customer'];
+  customerId?: string;
   comment?: OrderGroup['comment'];
   startedAt?: Date;
   characteristics: Order['characteristics'];
 };
+
+export const createOrderGroupPayload = (formValues: OrderGroupCreateDTO) => ({
+  customerId: formValues.customerId,
+  startedAt: formValues.startedAt,
+  orderNumber: formValues.orderNumber,
+  comment: formValues.comment,
+});
 
 export const useCreateOrder = () => {
   const { create: createGroup } = useOrderGroupMutations();
@@ -23,12 +30,9 @@ export const useCreateOrder = () => {
     try {
       setCreating(true);
 
-      const group = await createGroup.trigger({
-        customer: formValues.customer,
-        startedAt: formValues.startedAt,
-        orderNumber: formValues.orderNumber,
-        comment: formValues.comment,
-      });
+      const group = await createGroup.trigger(
+        createOrderGroupPayload(formValues),
+      );
 
       const order = await createOrder.trigger({
         orderGroupId: group.id,

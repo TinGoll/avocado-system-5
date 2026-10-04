@@ -11,7 +11,7 @@ import type { OrderGroup } from '../model/order';
 
 type OrderGroupCreateDTO = {
   orderNumber: string;
-  customer: OrderGroup['customer'];
+  customerId?: string | null;
   comment?: OrderGroup['comment'];
   startedAt?: Date;
 };

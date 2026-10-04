@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  FINANCE_SECTION,
   getOrderSection,
   ORDER_SECTION,
   PRODUCTION_SECTION,
@@ -15,6 +16,12 @@ describe('order section URL state', () => {
   it('reads the production section from search params', () => {
     expect(getOrderSection(new URLSearchParams('tab=production'))).toBe(
       PRODUCTION_SECTION,
+    );
+  });
+
+  it('reads the finance section from search params', () => {
+    expect(getOrderSection(new URLSearchParams('tab=finance'))).toBe(
+      FINANCE_SECTION,
     );
   });
 

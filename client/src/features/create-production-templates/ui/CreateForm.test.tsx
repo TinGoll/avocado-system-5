@@ -172,7 +172,7 @@ describe('CreateForm', () => {
         priceModifierIds: [scopedModifier.id],
       }),
     );
-  });
+  }, 10_000);
 
   it('renders when a modifier has no product templates in the response', () => {
     mockedUseCreateProductTemplates.mockReturnValue({

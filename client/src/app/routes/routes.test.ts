@@ -5,6 +5,11 @@ describe('application routes', () => {
     expect(ROUTES.priceModifiers).toBe('/price-modifiers');
   });
 
+  it('exposes customer finance and allocation result routes', () => {
+    expect(ROUTES.customerFinance).toBe('/finance/customers/:customerId');
+    expect(ROUTES.financeAllocation).toBe('/finance/allocations/:operationId');
+  });
+
   it('exposes a dedicated route for every catalog', () => {
     expect([
       ROUTES.customers,

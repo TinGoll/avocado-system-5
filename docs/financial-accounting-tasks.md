@@ -118,7 +118,55 @@
 
 ### Результат FA-01
 
-Заполняется агентом после реализации.
+Реализована надежная nullable-связь заказа с заказчиком без добавления
+финансового домена.
+
+- Поле и relation: `OrderGroup.customerId: string | null`, индекс
+  `IDX_order_groups_customer`, relation `customerRecord`, FK
+  `FK_order_groups_customer` на `customers.id` с `ON DELETE RESTRICT`.
+  JSON-поле `OrderGroup.customer` сохранено как исторический снимок.
+- Create/update DTO принимают только `customerId?: UUID | null`. Переданный ID
+  проверяется по справочнику; неизвестный ID дает `404`. Сервер формирует снимок
+  из `id`, `name`, `companyName`, `address`, `phone`, `email`, `comment`,
+  `attributes`, `level`. При update отсутствие `customerId` сохраняет текущую
+  связь, а явный `null` атомарно записывает `customerId = null` и `customer = {}`.
+- Диагностика: `GET /api/order-groups/customer-link-issues` возвращает
+  `{ id, orderNumber, customer, reason }[]`; `reason` равен
+  `customer_not_found` для снимка с прежним ID либо
+  `missing_or_invalid_customer_id` для отсутствующего/поврежденного ID.
+- Удаление заказчика, связанного с заказом, возвращает `409 Conflict` до
+  выполнения физического удаления.
+- Клиентские create/edit-запросы передают `customerId`; `customer` остается
+  только ответным snapshot-полем. Добавлен тест payload создания заказа.
+- Миграции:
+  `1789600000000-AddOrderGroupCustomerLink.ts` для PostgreSQL и SQLite.
+  Backfill выполняется только при точном совпадении `customer.id` из валидного
+  JSON с существующим `customers.id`; имя, телефон и email не используются.
+  SQLite-тест подтверждает сохранность поврежденного снимка, документов и цен,
+  а также пустой `PRAGMA foreign_key_check`.
+
+Проверки:
+
+- `server: npm run test:cov -- --runInBand modules/order-groups/order-groups.service.spec.ts modules/customers/customers.service.spec.ts modules/database/add-order-group-customer-link.migration.spec.ts` — успешно, 3 suites / 11 tests.
+- `server: npm run build` — успешно.
+- `client: npm run coverage -- src/features/create-order/hooks/useCreateOrder.test.ts` — успешно, 1 test.
+- `client: npm run build` — успешно (только существующие предупреждения Vite о
+  размере/circular chunks).
+- Точечный ESLint всех измененных TypeScript-файлов server/client — успешно;
+  исправляющий lint по всему репозиторию не запускался.
+- `server: npm run test:e2e:sqlite` — 4/5 тестов успешно; общий тест имеет
+  существующее рассогласование счетчика metadata: ожидает 24, фактически 26.
+  Новая отдельная миграционная suite полностью успешна.
+- `client: npm run fsd:check` — существующий blocker вне FA-01:
+  `src/app/ui` нарушает `fsd/no-ui-in-app`; измененные файлы новых FSD-ошибок не
+  добавили.
+- Эквивалентный прогон PostgreSQL не выполнен: в среде отсутствует команда
+  `docker`, доступная тестовая PostgreSQL БД не обнаружена. PostgreSQL-миграция
+  добавлена парно, но требует фактического прогона перед выпуском.
+
+Ограничения для следующих задач: заказы без заказчика по-прежнему разрешены;
+диагностика read-only и ничего не связывает автоматически; поиск продолжает
+использовать сохраненный JSON-снимок; финансовые таблицы и команды не созданы.
 
 <a id="fa-02"></a>
 ## FA-02. Финансовая схема, сущности и денежные примитивы
@@ -161,7 +209,64 @@
 
 ### Результат FA-02
 
-Заполняется агентом после реализации.
+Создан переносимый фундамент финансового домена без HTTP API, команд и
+автоматического заполнения данных.
+
+- Добавлен `FinanceModule`, подключенный к `AppModule`, и четыре сущности:
+  `FinancialAccrual` (`financial_accruals`), `FinancialAccrualEntry`
+  (`financial_accrual_entries`), `FinancialPayment` (`financial_payments`) и
+  `FinancialPaymentAllocation` (`financial_payment_allocations`). Контроллеры и
+  публичные команды отсутствуют.
+- Фактические enum: source `order|manual`; accrual status
+  `active|cancelled`; entry kind `initial|adjustment|reversal`; payment method
+  `cash|card|bank_transfer|other`; payment status `posted|cancelled`;
+  allocation status `active|released`. В БД это переносимые `text` + именованные
+  `CHECK`, не PostgreSQL enum.
+- Все денежные поля называются `amountMinor` и представлены в TypeScript как
+  `number`. `SafeBigintTransformer` одинаково читает PostgreSQL `string` и
+  SQLite `number`, отклоняя дробные и выходящие за `Number.MAX_SAFE_INTEGER`
+  значения.
+- Money API: `parseRublesToMinor(value, { allowNegative?, allowZero? })`
+  принимает только строку рублей с точкой и максимум двумя знаками;
+  `formatMinorToRubles(amountMinor)` возвращает строку с двумя знаками;
+  `assertSafeMinorAmount` проверяет целое безопасного диапазона. По умолчанию
+  парсинг требует положительную ненулевую сумму; отрицательное значение
+  включается явно для корректировок.
+- Парные миграции: `1789700000000-AddFinancialCore.ts` для PostgreSQL и SQLite.
+  Они создают четыре пустые таблицы, FK `RESTRICT`, уникальные `requestId`
+  отдельно у entries и payments, уникальные `orderGroupId` и
+  `reversesEntryId`, обязательные CHECK сумм/source/status/method и индексы из
+  архитектуры. Cascade/hard delete финансовой истории не используется.
+- `requestId` уникален в области таблицы/команды: отдельно для денежных
+  операций начисления и отдельно для создания оплаты. У accrual/allocation
+  requestId в согласованной модели FA-02 отсутствует.
+- SQLite-миграция FA-01 дополнена восстановлением двух существовавших индексов
+  `order_groups` после table rebuild; это устранило обнаруженный schema diff.
+
+Проверки:
+
+- `npm run test:cov -- --runInBand modules/finance/finance-money.spec.ts modules/finance/safe-bigint.transformer.spec.ts modules/database/add-financial-core.migration.spec.ts modules/database/add-order-group-customer-link.migration.spec.ts` — успешно, 4 suites / 23 tests.
+- `npm run test:e2e:sqlite` — успешно, 5/5; чистая БД мигрируется, ORM schema
+  diff пуст, `foreign_key_check` пуст.
+- `npm test -- --runInBand modules/database` — 9/10 suites и 22/27 tests
+  успешно; существующий `add-order-management.migration.spec.ts` исключает
+  миграцию `AddOrderManagement`, но затем запускает зависящую от нее
+  `AddProductionAutoAssignment`, поэтому падает с
+  `no such table: order_management_settings`. Релевантные FA-01/FA-02 и
+  остальные database suites проходят.
+- Миграционный тест существующей SQLite БД подтверждает сохранность заказа,
+  документа и цены, пустые финансовые таблицы, CHECK/FK/unique, rollback и цикл
+  down/up.
+- `npm run build` — успешно.
+- ESLint по всем новым/измененным TypeScript-файлам без `--fix` — успешно.
+- PostgreSQL-файл создан с эквивалентными именами таблиц, ограничений и
+  индексов, но физический прогон и PostgreSQL schema diff не выполнены: команда
+  `docker` в среде отсутствует и доступная тестовая PostgreSQL БД не найдена.
+
+Ограничения для следующих задач: данные не создаются и не изменяются
+автоматически; сервисы команд, DTO и API намеренно отсутствуют; межстрочные
+суммовые и customer-инварианты должны проверяться будущим транзакционным
+сервисом поверх этой схемы.
 
 <a id="fa-03"></a>
 ## FA-03. Команды и API начислений
@@ -214,7 +319,73 @@
 
 ### Результат FA-03
 
-Заполняется агентом после реализации.
+Реализованы команды начислений и узкий HTTP API без списков, отчетов и
+клиентского UI.
+
+Endpoints и request DTO:
+
+- `POST /api/finance/accruals/from-order` — `{ orderGroupId: integer,
+  effectiveDate: YYYY-MM-DD, requestId: UUID }`.
+- `POST /api/finance/accruals/manual` — `{ customerId: UUID, title,
+  amount: string, effectiveDate: YYYY-MM-DD, reason?: string, requestId:
+  UUID }`.
+- `POST /api/finance/accruals/:id/sync-order-total` — `{ expectedVersion,
+  effectiveDate: YYYY-MM-DD, requestId: UUID }`.
+- `POST /api/finance/accruals/:id/adjustments` — `{ amount: signed string,
+  reason, expectedVersion, effectiveDate: YYYY-MM-DD, requestId: UUID }`.
+- `POST /api/finance/accruals/:id/cancel` — `{ reason, expectedVersion,
+  effectiveDate: YYYY-MM-DD, requestId: UUID }`.
+
+Все ответы используют минимальную read-модель `{ id, customerId, sourceType,
+orderGroupId, title, status, version, amountMinor, amount }`, где `amountMinor`
+— безопасное целое число копеек, а `amount` — каноническая API-строка рублей с
+двумя знаками.
+
+Фактические правила:
+
+- Проведение заказа заново читает `OrderGroup` и все `Order` внутри
+  `runDatabaseTransaction`; каждый `totalPrice` нормализуется до копеек на
+  сервере, затем суммы складываются. Клиентская сумма не принимается.
+- Заказ без `customerId`, с итогом `<= 0` отклоняется `422`; отсутствующая
+  запись дает `404`; повторное проведение другого request дает `409`.
+- Ручное начисление проверяет существование customer и создает только accrual
+  с initial entry. Каталог услуг или заказ не создаются.
+- Sync создает ровно одну adjustment entry на разницу; при нулевой разнице не
+  пишет entry и не увеличивает version. Customer заказа повторно сверяется с
+  customer начисления.
+- Корректировка допускает положительную/отрицательную ненулевую сумму и требует
+  reason. Отмена создает reversal на отрицательную текущую сумму и атомарно
+  переводит accrual в `cancelled`.
+- Перед уменьшением проверяется сумма существующих active allocations; результат
+  ниже нее дает `422`. Entries после insert не изменяются и не удаляются.
+- Для PostgreSQL изменяемый accrual блокируется `pessimistic_write`; SQLite
+  использует общую сериализацию `runDatabaseTransaction`. Независимо от БД
+  version меняется условным `UPDATE ... WHERE version = expectedVersion`;
+  устаревшая версия дает `409`.
+- Повтор того же `requestId` с эквивалентными сохраненными полями возвращает
+  прежнее состояние; несовпадающие accrual/payload дают `409`. Область
+  idempotency — unique `financial_accrual_entries.requestId`. Нулевая sync
+  не создает entry и потому не резервирует requestId.
+- Старый update заказа запрещает смену `customerId`, если accrual уже существует;
+  delete такого заказа также дает понятный `409`. Lifecycle переходы заказа не
+  вызывают finance-команды.
+- `400` используется для DTO/денежного формата, `404` для отсутствующих
+  сущностей, `409` для version/idempotency/state conflicts, `422` для
+  невозможной финансовой суммы.
+
+Проверки:
+
+- Релевантный coverage — успешно, 5 suites / 35 tests: несколько документов,
+  заказ без customer, нулевой итог, повторное проведение, manual DTO,
+  idempotency, sync вверх/вниз/без изменения, stale version, adjustment,
+  allocation floor, cancel/reversal, rollback и lifecycle без автоначисления.
+- `npm run test:e2e:sqlite` — успешно, 5/5; миграции и schema diff остаются
+  корректными.
+- `npm run build` — успешно.
+- ESLint измененных server-файлов без `--fix` — успешно.
+- PostgreSQL integration не выполнена: в среде нет команды `docker` и не
+  обнаружена доступная тестовая PostgreSQL БД. PostgreSQL locking/query path
+  реализован, но требует физического прогона перед выпуском.
 
 <a id="fa-04"></a>
 ## FA-04. Команды и API оплат
@@ -258,7 +429,31 @@
 
 ### Результат FA-04
 
-Заполняется агентом после реализации.
+Реализованы `FinancePaymentsService` и API:
+
+- `POST /api/finance/payments` — создание независимой оплаты/аванса без allocations;
+- `GET /api/finance/payments/:id` — детальная read-модель оплаты;
+- `POST /api/finance/payments/:id/cancel` — аннулирование с освобождением всех active allocations в одной транзакции.
+
+Точные DTO:
+
+- создание: `customerId` (UUID), `amount` (положительная строка рублей с максимум двумя знаками после точки), `paymentDate` (`YYYY-MM-DD`), `method` (`cash | card | bank_transfer | other`), optional `externalReference` (до 500 символов), optional `comment` (до 1000 символов), `requestId` (UUID);
+- отмена: `cancellationDate` (`YYYY-MM-DD`), непустая `reason` (до 1000 символов), `expectedVersion` (целое неотрицательное), `requestId` (UUID).
+
+Read-модель возвращает исходные неизменяемые реквизиты, `status`, `version`, cancellation-поля и `reportOperations`. У проведенной оплаты это одна положительная операция на `paymentDate`; после отмены добавляется отрицательная операция той же суммы на `cancellationDate`. Деньги возвращаются одновременно как безопасный integer `amountMinor` и строка `amount` с двумя знаками после точки.
+
+Создание с тем же `requestId` и теми же данными идемпотентно, с другими данными дает `409`. Для отмены добавлен отдельный уникальный `cancellationRequestId`: точный повтор отмены идемпотентен независимо от уже увеличенной версии, повтор с новым `requestId` или другими данными дает `409`. Исходный `requestId` создания при отмене сохраняется. Условное обновление `version` и блокировка PostgreSQL защищают от конкурентной отмены; SQLite-транзакции сериализуются общим transaction helper. Проведенные реквизиты не имеют PATCH endpoint.
+
+Добавлены парные миграции PostgreSQL/SQLite для `cancellationRequestId`, unit-тесты DTO и SQLite integration-тесты сервиса: четыре способа оплаты, сумма/дата/текст, неизвестный заказчик, идемпотентность и конфликт, stale version, отмена, повтор, освобождение allocation, rollback и две отчетные даты.
+
+Проверки:
+
+- `npm test -- --runInBand src/modules/finance/dto/payment.dto.spec.ts src/modules/finance/finance-payments.service.spec.ts` — 2 suites, 17 tests passed;
+- `npm run test:cov -- --runInBand src/modules/finance/dto/payment.dto.spec.ts src/modules/finance/finance-payments.service.spec.ts` — 2 suites, 17 tests passed; `finance-payments.service.ts`: 82.89% statements / 84.72% lines, `payment.dto.ts`: 100% statements / lines;
+- `npm run test:e2e:sqlite` — 1 suite, 5 tests passed, включая применение всех SQLite migrations и metadata;
+- ESLint измененных файлов — passed;
+- `npm run build` — passed;
+- PostgreSQL runtime-проверка не запускалась: Docker CLI в окружении отсутствует; PostgreSQL-миграция и код успешно прошли TypeScript build.
 
 <a id="fa-05"></a>
 ## FA-05. Транзакционное распределение оплат
@@ -305,7 +500,30 @@
 
 ### Результат FA-05
 
-Заполняется агентом после реализации.
+Реализован отдельный `FinanceAllocationsService`, отвечающий только за проверку и атомарную замену полной активной карты распределения.
+
+Контракты:
+
+- `PUT /api/finance/payments/:id/allocations`: `{ allocations: Array<{ accrualId: UUID, amount: positive money string }>, expectedVersion: non-negative integer, reason?: string }`;
+- `reason` обязателен, если новая карта изменяет или удаляет хотя бы одну active allocation; пустая карта корректно освобождает все строки;
+- `POST /api/finance/payments` принимает optional `allocations` того же формата и создает оплату с ними в одной транзакции;
+- detail оплаты дополнен полной историей `allocations` (active и released), а также `allocatedMinor`/`allocated` и `unallocatedMinor`/`unallocated`.
+
+Полная карта проверяется до записи: duplicate `accrualId`, положительность денег, существование начислений, совпадение заказчика, active-статусы оплаты и начислений, сумма по оплате и доступный остаток каждого начисления. Измененные и удаленные строки переводятся в `released` с причиной и временем, новые суммы создаются отдельными active-строками, неизмененные сохраняются. Ошибка любой строки откатывает создание оплаты или замену целиком.
+
+Порядок блокировок PostgreSQL: payment, затем все затронутые accrual в порядке UUID (включая удаляемые из старой карты), затем active allocations в порядке `(accrualId, id)`. При распределении версия accrual не увеличивается: защита суммы обеспечивается общей pessimistic-блокировкой accrual, которую использует и корректировка начисления. В SQLite все финансовые транзакции сериализуются `runDatabaseTransaction`. После каждого успешного PUT `payment.version` условно увеличивается ровно один раз; два запроса одной версии дают один успех и один `409`.
+
+Начальные allocations участвуют в проверке идемпотентного повтора создания и не дублируются. Аннулирование оплаты по-прежнему освобождает все active allocations в той же транзакции с причиной отмены.
+
+Проверены: одна оплата на несколько начислений, несколько оплат на одно начисление, частичное распределение и аванс, обе границы суммы, чужой customer, cancelled payment/accrual, duplicate ID, замена/частичное и полное освобождение, released history, stale/concurrent version, rollback создания и замены, а также конкурентная отрицательная корректировка начисления без нарушения инварианта.
+
+Проверки:
+
+- `npm run test:cov -- --runInBand src/modules/finance/dto/payment.dto.spec.ts src/modules/finance/finance-payments.service.spec.ts src/modules/finance/finance-allocations.service.spec.ts src/modules/finance/finance-accruals.service.spec.ts` — 4 suites, 33 tests passed; `finance-allocations.service.ts`: 96.93% statements / 97.75% lines;
+- `npm run test:e2e:sqlite` — 1 suite, 5 tests passed, включая все migrations и entity metadata;
+- ESLint измененных файлов — passed;
+- `npm run build` — passed;
+- реальный PostgreSQL не запущен: Docker CLI отсутствует в окружении. PostgreSQL-ветви блокировок прошли TypeScript build; транзакционные инварианты и параллельные сценарии выполнены на SQLite.
 
 <a id="fa-06"></a>
 ## FA-06. Read API, сводки, поиск и пагинация
@@ -349,7 +567,72 @@
 
 ### Результат FA-06
 
-Заполняется агентом после реализации.
+Реализован отдельный `FinanceReportsService` с агрегирующими read-запросами;
+mutation-сервисы начислений, оплат и распределений не расширялись.
+
+Endpoints:
+
+- `GET /api/finance/summary` — текущие `accrued`, `paid`, `balance`, `debt`,
+  `advance`, `allocated`, `unallocated` и их поля `*Minor`, плюс
+  `customerLinkIssuesCount`;
+- `GET /api/finance/customers/:customerId` — заказчик, те же итоги, до 10
+  последних операций и открытые начисления;
+- `GET /api/finance/order-groups/:orderGroupId` — текущая сумма документов,
+  проведено, распределено, остаток, разница для sync и общий нераспределенный
+  аванс заказчика;
+- `GET /api/finance/accruals` и `GET /api/finance/payments` — списки в явном
+  формате `{ items, meta: { limit, nextCursor } }`, который глобальный
+  `WrapItemsInterceptor` не оборачивает повторно.
+
+Общие query-параметры списков: `dateFrom`, `dateTo` (`YYYY-MM-DD`),
+`customerId`, `search`, `cursor`, `limit` (по умолчанию 50, максимум 100).
+Начисления дополнительно принимают `sourceType=order|manual` и
+`status=unpaid|partially_paid|paid|cancelled`. Оплаты принимают
+`method=cash|card|bank_transfer|other`, `status=posted|cancelled` и
+`allocationState=unallocated|partial|allocated`. DTO отклоняют неизвестные и
+невалидные значения существующим validation pipe.
+
+Cursor — opaque base64url JSON пары `{ businessDate, id }`; сортировка идет по
+дате и UUID по убыванию. Для начисления business date — дата initial entry,
+для оплаты — `paymentDate`. Некорректный cursor возвращает `400`; отсутствующий
+заказчик или заказ — `404`. Поиск параметризован и использует `lower/ILIKE` в
+PostgreSQL и существующую `unicode_lower/LIKE` в SQLite. Он охватывает
+заказчика, название начисления/номер и комментарий заказа, а для оплаты —
+заказчика, внешний номер и комментарий.
+
+Все деньги возвращаются парой безопасный integer копеек `*Minor` и строка RUB
+с двумя знаками. `debt` и `advance` сначала вычисляются отдельно по каждому
+заказчику, поэтому не схлопываются общим сальдо. Allocations не вычитаются из
+balance повторно; в агрегаты входят только active allocations, posted payments
+и сумма immutable accrual entries. Cancelled payment исключается из текущей
+оплаты, reversal cancelled accrual обнуляет начисление. История customer view
+при этом сохраняет исходную оплату и отдельную отрицательную операцию отмены.
+
+Списки строятся одним запросом каждый через grouped derived tables; summary,
+customer и order view используют фиксированное число агрегирующих/batched
+запросов независимо от числа строк. Entities с relations построчно не
+загружаются, очевидного N+1 нет. Для будущего SWR после mutations нужно
+инвалидировать соответствующий detail/list, customer view, order view и общую
+summary; контракт ключей клиента остается задачей FA-07.
+
+Файлы: `dto/finance-read.dto.ts`, `finance-reports.service.ts`,
+`finance-reports.service.spec.ts`, а также регистрация GET-маршрутов и provider
+в существующих `finance.controller.ts` / `finance.module.ts`. Схема и миграции
+не менялись.
+
+Проверки:
+
+- `npm run test:cov -- --runInBand src/modules/finance/finance-reports.service.spec.ts`
+  — успешно, 5 tests: пустая база, несколько заказчиков, cancelled/released,
+  формулы, поиск, cursor на одинаковой дате, состояния и order view;
+- `npm test -- --runInBand src/modules/finance` — успешно, 8 suites / 58 tests;
+- `npm run test:e2e:sqlite` — успешно, 5/5;
+- точечный ESLint измененных server-файлов без `--fix` — успешно;
+- `npm run build` — успешно.
+
+Реальная PostgreSQL БД в среде не запускалась. PostgreSQL-ветка поиска и raw
+aliases реализованы переносимо и прошли TypeScript build, но физический прогон
+остается обязательной проверкой перед выпуском.
 
 <a id="fa-07"></a>
 ## FA-07. Read-only раздел `/finance`
@@ -394,7 +677,62 @@
 
 ### Результат FA-07
 
-Заполняется агентом после реализации.
+Реализован read-only раздел `/finance`; mutation-формы и команды FA-08 не
+добавлялись.
+
+- Маршрут загружается lazy через `pages/finance`, в Sidebar добавлен пункт
+  верхнего уровня «Финансы».
+- Page slice: `pages/finance/api/finance-data.ts` содержит SWR keys и
+  page-local hooks с дедупликацией cursor-страниц;
+  `model/finance-display.ts` — подписи и форматирование;
+  `ui/FinancePage.tsx` — сводка, вкладки и состояния экрана; наружу экспортируется
+  только `pages/finance/index.ts`.
+- Чистые transport types и GET adapters находятся в
+  `shared/api/finance/{finance.ts,index.ts}`. `entities/finance`, новые features
+  и Zustand не создавались.
+- SWR keys: `finance/summary`, tuple keys списков с `search/customerId`,
+  `finance/customers`, `finance/customers/:id`, `finance/payments/:id` и
+  `order-groups/customer-link-issues`.
+- URL хранит `tab`, `search` и `customerId`. Выбор заказчика раскрывает последние
+  операции, устанавливает `customerId` и тем самым фильтрует оплаты/начисления;
+  фильтр можно явно сбросить.
+- Таблица оплат показывает способ, сумму, распределение, остаток и cancelled;
+  detail с active/released allocations загружается только при раскрытии строки.
+  Таблица начислений показывает источник, суммы и серверное состояние, ссылка
+  заказа ведет на `/order/:groupID`. Обе таблицы продолжаются кнопкой «Загрузить
+  ещё» по server cursor без дубликатов.
+- Добавлены loading/error/empty, retry, баннер диагностики старых заказов без
+  `customerId`, адаптивная сетка карточек и горизонтальная прокрутка внутри
+  таблиц. Статические стили выполнены через Emotion.
+- Для MSW добавлены минимальные read-only fixtures summary, списков, detail и
+  диагностики.
+
+Уточнение фактического API: требования FA-07 включают агрегированную таблицу
+заказчиков, но FA-06 передал только detail одного заказчика. Чтобы не выполнять
+N+1 с клиента, в `FinanceReportsService` добавлен read-only
+`GET /api/finance/customers?search=`. Он фиксированным набором batched-запросов
+возвращает `{ items, meta: { count } }` с `debt`, `advance` и `unallocated`.
+Схема БД и mutation API не менялись.
+
+Проверки:
+
+- `npm run coverage -- src/pages/finance/ui/FinancePage.test.tsx` — успешно,
+  3 tests: сводка/диагностика/cancelled/длинные значения, URL-фильтр и переход
+  в заказ, loading/error;
+- client `npm run build` — успешно (существующие предупреждения Vite о
+  circular/large chunks);
+- точечный client ESLint без `--fix` — успешно;
+- `npm run fsd:check` — единственный существующий blocker `src/app/ui`
+  (`fsd/no-ui-in-app`); новый finance slice нарушений не добавляет;
+- визуально проверены фактический экран, раскрытие allocations и вкладка
+  заказчиков на ширине 805 px; переполнение ограничено областью таблицы;
+- server finance tests, SQLite e2e, build и точечный ESLint — успешно;
+  физический PostgreSQL runtime-прогон по-прежнему недоступен в среде.
+
+Подтвержденные места будущих форм FA-08: действия страницы остаются в
+`pages/finance`; после mutations должны инвалидироваться перечисленные SWR
+keys summary/list/detail/customer/order. Общие features до второго потребителя
+не извлекаются.
 
 <a id="fa-08"></a>
 ## FA-08. Формы финансовых операций и распределения
@@ -433,7 +771,47 @@
 
 ### Результат FA-08
 
-Заполняется агентом после реализации.
+Реализованы page-local формы основных финансовых операций на `/finance`; код
+FA-09 и финансовый блок заказа не добавлялись.
+
+- Добавлены формы ручного начисления и оплаты с выбором заказчика, датой,
+  способом оплаты, суммой, внешним номером, комментарием и начальной картой
+  распределений. После выбора заказчика список ограничивается его активными
+  начислениями с ненулевым остатком.
+- Сумма оплаты, распределенная сумма и будущий аванс пересчитываются в minor
+  units. Нераспределенный остаток требует явного подтверждения; превышение суммы
+  оплаты блокируется до отправки и остается защищено серверной валидацией.
+- Для существующей оплаты доступна замена полной карты, включая пустую карту;
+  detail сохраняет отдельный показ released allocations и причин освобождения.
+- Из списков доступны sync начисления заказа, ручная корректировка, отмена
+  начисления и отмена оплаты. Причины и даты обязательны, аннулирование требует
+  отдельного подтверждения.
+- Mutation adapters добавлены в `shared/api/finance`, а orchestration и UI
+  оставлены в `pages/finance`. Новый feature/entity/Zustand не создавался.
+- `requestId` стабилен при повторе неизмененного payload и меняется после
+  пользовательского редактирования. Double submit блокируется. При `409` запись
+  перечитывается, черновик остается в форме, а повтор использует свежую
+  `expectedVersion`.
+- После успешной команды инвалидируются finance, customer и связанные order
+  SWR keys; форма закрывается только после подтвержденного успеха. Остальные
+  серверные ошибки показываются в форме и не стирают введенные данные.
+
+Проверки:
+
+- client `npm run coverage -- src/pages/finance/model/finance-attempt.test.ts src/pages/finance/ui/FinanceMutationModals.test.tsx src/pages/finance/ui/FinancePage.test.tsx` — успешно; покрыты advance без allocations, частичное/полное распределение одной оплаты на несколько начислений, released history, стабильность `requestId` и сохранение черновика после `409`;
+- client `npm run build` — успешно (существующие предупреждения Vite о
+  circular/large chunks);
+- точечный client ESLint без `--fix` — успешно;
+- `npm run fsd:check` — единственный существующий blocker `src/app/ui`
+  (`fsd/no-ui-in-app`); новые файлы finance нарушений не добавляют;
+- визуально проверены форма оплаты с расчетом/подтверждением аванса, редактор
+  распределений и подтверждение аннулирования на фактическом MSW-экране шириной
+  805 px; формы остаются доступны с клавиатуры и прокручиваются по высоте.
+
+Передать в FA-09 при отдельном запуске: `FinanceMutationModals` и
+`FinanceDialogAction` сейчас page-local; transport-функции экспортируются через
+`shared/api/finance`. Извлекать форму оплаты в feature следует только после
+появления второго потребителя на актуальной странице заказа.
 
 <a id="fa-09"></a>
 ## FA-09. Финансовый блок заказа и извлечение переиспользуемых FSD-модулей
@@ -473,7 +851,52 @@
 
 ### Результат FA-09
 
-Заполняется агентом после реализации.
+Реализован финансовый блок на фактически используемом экране заказа;
+`OrderPageV2` не подключен маршрутизацией и не изменялся. Код отчетов FA-10 не
+добавлялся.
+
+- `/order/:groupID` экспортирует `pages/order/ui/OrderPage.tsx`; в него добавлен
+  адаптивный блок «Финансы заказа» с рассчитанной суммой документов,
+  начислением, оплатой по active allocations, остатком, разницей с текущей
+  ценой и нераспределенным авансом заказчика.
+- Явно отображаются состояния без `customerId`, без начисления, cancelled
+  начисления и полной оплаты. Отмена/завершение заказа не связаны с финансовыми
+  командами и не вызывают их автоматически.
+- Действия «Создать начисление», «Обновить начисление» и «Добавить оплату»
+  доступны только по явному нажатию. Оплата открывается с предвыбранными
+  заказчиком, начислением и остатком, но не отправляется автоматически.
+- Подтвержденный общий workflow FA-08 механически перенесен из `pages/finance`
+  в `features/record-payment` с публичным `index.ts`; `/finance` продолжает
+  использовать тот же компонент без изменения поведения.
+- В `entities/finance` добавлен минимальный public API read-модели заказа:
+  `useOrderFinance`, `orderFinanceKey`, `formatFinanceMoney`. HTTP transport и
+  DTO остаются в `shared/api/finance`.
+- `GET /api/finance/order-groups/:orderGroupId` дополнен `accrualVersion`, чтобы
+  sync из заказа отправлял корректный `expectedVersion`; схема БД и mutation
+  semantics не изменялись.
+- После команд общий invalidation matcher обновляет finance/order keys, поэтому
+  блок заказа и `/finance` перечитывают связанные представления.
+
+Проверки:
+
+- client coverage — 4 suites / 16 tests: состояния блока заказа, totals,
+  аванс/разница, отсутствие заказчика/начисления, cancelled/paid, предзаполнение
+  оплаты без отправки, регрессия `/finance` и сценарии `requestId`/`409`;
+- client production build и точечный ESLint без `--fix` — успешно;
+- `npm run fsd:check` — только существующий blocker `src/app/ui`
+  (`fsd/no-ui-in-app`); новые `entities/finance` и `features/record-payment`
+  нарушений не добавляют;
+- server finance reports coverage — 1 suite / 5 tests; server build и точечный
+  ESLint — успешно;
+- визуально проверены фактический `/order/1`, финансовый блок и общая форма
+  оплаты с предзаполненным allocation на ширине 805 px; отправка финансовой
+  операции во время визуальной проверки не выполнялась.
+
+Public API для следующих задач:
+`@entities/finance` экспортирует `useOrderFinance`, `orderFinanceKey` и
+`formatFinanceMoney`; `@features/record-payment` экспортирует
+`FinanceMutationModals` и `FinanceDialogAction`; transport-функции остаются в
+`@shared/api`.
 
 <a id="fa-10"></a>
 ## FA-10. Отчеты и XLSX-экспорт
@@ -517,7 +940,65 @@
 
 ### Результат FA-10
 
-Заполняется агентом после реализации.
+Реализованы серверные отчеты, вкладка «Отчеты» и XLSX-экспорт без изменений
+схемы БД и без перехода к FA-11.
+
+- Добавлены endpoints `GET /api/finance/reports/turnover` и
+  `GET /api/finance/customers/:customerId/statement`. Turnover принимает
+  `reportType=payments|accruals`, `dateFrom/dateTo`, `customerId`, `search` и
+  применимые к типу отчета `sourceType`, `method`, `status`,
+  `allocationState`; несовместимые фильтры и обратный диапазон дат дают `400`.
+- Оплата сохраняется положительной строкой на `paymentDate`, а при отмене
+  получает отдельную отрицательную строку на `cancellationDate`. Начисления,
+  корректировки и reversal выводятся по собственному `effectiveDate`.
+  События сортируются хронологически по `businessDate`, `createdAt`, `id` и
+  `kind`.
+- Акт возвращает `openingBalance`, обороты `accrued`/`paid`,
+  `closingBalance` и `unallocatedAdvance` as-of `dateTo`. Формула сальдо:
+  `начисления - оплаты`; сторно входит в оплаты отрицательной суммой.
+  Нераспределенный аванс as-of учитывает даты оплаты/отмены и технические даты
+  создания/освобождения allocations, а не только их текущий статус.
+- Оба отчета используют cursor, содержащий `businessDate`, `createdAt`, `id` и
+  `kind`. `totals` рассчитываются до применения cursor/limit и одинаковы на
+  всех страницах полного фильтра.
+- В `/finance?tab=reports` добавлены тип отчета, период, заказчик и согласованные
+  фильтры. Все воспроизводимые значения сохраняются в query string. Для акта
+  показаны начальное/конечное сальдо, обороты и аванс; таблицы имеют loading,
+  error, empty и «Загрузить еще».
+- Экспорт последовательно получает все страницы по 100 строк, отображает число
+  полученных строк и поддерживает отмену через `AbortController`. XLSX содержит
+  название, период, фильтры, время формирования, все строки, денежный формат,
+  итоги и отдельный признак `Сторно`; PDF и новые зависимости не добавлялись.
+- Фактические основные файлы: серверные `finance-reports.service.ts`,
+  `finance.controller.ts`, `dto/finance-read.dto.ts`; клиентские
+  `shared/api/finance/finance.ts`, `pages/finance/ui/FinanceReports.tsx`,
+  `pages/finance/lib/collect-finance-report.ts` и
+  `pages/finance/lib/finance-report-workbook.ts`.
+
+Проверки:
+
+- server SQLite coverage: `finance-reports.service.spec.ts` — 7 тестов успешно;
+  покрыты opening balance, одинаковые totals при `limit=1`, корректировка,
+  reversal и отмена оплаты в другом периоде;
+- server build и точечный ESLint без `--fix` — успешно;
+- client coverage: `FinancePage.test.tsx` и
+  `finance-report-workbook.test.ts` — 4 теста успешно; отдельный тест collector
+  подтверждает получение двух cursor-страниц;
+- XLSX повторно открыт через `@protobi/exceljs`; проверены обе строки, фильтр,
+  итог и отметка сторно;
+- client production build и точечный ESLint без `--fix` — успешно; только
+  существующие предупреждения Vite о circular/large chunks;
+- `npm run fsd:check` — единственный существующий blocker `src/app/ui`
+  (`fsd/no-ui-in-app`), новые файлы нарушений не добавили;
+- визуально проверен фактический `/finance?tab=reports`: фильтры, итоги,
+  таблица, горизонтальная прокрутка и кнопка XLSX; финансовые команды и загрузка
+  файла во время smoke-проверки не выполнялись;
+- PostgreSQL integration не выполнена: Docker CLI в текущей среде отсутствует.
+  PostgreSQL-ветка остается обязательной непроверенной частью FA-11.
+
+Ограничение размера: сервер ограничивает одну страницу 100 строками, клиентский
+экспорт снимает это ограничение последовательным обходом cursor-страниц; общий
+жесткий лимит экспорта не вводился.
 
 <a id="fa-11"></a>
 ## FA-11. Сквозная приемка PostgreSQL, SQLite, web и desktop
@@ -567,7 +1048,29 @@
 
 ### Результат FA-11
 
-Заполняется агентом после реализации.
+Выполнена сквозная приемка в доступной среде и создан воспроизводимый отчет
+`docs/financial-accounting-mvp-acceptance.md`. Итоговая рекомендация — **NO-GO**:
+критерии 1–12 подтверждены тестами SQLite/web, критерий 13 заблокирован отсутствием
+фактической PostgreSQL-проверки и полного desktop UI smoke.
+
+- Server: 36 suites и 200 tests с coverage, полный e2e 6 suites/57 tests,
+  SQLite e2e 5/5, build и точечный ESLint успешно. Подготовительные migration
+  specs исправлены так, чтобы более поздние зависимые миграции не запускались
+  раньше проверяемой.
+- Client: 41 test files и 137 tests с coverage, build и точечный ESLint успешно.
+  Локальный timeout тяжелого Ant Design теста увеличен до 10 секунд; production-код
+  не изменялся. `fsd:check` по-прежнему блокируется существующим `src/app/ui`.
+- Нагрузочный SQLite-сценарий с 205 платежами проходит cursor-страницы `100/100/5`
+  без дублей; одна проверка заняла около 0,46 с, SLA не устанавливался.
+- Desktop build и win32-x64 package успешны (Forge потребовал
+  `NODE_OPTIONS=--use-system-ca`). Изолированный UI restart/write/export не
+  выполнен из-за уже работающего single-instance приложения.
+- PostgreSQL не проверен: `docker`, `psql`, `pg_dump` и `pg_restore` недоступны.
+  Это явно оставлено release blocker. В отчете приведены процедуры backup и
+  rehearsal для SQLite и PostgreSQL без destructive down пользовательской БД.
+- Визуальный web smoke `/finance?tab=reports`, выполненный на FA-10, учтен вместе
+  с актуальными route/UI/XLSX тестами; пользовательские денежные данные не
+  изменялись.
 
 ## Готовый запрос для запуска первой задачи
 

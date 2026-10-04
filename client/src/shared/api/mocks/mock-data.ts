@@ -193,7 +193,12 @@ export const mockData: Record<string, MockEntity[]> = {
     withDates({
       id: 1,
       orderNumber: 'АВ-2026-001',
-      customer: { id: 'customer-1', name: 'Иван Петров', level: 'gold' },
+      customerId: '22222222-2222-4222-8222-222222222222',
+      customer: {
+        id: '22222222-2222-4222-8222-222222222222',
+        name: 'Иван Петров',
+        level: 'gold',
+      },
       status: 'draft',
       startedAt: '2026-08-01',
     }),

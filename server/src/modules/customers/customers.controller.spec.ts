@@ -84,10 +84,7 @@ describe('CustomersController', () => {
     const dto = new CreateCustomerDto();
     dto.name = 'Customer with invalid attributes';
     dto.level = CustomerLevel.BRONZE;
-    dto.attributes = [] as unknown as Record<
-      string,
-      string | number | boolean
-    >;
+    dto.attributes = [] as unknown as Record<string, string | number | boolean>;
 
     await expect(validate(dto)).resolves.toEqual(
       expect.arrayContaining([

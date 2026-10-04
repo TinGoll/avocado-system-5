@@ -344,37 +344,35 @@ describe('Order management HTTP (SQLite)', () => {
       .patch(groupUrl)
       .send({ expectedVersion: 0, customStatusIds: groupStatusIds })
       .expect(200);
+    const groupBody = groupResponse.body as {
+      customStatusIds: string[];
+      customStatuses: { id: string }[];
+    };
     expect(groupResponse.body).toMatchObject({
       customStatusId: groupStatusIds[0],
     });
-    expect(new Set(groupResponse.body.customStatusIds)).toEqual(
+    expect(new Set(groupBody.customStatusIds)).toEqual(new Set(groupStatusIds));
+    expect(new Set(groupBody.customStatuses.map(({ id }) => id))).toEqual(
       new Set(groupStatusIds),
     );
-    expect(
-      new Set(
-        (groupResponse.body.customStatuses as { id: string }[]).map(
-          ({ id }) => id,
-        ),
-      ),
-    ).toEqual(new Set(groupStatusIds));
 
     const documentResponse = await request(http)
       .patch(documentUrl)
       .send({ expectedVersion: 0, customStatusIds: documentStatusIds })
       .expect(200);
+    const documentBody = documentResponse.body as {
+      customStatusIds: string[];
+      customStatuses: { id: string }[];
+    };
     expect(documentResponse.body).toMatchObject({
       customStatusId: documentStatusIds[0],
     });
-    expect(new Set(documentResponse.body.customStatusIds)).toEqual(
+    expect(new Set(documentBody.customStatusIds)).toEqual(
       new Set(documentStatusIds),
     );
-    expect(
-      new Set(
-        (documentResponse.body.customStatuses as { id: string }[]).map(
-          ({ id }) => id,
-        ),
-      ),
-    ).toEqual(new Set(documentStatusIds));
+    expect(new Set(documentBody.customStatuses.map(({ id }) => id))).toEqual(
+      new Set(documentStatusIds),
+    );
 
     await request(http)
       .patch(documentUrl)

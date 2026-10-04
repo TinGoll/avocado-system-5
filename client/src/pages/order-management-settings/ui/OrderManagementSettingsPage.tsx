@@ -45,6 +45,7 @@ import {
 } from '@shared/api';
 import { fetcher } from '@shared/lib/swr';
 
+import { DatabaseResetCard } from './DatabaseResetCard';
 import { NotificationRulesCard } from './NotificationRulesCard';
 
 const styles = {
@@ -531,6 +532,7 @@ export const OrderManagementSettingsPage: FC = () => {
         />
       </Card>
       <NotificationRulesCard />
+      <DatabaseResetCard />
       <Modal
         title={editor?.status ? 'Редактировать статус' : 'Новый статус'}
         open={Boolean(editor)}

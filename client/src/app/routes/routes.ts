@@ -17,4 +17,7 @@ export const ROUTES = {
   orderManagementSettings: '/order-management/settings',
   productionBoard: '/production',
   notifications: '/notifications',
+  finance: '/finance',
+  customerFinance: '/finance/customers/:customerId',
+  financeAllocation: '/finance/allocations/:operationId',
 };

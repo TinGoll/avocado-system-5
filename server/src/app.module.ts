@@ -20,6 +20,7 @@ import { ClientErrorsModule } from './modules/client-errors/client-errors.module
 import { HealthModule } from './modules/health/health.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { FinanceModule } from './modules/finance/finance.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     OrderManagementModule,
     ProductionBoardsModule,
     NotificationsModule,
+    FinanceModule,
   ],
   controllers: [],
   providers: [],

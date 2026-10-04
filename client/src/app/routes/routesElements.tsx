@@ -19,6 +19,11 @@ const OrderManagementSettingsPage = lazy(
 );
 const ProductionBoardPage = lazy(() => import('@pages/production-board'));
 const NotificationsPage = lazy(() => import('@pages/notifications'));
+const FinancePage = lazy(() => import('@pages/finance'));
+const CustomerFinancePage = lazy(() => import('@pages/customer-finance'));
+const FinanceAllocationResultPage = lazy(
+  () => import('@pages/finance-allocation-result'),
+);
 const CatalogPage = lazy(() =>
   import('@pages/catalogs').then(({ CatalogPage }) => ({
     default: CatalogPage,
@@ -73,6 +78,18 @@ export const routesElements = (): JSX.Element => (
         <Route
           path={ROUTES.notifications}
           element={withPageLoadingFallback(<NotificationsPage />)}
+        />
+        <Route
+          path={ROUTES.finance}
+          element={withPageLoadingFallback(<FinancePage />)}
+        />
+        <Route
+          path={ROUTES.customerFinance}
+          element={withPageLoadingFallback(<CustomerFinancePage />)}
+        />
+        <Route
+          path={ROUTES.financeAllocation}
+          element={withPageLoadingFallback(<FinanceAllocationResultPage />)}
         />
         <Route
           path={ROUTES.customers}

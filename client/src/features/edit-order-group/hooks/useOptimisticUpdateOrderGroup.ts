@@ -8,7 +8,7 @@ import {
 
 type OrderGroupUpdateDTO = {
   orderNumber?: string;
-  customer?: OrderGroup['customer'];
+  customerId?: string | null;
   comment?: OrderGroup['comment'];
   status?: OrderGroup['status'];
   startedAt?: Date;
