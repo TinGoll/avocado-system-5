@@ -19,6 +19,7 @@ import { FinanceReportsService } from './finance-reports.service';
 import { CustomerFinanceService } from './customer-finance.service';
 import { FinancialAllocationBatch } from './entities/financial-allocation-batch.entity';
 import { FinanceAllocationBatchesService } from './finance-allocation-batches.service';
+import { CustomerFinanceHistoryService } from './customer-finance-history.service';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { FinanceAllocationBatchesService } from './finance-allocation-batches.se
     FinanceReportsService,
     CustomerFinanceService,
     FinanceAllocationBatchesService,
+    CustomerFinanceHistoryService,
   ],
 })
 export class FinanceModule {}

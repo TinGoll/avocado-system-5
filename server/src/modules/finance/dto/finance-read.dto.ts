@@ -1,8 +1,9 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsEnum,
   IsInt,
   IsIn,
+  IsArray,
   IsOptional,
   IsString,
   IsUUID,
@@ -113,3 +114,36 @@ export class TurnoverReportQueryDto extends FinanceListQueryDto {
 }
 
 export class CustomerStatementQueryDto extends FinanceListQueryDto {}
+
+export enum CustomerFinanceHistoryType {
+  PAYMENT = 'payment',
+  ALLOCATION = 'allocation',
+  PAYMENT_CANCELLATION = 'payment_cancellation',
+  ALLOCATION_RELEASE = 'allocation_release',
+  ADJUSTMENT = 'adjustment',
+  REVERSAL = 'reversal',
+}
+
+export class CustomerFinanceHistoryQueryDto {
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) => {
+    const values: unknown[] = Array.isArray(value) ? value : [value];
+    return values.flatMap((item): unknown[] =>
+      typeof item === 'string' ? item.split(',').filter(Boolean) : [item],
+    );
+  })
+  @IsArray()
+  @IsEnum(CustomerFinanceHistoryType, { each: true })
+  types?: CustomerFinanceHistoryType[];
+
+  @IsOptional()
+  @IsString()
+  cursor?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit = 50;
+}

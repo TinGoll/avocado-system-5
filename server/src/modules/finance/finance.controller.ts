@@ -27,6 +27,7 @@ import { FinanceAllocationsService } from './finance-allocations.service';
 import { FinanceReportsService } from './finance-reports.service';
 import {
   AccrualListQueryDto,
+  CustomerFinanceHistoryQueryDto,
   CustomerStatementQueryDto,
   PaymentListQueryDto,
   TurnoverReportQueryDto,
@@ -34,6 +35,7 @@ import {
 import { CustomerFinanceService } from './customer-finance.service';
 import { CreateAllocationBatchDto } from './dto/allocation-batch.dto';
 import { FinanceAllocationBatchesService } from './finance-allocation-batches.service';
+import { CustomerFinanceHistoryService } from './customer-finance-history.service';
 
 @Controller('finance')
 export class FinanceReportsController {
@@ -41,6 +43,7 @@ export class FinanceReportsController {
     private readonly reports: FinanceReportsService,
     private readonly customerFinance: CustomerFinanceService,
     private readonly allocationBatches: FinanceAllocationBatchesService,
+    private readonly customerHistory: CustomerFinanceHistoryService,
   ) {}
 
   @Get('summary')
@@ -61,6 +64,14 @@ export class FinanceReportsController {
   @Get('customers/:customerId/allocation')
   customerAllocation(@Param('customerId', ParseUUIDPipe) customerId: string) {
     return this.customerFinance.getPage(customerId);
+  }
+
+  @Get('customers/:customerId/history')
+  customerFinanceHistory(
+    @Param('customerId', ParseUUIDPipe) customerId: string,
+    @Query() query: CustomerFinanceHistoryQueryDto,
+  ) {
+    return this.customerHistory.getHistory(customerId, query);
   }
 
   @Post('allocation-batches')

@@ -8,6 +8,7 @@ import { CustomerFinanceService } from '../src/modules/finance/customer-finance.
 import { FinanceAllocationBatchesService } from '../src/modules/finance/finance-allocation-batches.service';
 import { FinanceReportsController } from '../src/modules/finance/finance.controller';
 import { FinanceReportsService } from '../src/modules/finance/finance-reports.service';
+import { CustomerFinanceHistoryService } from '../src/modules/finance/customer-finance-history.service';
 
 describe('Finance allocation batches API (e2e)', () => {
   let app: INestApplication;
@@ -22,6 +23,14 @@ describe('Finance allocation batches API (e2e)', () => {
     number: `Распределение №${id}`,
     total: '10.25',
   }));
+  const getHistory = jest.fn(
+    (customerId: string, query: Record<string, unknown>) => ({
+      customer: { id: customerId },
+      query,
+      items: [],
+      meta: { limit: query.limit, nextCursor: null },
+    }),
+  );
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -29,6 +38,10 @@ describe('Finance allocation batches API (e2e)', () => {
       providers: [
         { provide: FinanceReportsService, useValue: {} },
         { provide: CustomerFinanceService, useValue: {} },
+        {
+          provide: CustomerFinanceHistoryService,
+          useValue: { getHistory },
+        },
         {
           provide: FinanceAllocationBatchesService,
           useValue: { create, getResult },
@@ -102,5 +115,19 @@ describe('Finance allocation batches API (e2e)', () => {
       .send(base)
       .expect(400);
     expect(create).not.toHaveBeenCalled();
+  });
+
+  it('validates and transforms customer history filters', async () => {
+    const customerId = 'd9428888-122b-4a0b-9a0a-e8a1bb2e7738';
+    await request(httpServer)
+      .get(
+        `/api/finance/customers/${customerId}/history?types=payment,allocation&limit=20`,
+      )
+      .expect(200);
+
+    expect(getHistory).toHaveBeenCalledWith(customerId, {
+      types: ['payment', 'allocation'],
+      limit: 20,
+    });
   });
 });
