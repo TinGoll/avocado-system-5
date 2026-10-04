@@ -86,7 +86,10 @@ const isConflict = (error: unknown) =>
 
 export const FinanceMutationModals: FC<{
   action: FinanceDialogAction | null;
-  customers: FinanceCustomerListItem[];
+  customers: Array<
+    Pick<FinanceCustomerListItem, 'id' | 'name' | 'companyName'> &
+      Partial<FinanceCustomerListItem>
+  >;
   onClose: () => void;
 }> = ({ action, customers, onClose }) => {
   const [form] = Form.useForm<FinanceFormValues>();

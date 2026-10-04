@@ -18,6 +18,12 @@ vi.mock('@pages/production-board', () => ({
 vi.mock('@pages/notifications', () => ({
   default: () => <div>Маршрут уведомлений</div>,
 }));
+vi.mock('@pages/customer-finance', () => ({
+  default: () => <div>Финансы заказчика</div>,
+}));
+vi.mock('@pages/finance-allocation-result', () => ({
+  default: () => <div>Результат распределения</div>,
+}));
 vi.mock('@pages/catalogs', () => ({
   CatalogPage: ({ catalog }: { catalog: string }) => (
     <div>Маршрут справочника: {catalog}</div>
@@ -105,5 +111,19 @@ describe('routesElements', () => {
     });
 
     expect(container.textContent).toContain('Маршрут уведомлений');
+  });
+
+  it.each([
+    ['/finance/customers/customer-1', 'Финансы заказчика'],
+    ['/finance/allocations/42', 'Результат распределения'],
+  ])('renders finance route %s', async (url, expected) => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={[url]}>{routesElements()}</MemoryRouter>,
+      );
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain(expected);
   });
 });

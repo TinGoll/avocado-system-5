@@ -468,6 +468,18 @@ const CustomersTable: FC<{
             dataIndex: 'unallocated',
             render: formatFinanceMoney,
           },
+          {
+            title: '',
+            key: 'open',
+            render: (_, item) => (
+              <Link
+                to={`/finance/customers/${item.id}`}
+                onClick={(event) => event.stopPropagation()}
+              >
+                Открыть финансы
+              </Link>
+            ),
+          },
         ]}
       />
     </LoadState>

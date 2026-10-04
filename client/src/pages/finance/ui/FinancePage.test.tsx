@@ -229,4 +229,34 @@ describe('FinancePage', () => {
       container.querySelector('[aria-label="Загрузка финансовых данных"]'),
     ).not.toBeNull();
   });
+
+  it('links a customer row to the dedicated finance page', () => {
+    mockedCustomers.mockReturnValue({
+      data: {
+        items: [
+          {
+            id: 'customer-1',
+            name: 'Заказчик',
+            companyName: 'Компания',
+            debtMinor: 0,
+            debt: '0.00',
+            advanceMinor: 0,
+            advance: '0.00',
+            unallocatedMinor: 0,
+            unallocated: '0.00',
+          },
+        ],
+        meta: { count: 1 },
+      },
+      error: undefined,
+      isLoading: false,
+      mutate: vi.fn(),
+    } as unknown as ReturnType<typeof useFinanceCustomers>);
+    renderPage('/finance?tab=customers');
+
+    expect(
+      container.querySelector('a[href="/finance/customers/customer-1"]')
+        ?.textContent,
+    ).toBe('Открыть финансы');
+  });
 });

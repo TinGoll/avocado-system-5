@@ -103,6 +103,89 @@ export type FinanceCustomer = FinanceSummary & {
   openAccruals: FinanceAccrual[];
 };
 
+export type CustomerFinanceOrder = {
+  id: number;
+  name: string;
+  orderNumber: string;
+  createdAt: string;
+  systemStatus: 'draft' | 'in_production' | 'completed' | 'cancelled';
+  closed: boolean;
+  allocationAvailable: boolean;
+  accrualId: string | null;
+  accrualStatus: 'active' | 'cancelled' | null;
+  total: string;
+  paid: string;
+  debt: string;
+  missingToHalf: string;
+  financialStatus: 'unpaid' | 'partially_paid' | 'prepaid' | 'paid';
+};
+
+export type CustomerFinancePage = {
+  customer: {
+    id: string;
+    name: string;
+    companyName: string | null;
+    city: string | null;
+  };
+  unallocatedBalance: string;
+  revision: string;
+  availableSystemStatuses: CustomerFinanceOrder['systemStatus'][];
+  orders: CustomerFinanceOrder[];
+};
+
+export type CustomerFinanceHistoryType =
+  | 'payment'
+  | 'allocation'
+  | 'payment_cancellation'
+  | 'allocation_release'
+  | 'adjustment'
+  | 'reversal';
+
+export type CustomerFinanceHistoryItem = {
+  id: string;
+  operationId: number | null;
+  createdAt: string;
+  type: CustomerFinanceHistoryType;
+  amount: string;
+  description: string;
+  comment: string | null;
+  employee: string | null;
+  details: Array<{
+    orderGroupId: number | null;
+    orderNumber: string | null;
+    amount: string;
+  }>;
+};
+
+export type CustomerFinanceHistory = FinancePage<CustomerFinanceHistoryItem> & {
+  customer: { id: string; name: string; companyName: string | null };
+};
+
+export type FinanceAllocationBatchResult = {
+  id: number;
+  number: string;
+  customer: { id: string; name: string; companyName: string | null };
+  createdAt: string;
+  comment: string | null;
+  employee: string | null;
+  total: string;
+  balanceAfter: string;
+  orders: Array<{
+    accrualId: string;
+    orderGroupId: number;
+    orderNumber: string;
+    allocated: string;
+    newDebt: string;
+  }>;
+  paymentSources: Array<{
+    allocationId: string;
+    paymentId: string;
+    accrualId: string;
+    paymentDate: string;
+    amount: string;
+  }>;
+};
+
 export type OrderFinance = {
   orderGroup: {
     id: number;
@@ -319,6 +402,31 @@ export const getFinanceCustomers = (search?: string) =>
   });
 export const getFinanceCustomer = (id: string) =>
   fetcher<FinanceCustomer>({ url: `finance/customers/${id}` });
+export const getCustomerFinancePage = (customerId: string) =>
+  fetcher<CustomerFinancePage>({
+    url: `finance/customers/${customerId}/allocation`,
+  });
+export const getCustomerFinanceHistory = (
+  customerId: string,
+  params: {
+    cursor?: string;
+    limit?: number;
+    types?: CustomerFinanceHistoryType[];
+  } = {},
+) => {
+  const query = new URLSearchParams();
+  if (params.cursor) query.set('cursor', params.cursor);
+  if (params.limit) query.set('limit', String(params.limit));
+  params.types?.forEach((type) => query.append('types', type));
+  const suffix = query.toString();
+  return fetcher<CustomerFinanceHistory>({
+    url: `finance/customers/${customerId}/history${suffix ? `?${suffix}` : ''}`,
+  });
+};
+export const getFinanceAllocationBatch = (operationId: number) =>
+  fetcher<FinanceAllocationBatchResult>({
+    url: `finance/allocation-batches/${operationId}`,
+  });
 export const getFinanceOrderGroup = (id: number) =>
   fetcher<OrderFinance>({ url: `finance/order-groups/${id}` });
 export const getCustomerLinkIssues = () =>
