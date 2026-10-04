@@ -16,6 +16,7 @@ import { Link } from 'react-router';
 import type { CustomerFinanceOrder } from '@shared/api';
 
 import {
+  type AllocationReasons,
   type AllocationValues,
   allocationError,
   allocationTotal,
@@ -28,6 +29,11 @@ import {
 } from '../model/customer-allocation';
 
 const styles = {
+  toolbar: css`
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+  `,
   controls: css`
     display: grid;
     grid-template-columns:
@@ -97,8 +103,18 @@ export const CustomerAllocationTable: FC<{
   balance: string;
   availableStatuses: CustomerFinanceOrder['systemStatus'][];
   values: AllocationValues;
+  reasons: AllocationReasons;
   onChange: (values: AllocationValues) => void;
-}> = ({ orders, balance, availableStatuses, values, onChange }) => {
+  onAutoAllocate: () => void;
+}> = ({
+  orders,
+  balance,
+  availableStatuses,
+  values,
+  reasons,
+  onChange,
+  onAutoAllocate,
+}) => {
   const [search, setSearch] = useState('');
   const [statuses, setStatuses] = useState<
     CustomerFinanceOrder['systemStatus'][]
@@ -135,6 +151,11 @@ export const CustomerAllocationTable: FC<{
 
   return (
     <>
+      <div className={styles.toolbar}>
+        <Button disabled={disabled} onClick={onAutoAllocate}>
+          Распределить автоматически
+        </Button>
+      </div>
       <div className={styles.controls}>
         <Input.Search
           allowClear
@@ -235,6 +256,11 @@ export const CustomerAllocationTable: FC<{
                   />
                   {error ? (
                     <Typography.Text type="danger">{error}</Typography.Text>
+                  ) : null}
+                  {reasons[order.id] ? (
+                    <Typography.Text type="secondary">
+                      {reasons[order.id]}
+                    </Typography.Text>
                   ) : null}
                 </div>
               );

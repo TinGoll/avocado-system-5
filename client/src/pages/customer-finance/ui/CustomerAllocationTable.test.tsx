@@ -103,6 +103,8 @@ describe('CustomerAllocationTable', () => {
             balance={balance}
             availableStatuses={['draft', 'in_production', 'completed']}
             values={values}
+            reasons={{}}
+            onAutoAllocate={vi.fn()}
             onChange={(next) => {
               values = next;
               render();

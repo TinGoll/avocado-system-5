@@ -1,6 +1,10 @@
 import type { CustomerFinanceOrder } from '@shared/api';
 
 export type AllocationValues = Record<number, string>;
+export type AllocationReasons = Record<number, AllocationReason>;
+export type AllocationReason =
+  | 'Погашение заказа в работе'
+  | 'Предоплата до 50%';
 
 const parseMoney = (value: string, allowNegative: boolean): number | null => {
   const normalized = value.trim().replace(',', '.');
@@ -75,3 +79,80 @@ export const isPartialFullPayment = (
   const debtMinor = parseRublesToMinor(order.debt) ?? 0;
   return amountMinor > 0 && amountMinor < debtMinor;
 };
+
+const orderSequence = (
+  left: CustomerFinanceOrder,
+  right: CustomerFinanceOrder,
+) =>
+  new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime() ||
+  left.id - right.id;
+
+export const autoAllocate = (
+  orders: CustomerFinanceOrder[],
+  balanceMinor: number,
+): {
+  values: AllocationValues;
+  reasons: AllocationReasons;
+  remainderMinor: number;
+} => {
+  const values: AllocationValues = {};
+  const reasons: AllocationReasons = {};
+  let remainderMinor = Math.max(balanceMinor, 0);
+  const eligible = orders
+    .filter(
+      (order) =>
+        !order.closed &&
+        order.allocationAvailable &&
+        order.financialStatus !== 'paid',
+    )
+    .sort(orderSequence);
+
+  const allocate = (
+    order: CustomerFinanceOrder,
+    targetMinor: number,
+    reason: AllocationReason,
+  ) => {
+    const amountMinor = Math.min(Math.max(targetMinor, 0), remainderMinor);
+    if (amountMinor <= 0) return;
+    values[order.id] = formatMinor(amountMinor);
+    reasons[order.id] = reason;
+    remainderMinor -= amountMinor;
+  };
+
+  const working = eligible.filter(
+    (order) => order.systemStatus === 'in_production',
+  );
+  for (const order of working) {
+    allocate(
+      order,
+      parseRublesToMinor(order.debt) ?? 0,
+      'Погашение заказа в работе',
+    );
+    if (remainderMinor === 0) return { values, reasons, remainderMinor };
+  }
+
+  for (const order of eligible.filter(
+    (item) => item.systemStatus !== 'in_production',
+  )) {
+    allocate(
+      order,
+      parseRublesToMinor(order.missingToHalf) ?? 0,
+      'Предоплата до 50%',
+    );
+    if (remainderMinor === 0) break;
+  }
+  return { values, reasons, remainderMinor };
+};
+
+export const hasAllocationErrors = (
+  orders: CustomerFinanceOrder[],
+  values: AllocationValues,
+  balanceMinor: number,
+) =>
+  allocationTotal(values) > Math.max(balanceMinor, 0) ||
+  orders.some((order) => {
+    const value = values[order.id] ?? '';
+    return Boolean(
+      value && allocationError(value, parseRublesToMinor(order.debt) ?? 0),
+    );
+  });

@@ -2,6 +2,8 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { MemoryRouter, Route, Routes } from 'react-router';
 
+import { createFinanceAllocationBatch } from '@shared/api';
+
 import {
   useCustomerFinanceHistory,
   useCustomerFinancePage,
@@ -18,9 +20,15 @@ vi.mock('@features/record-payment', () => ({
     <div data-testid="payment-modal">{JSON.stringify(action)}</div>
   ),
 }));
+vi.mock('@shared/api', () => ({
+  createFinanceAllocationBatch: vi.fn(),
+}));
 
 const mockedFinance = vi.mocked(useCustomerFinancePage);
 const mockedHistory = vi.mocked(useCustomerFinanceHistory);
+const mockedCreateBatch = vi.mocked(createFinanceAllocationBatch);
+const financeMutate = vi.fn();
+const historyMutate = vi.fn();
 
 describe('CustomerFinancePage', () => {
   let container: HTMLDivElement;
@@ -76,7 +84,7 @@ describe('CustomerFinancePage', () => {
       },
       error: undefined,
       isLoading: false,
-      mutate: vi.fn(),
+      mutate: financeMutate,
     } as unknown as ReturnType<typeof useCustomerFinancePage>);
     mockedHistory.mockReturnValue({
       data: {
@@ -102,7 +110,7 @@ describe('CustomerFinancePage', () => {
       },
       error: undefined,
       isLoading: false,
-      mutate: vi.fn(),
+      mutate: historyMutate,
     } as unknown as ReturnType<typeof useCustomerFinanceHistory>);
     container = document.createElement('div');
     document.body.append(container);
@@ -123,6 +131,10 @@ describe('CustomerFinancePage', () => {
             <Route
               path="/finance/customers/:customerId"
               element={<CustomerFinancePage />}
+            />
+            <Route
+              path="/finance/allocations/:operationId"
+              element={<div>Страница результата</div>}
             />
           </Routes>
         </MemoryRouter>,
@@ -170,5 +182,98 @@ describe('CustomerFinancePage', () => {
 
     expect(container.textContent).toContain('У заказчика пока нет заказов');
     expect(container.textContent).toContain('Финансовых операций пока нет');
+  });
+
+  it('clears the draft and refreshes data after a conflict', async () => {
+    mockedCreateBatch.mockRejectedValueOnce(
+      Object.assign(new Error('Conflict'), {
+        isAxiosError: true,
+        response: { status: 409 },
+      }),
+    );
+    renderPage();
+    const auto = [...container.querySelectorAll('button')].find((item) =>
+      item.textContent?.includes('Распределить автоматически'),
+    )!;
+    act(() => auto.click());
+    expect(
+      container.querySelector<HTMLInputElement>(
+        'input[aria-label="Сумма для заказа Заказ 42"]',
+      )?.value,
+    ).toBe('25.00');
+
+    const save = [...container.querySelectorAll('button')].find((item) =>
+      item.textContent?.includes('Сохранить распределение'),
+    )!;
+    act(() => save.click());
+    const confirm = [...document.body.querySelectorAll('button')].find(
+      (item) => item.textContent === 'Сохранить',
+    )!;
+    await act(async () => {
+      confirm.click();
+      confirm.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(financeMutate).toHaveBeenCalled();
+    expect(historyMutate).toHaveBeenCalled();
+    expect(container.textContent).toContain(
+      'Данные обновлены — сформируйте распределение заново',
+    );
+    expect(
+      container.querySelector<HTMLInputElement>(
+        'input[aria-label="Сумма для заказа Заказ 42"]',
+      )?.value,
+    ).toBe('');
+  });
+
+  it('opens the permanent result after a successful save', async () => {
+    mockedCreateBatch.mockResolvedValueOnce({ id: 77 } as never);
+    renderPage();
+    const auto = [...container.querySelectorAll('button')].find((item) =>
+      item.textContent?.includes('Распределить автоматически'),
+    )!;
+    act(() => auto.click());
+    expect(container.textContent).toContain('Погашение заказа в работе');
+
+    const save = [...container.querySelectorAll('button')].find((item) =>
+      item.textContent?.includes('Сохранить распределение'),
+    )!;
+    act(() => save.click());
+    const confirm = [...document.body.querySelectorAll('button')].find(
+      (item) => item.textContent === 'Сохранить',
+    )!;
+    await act(async () => {
+      confirm.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(mockedCreateBatch).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toContain('Страница результата');
+  });
+
+  it('warns before browser and client navigation with a non-empty draft', () => {
+    const confirmNavigation = vi
+      .spyOn(window, 'confirm')
+      .mockReturnValue(false);
+    renderPage();
+    const auto = [...container.querySelectorAll('button')].find((item) =>
+      item.textContent?.includes('Распределить автоматически'),
+    )!;
+    act(() => auto.click());
+
+    const beforeUnload = new Event('beforeunload', { cancelable: true });
+    act(() => window.dispatchEvent(beforeUnload));
+    expect(beforeUnload.defaultPrevented).toBe(true);
+
+    const backLink = container.querySelector<HTMLAnchorElement>(
+      'a[href="/finance?tab=customers"]',
+    )!;
+    act(() => backLink.click());
+    expect(confirmNavigation).toHaveBeenCalled();
+    expect(container.textContent).toContain('Иван Петров');
+    confirmNavigation.mockRestore();
   });
 });

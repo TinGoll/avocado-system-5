@@ -186,6 +186,14 @@ export type FinanceAllocationBatchResult = {
   }>;
 };
 
+export type CreateFinanceAllocationBatchInput = {
+  customerId: string;
+  requestId: string;
+  expectedRevision: string;
+  comment?: string;
+  allocations: Array<{ orderGroupId: number; amount: string }>;
+};
+
 export type OrderFinance = {
   orderGroup: {
     id: number;
@@ -426,6 +434,14 @@ export const getCustomerFinanceHistory = (
 export const getFinanceAllocationBatch = (operationId: number) =>
   fetcher<FinanceAllocationBatchResult>({
     url: `finance/allocation-batches/${operationId}`,
+  });
+export const createFinanceAllocationBatch = (
+  data: CreateFinanceAllocationBatchInput,
+) =>
+  fetcher<FinanceAllocationBatchResult, CreateFinanceAllocationBatchInput>({
+    url: 'finance/allocation-batches',
+    method: 'POST',
+    data,
   });
 export const getFinanceOrderGroup = (id: number) =>
   fetcher<OrderFinance>({ url: `finance/order-groups/${id}` });

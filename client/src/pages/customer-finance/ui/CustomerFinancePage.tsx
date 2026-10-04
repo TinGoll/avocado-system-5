@@ -4,6 +4,8 @@ import {
   Button,
   Card,
   Empty,
+  Input,
+  Modal,
   Space,
   Spin,
   Statistic,
@@ -11,25 +13,33 @@ import {
   Typography,
 } from 'antd';
 import { isAxiosError } from 'axios';
-import { type FC, type ReactNode, useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { type FC, type ReactNode, useRef, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router';
 
 import {
   type FinanceDialogAction,
   FinanceMutationModals,
 } from '@features/record-payment';
-import type { CustomerFinanceHistoryItem } from '@shared/api';
+import {
+  createFinanceAllocationBatch,
+  type CustomerFinanceHistoryItem,
+} from '@shared/api';
 
 import {
   useCustomerFinanceHistory,
   useCustomerFinancePage,
 } from '../api/customer-finance';
 import {
+  type AllocationReasons,
   type AllocationValues,
   allocationTotal,
+  autoAllocate,
   formatMinor,
+  hasAllocationErrors,
+  parseRublesToMinor,
   parseSignedRublesToMinor,
 } from '../model/customer-allocation';
+import { useAllocationDraftGuard } from '../model/use-allocation-draft-guard';
 
 import { CustomerAllocationTable } from './CustomerAllocationTable';
 
@@ -96,6 +106,16 @@ const styles = {
     gap: 6px;
     padding: 8px 16px;
   `,
+  savePanel: css`
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) auto;
+    gap: 12px;
+    align-items: end;
+    margin-top: 16px;
+    @media (max-width: 600px) {
+      grid-template-columns: 1fr;
+    }
+  `,
 };
 
 const dateTime = (value: string) =>
@@ -133,6 +153,7 @@ const State: FC<{
 
 export const CustomerFinancePage: FC = () => {
   const { customerId } = useParams<{ customerId: string }>();
+  const navigate = useNavigate();
   const finance = useCustomerFinancePage(customerId);
   const history = useCustomerFinanceHistory(customerId);
   const [dialogAction, setDialogAction] = useState<FinanceDialogAction | null>(
@@ -141,9 +162,93 @@ export const CustomerFinancePage: FC = () => {
   const [allocationValues, setAllocationValues] = useState<AllocationValues>(
     {},
   );
+  const [allocationReasons, setAllocationReasons] = useState<AllocationReasons>(
+    {},
+  );
+  const [comment, setComment] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [operationError, setOperationError] = useState<string | null>(null);
+  const [conflictMessage, setConflictMessage] = useState<string | null>(null);
+  const requestId = useRef(crypto.randomUUID());
+  const submittingRef = useRef(false);
   const balanceMinor =
     parseSignedRublesToMinor(finance.data?.unallocatedBalance ?? '0') ?? 0;
   const enteredMinor = allocationTotal(allocationValues);
+  useAllocationDraftGuard(enteredMinor > 0);
+
+  const resetRequest = () => {
+    requestId.current = crypto.randomUUID();
+  };
+  const changeValues = (next: AllocationValues) => {
+    const changed = new Set(
+      [
+        ...new Set([...Object.keys(allocationValues), ...Object.keys(next)]),
+      ].filter((id) => allocationValues[Number(id)] !== next[Number(id)]),
+    );
+    setAllocationReasons(
+      (current) =>
+        Object.fromEntries(
+          Object.entries(current).filter(([id]) => !changed.has(id)),
+        ) as AllocationReasons,
+    );
+    setAllocationValues(next);
+    resetRequest();
+  };
+  const autoFill = () => {
+    if (!finance.data) return;
+    const result = autoAllocate(finance.data.orders, balanceMinor);
+    setAllocationValues(result.values);
+    setAllocationReasons(result.reasons);
+    setOperationError(null);
+    setConflictMessage(null);
+    resetRequest();
+  };
+  const save = async () => {
+    if (!finance.data || submittingRef.current) return;
+    submittingRef.current = true;
+    setSubmitting(true);
+    setOperationError(null);
+    try {
+      const result = await createFinanceAllocationBatch({
+        customerId: finance.data.customer.id,
+        requestId: requestId.current,
+        expectedRevision: finance.data.revision,
+        comment: comment.trim() || undefined,
+        allocations: Object.entries(allocationValues)
+          .map(([orderGroupId, amount]) => ({
+            orderGroupId: Number(orderGroupId),
+            amount,
+            amountMinor: parseRublesToMinor(amount) ?? 0,
+          }))
+          .filter((item) => item.amountMinor > 0)
+          .map(({ orderGroupId, amount }) => ({ orderGroupId, amount })),
+      });
+      setConfirmOpen(false);
+      setAllocationValues({});
+      setAllocationReasons({});
+      navigate(`/finance/allocations/${result.id}`);
+    } catch (error) {
+      setConfirmOpen(false);
+      if (isAxiosError(error) && error.response?.status === 409) {
+        await Promise.all([finance.mutate(), history.mutate()]);
+        setAllocationValues({});
+        setAllocationReasons({});
+        setComment('');
+        resetRequest();
+        setConflictMessage(
+          'Баланс или заказы были изменены другим пользователем. Данные обновлены — сформируйте распределение заново',
+        );
+      } else {
+        setOperationError(
+          'Не удалось сохранить распределение. Повторите попытку.',
+        );
+      }
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
+  };
   const openPayment = () => {
     if (!finance.data) return;
     setDialogAction({
@@ -225,6 +330,12 @@ export const CustomerFinancePage: FC = () => {
                 description="Распределение недоступно, пока баланс не станет положительным. Дефицит не относится к долгу по заказам."
               />
             ) : null}
+            {conflictMessage ? (
+              <Alert showIcon type="warning" title={conflictMessage} />
+            ) : null}
+            {operationError ? (
+              <Alert showIcon type="error" title={operationError} />
+            ) : null}
 
             <div>
               <Typography.Title className={styles.sectionTitle} level={4}>
@@ -242,8 +353,38 @@ export const CustomerFinancePage: FC = () => {
                   balance={finance.data.unallocatedBalance}
                   availableStatuses={finance.data.availableSystemStatuses}
                   values={allocationValues}
-                  onChange={setAllocationValues}
+                  reasons={allocationReasons}
+                  onChange={changeValues}
+                  onAutoAllocate={autoFill}
                 />
+                <div className={styles.savePanel}>
+                  <Input.TextArea
+                    aria-label="Комментарий к распределению"
+                    maxLength={1000}
+                    placeholder="Комментарий (необязательно)"
+                    value={comment}
+                    onChange={(event) => {
+                      setComment(event.target.value);
+                      resetRequest();
+                    }}
+                  />
+                  <Button
+                    type="primary"
+                    disabled={
+                      enteredMinor <= 0 ||
+                      balanceMinor <= 0 ||
+                      hasAllocationErrors(
+                        finance.data.orders,
+                        allocationValues,
+                        balanceMinor,
+                      )
+                    }
+                    loading={submitting}
+                    onClick={() => setConfirmOpen(true)}
+                  >
+                    Сохранить распределение
+                  </Button>
+                </div>
               </State>
             </div>
 
@@ -304,6 +445,17 @@ export const CustomerFinancePage: FC = () => {
               customers={[finance.data.customer]}
               onClose={() => setDialogAction(null)}
             />
+            <Modal
+              open={confirmOpen}
+              title="Сохранить изменения?"
+              okText="Сохранить"
+              cancelText="Отмена"
+              confirmLoading={submitting}
+              onCancel={() => setConfirmOpen(false)}
+              onOk={() => void save()}
+            >
+              Распределение будет сохранено одной операцией.
+            </Modal>
           </Space>
         ) : null}
       </State>
