@@ -8,26 +8,30 @@ import {
   Spin,
   Statistic,
   Table,
-  Tag,
   Typography,
 } from 'antd';
 import { isAxiosError } from 'axios';
-import { type FC, type ReactNode, useMemo, useState } from 'react';
+import { type FC, type ReactNode, useState } from 'react';
 import { Link, useParams } from 'react-router';
 
 import {
   type FinanceDialogAction,
   FinanceMutationModals,
 } from '@features/record-payment';
-import type {
-  CustomerFinanceHistoryItem,
-  CustomerFinanceOrder,
-} from '@shared/api';
+import type { CustomerFinanceHistoryItem } from '@shared/api';
 
 import {
   useCustomerFinanceHistory,
   useCustomerFinancePage,
 } from '../api/customer-finance';
+import {
+  type AllocationValues,
+  allocationTotal,
+  formatMinor,
+  parseSignedRublesToMinor,
+} from '../model/customer-allocation';
+
+import { CustomerAllocationTable } from './CustomerAllocationTable';
 
 const styles = {
   page: css`
@@ -67,7 +71,7 @@ const styles = {
   `,
   summary: css`
     display: grid;
-    grid-template-columns: repeat(4, minmax(160px, 1fr));
+    grid-template-columns: repeat(3, minmax(180px, 1fr));
     gap: 12px;
     @media (max-width: 900px) {
       grid-template-columns: repeat(2, minmax(150px, 1fr));
@@ -94,30 +98,11 @@ const styles = {
   `,
 };
 
-const moneyMinor = (value: string) => {
-  const [rubles = '0', kopecks = ''] = value.split('.');
-  return Number(rubles) * 100 + Number(kopecks.padEnd(2, '0').slice(0, 2));
-};
-const money = (minor: number) => (minor / 100).toFixed(2);
 const dateTime = (value: string) =>
   new Intl.DateTimeFormat('ru-RU', {
     dateStyle: 'short',
     timeStyle: 'short',
   }).format(new Date(value));
-
-const orderStatus: Record<CustomerFinanceOrder['systemStatus'], string> = {
-  draft: 'Черновик',
-  in_production: 'В работе',
-  completed: 'Закрыт',
-  cancelled: 'Отменён',
-};
-const financialStatus: Record<CustomerFinanceOrder['financialStatus'], string> =
-  {
-    unpaid: 'Не оплачен',
-    partially_paid: 'Оплачен менее 50%',
-    prepaid: 'Предоплата',
-    paid: 'Оплачен',
-  };
 
 const State: FC<{
   loading: boolean;
@@ -153,16 +138,12 @@ export const CustomerFinancePage: FC = () => {
   const [dialogAction, setDialogAction] = useState<FinanceDialogAction | null>(
     null,
   );
-  const totals = useMemo(() => {
-    const orders = finance.data?.orders ?? [];
-    return {
-      total: money(
-        orders.reduce((sum, item) => sum + moneyMinor(item.total), 0),
-      ),
-      paid: money(orders.reduce((sum, item) => sum + moneyMinor(item.paid), 0)),
-      debt: money(orders.reduce((sum, item) => sum + moneyMinor(item.debt), 0)),
-    };
-  }, [finance.data?.orders]);
+  const [allocationValues, setAllocationValues] = useState<AllocationValues>(
+    {},
+  );
+  const balanceMinor =
+    parseSignedRublesToMinor(finance.data?.unallocatedBalance ?? '0') ?? 0;
+  const enteredMinor = allocationTotal(allocationValues);
   const openPayment = () => {
     if (!finance.data) return;
     setDialogAction({
@@ -215,33 +196,39 @@ export const CustomerFinancePage: FC = () => {
             <div className={styles.summary}>
               <Card size="small">
                 <Statistic
-                  title="Нераспределённый баланс"
-                  value={finance.data.unallocatedBalance}
+                  title="Текущий нераспределённый баланс"
+                  value={formatMinor(Math.max(balanceMinor, 0))}
                   suffix="₽"
                 />
               </Card>
               <Card size="small">
                 <Statistic
-                  title="Стоимость заказов"
-                  value={totals.total}
+                  title="Введено к распределению"
+                  value={formatMinor(enteredMinor)}
                   suffix="₽"
                 />
               </Card>
               <Card size="small">
                 <Statistic
-                  title="Распределено"
-                  value={totals.paid}
+                  title="Останется после сохранения"
+                  value={formatMinor(Math.max(balanceMinor - enteredMinor, 0))}
                   suffix="₽"
                 />
-              </Card>
-              <Card size="small">
-                <Statistic title="Долг" value={totals.debt} suffix="₽" />
               </Card>
             </div>
 
+            {balanceMinor < 0 ? (
+              <Alert
+                showIcon
+                type="warning"
+                title={`Дефицит нераспределённого баланса: ${formatMinor(-balanceMinor)} ₽`}
+                description="Распределение недоступно, пока баланс не станет положительным. Дефицит не относится к долгу по заказам."
+              />
+            ) : null}
+
             <div>
               <Typography.Title className={styles.sectionTitle} level={4}>
-                Заказы
+                Распределение по заказам
               </Typography.Title>
               <State
                 loading={false}
@@ -250,40 +237,12 @@ export const CustomerFinancePage: FC = () => {
                 emptyText="У заказчика пока нет заказов"
                 retry={finance.mutate}
               >
-                <Table<CustomerFinanceOrder>
-                  rowKey="id"
-                  pagination={false}
-                  scroll={{ x: 900 }}
-                  dataSource={finance.data.orders}
-                  columns={[
-                    {
-                      title: 'Заказ',
-                      render: (_, item) => (
-                        <Link to={`/order/${item.id}`}>
-                          {item.orderNumber || item.name}
-                        </Link>
-                      ),
-                    },
-                    {
-                      title: 'Создан',
-                      dataIndex: 'createdAt',
-                      render: dateTime,
-                    },
-                    {
-                      title: 'Статус',
-                      render: (_, item) => (
-                        <Tag>{orderStatus[item.systemStatus]}</Tag>
-                      ),
-                    },
-                    { title: 'Стоимость', dataIndex: 'total' },
-                    { title: 'Распределено', dataIndex: 'paid' },
-                    { title: 'Долг', dataIndex: 'debt' },
-                    {
-                      title: 'Оплата',
-                      render: (_, item) =>
-                        financialStatus[item.financialStatus],
-                    },
-                  ]}
+                <CustomerAllocationTable
+                  orders={finance.data.orders}
+                  balance={finance.data.unallocatedBalance}
+                  availableStatuses={finance.data.availableSystemStatuses}
+                  values={allocationValues}
+                  onChange={setAllocationValues}
                 />
               </State>
             </div>

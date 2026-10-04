@@ -136,7 +136,7 @@ describe('CustomerFinancePage', () => {
     expect(container.textContent).toContain('Авокадо · Москва');
     expect(container.textContent).toContain('25.00');
     expect(container.querySelector('a[href="/order/42"]')?.textContent).toBe(
-      'З-42',
+      'Заказ 42 · №З-42',
     );
     expect(
       container.querySelector('a[href="/finance/allocations/7"]')?.textContent,
