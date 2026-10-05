@@ -184,6 +184,10 @@ export class UpdateManagementSettingsDto {
   autoAddStatus?: OrderStatus | null;
 
   @ValidateIf((_, value: unknown) => value !== undefined && value !== null)
+  @IsIn([OrderStatus.IN_PRODUCTION, OrderStatus.COMPLETED])
+  autoAccrualStatus?: OrderStatus | null;
+
+  @ValidateIf((_, value: unknown) => value !== undefined && value !== null)
   @IsUUID()
   autoAddBoardId?: string | null;
 

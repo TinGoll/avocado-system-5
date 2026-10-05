@@ -1,3 +1,4 @@
+import { FinanceModule } from '../finance/finance.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CustomOrderStatus } from './entities/custom-order-status.entity';
@@ -15,6 +16,7 @@ import { Order } from '../orders/entities/order.entity';
 
 @Module({
   imports: [
+    FinanceModule,
     TypeOrmModule.forFeature([
       CustomOrderStatus,
       OrderManagementSettings,

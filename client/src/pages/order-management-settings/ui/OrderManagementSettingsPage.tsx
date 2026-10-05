@@ -82,6 +82,16 @@ const styles = {
       grid-template-columns: 1fr;
     }
   `,
+  autoAccrualForm: css`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 16px;
+
+    .ant-form-item {
+      margin-bottom: 0;
+    }
+  `,
   dueDateRules: css`
     display: grid;
     gap: 12px;
@@ -109,6 +119,10 @@ type AutoAddValues = {
   autoAddStatus?: OrderLifecycleStatus;
   autoAddBoardId?: string;
   autoAddStageId?: string;
+};
+type AutoAccrualValues = {
+  enabled: boolean;
+  autoAccrualStatus?: 'in_production' | 'completed';
 };
 type DueDateRuleValues = { dueDateRules: DueDateRule[] };
 
@@ -224,6 +238,7 @@ export const OrderManagementSettingsPage: FC = () => {
   const [activeScope, setActiveScope] = useState<ManagementScope>('group');
   const [statusForm] = Form.useForm<StatusValues>();
   const [settingsForm] = Form.useForm<{ timeZone: string }>();
+  const [autoAccrualForm] = Form.useForm<AutoAccrualValues>();
   const [autoAddForm] = Form.useForm<AutoAddValues>();
   const [dueDateRulesForm] = Form.useForm<DueDateRuleValues>();
   const settings = useSWR<OrderManagementSettings>(
@@ -237,6 +252,7 @@ export const OrderManagementSettingsPage: FC = () => {
   const groupStatuses = useSWR(orderManagementKeys.statuses('group'), () =>
     getCustomStatuses('group'),
   );
+  const autoAccrualEnabled = Form.useWatch('enabled', autoAccrualForm) ?? false;
   const autoAddEnabled = Form.useWatch('enabled', autoAddForm) ?? false;
   const selectedBoardId = Form.useWatch('autoAddBoardId', autoAddForm);
   const activeBoards = (boards.data?.items ?? []).filter(
@@ -272,6 +288,7 @@ export const OrderManagementSettingsPage: FC = () => {
     try {
       await updateOrderManagementSettings({
         timeZone: timeZone.trim(),
+        autoAccrualStatus: settings.data?.autoAccrualStatus ?? null,
         autoAddStatus: settings.data?.autoAddStatus ?? null,
         autoAddBoardId: settings.data?.autoAddBoardId ?? null,
         autoAddStageId: settings.data?.autoAddStageId ?? null,
@@ -288,6 +305,7 @@ export const OrderManagementSettingsPage: FC = () => {
     try {
       await updateOrderManagementSettings({
         timeZone: settings.data.timeZone,
+        autoAccrualStatus: settings.data.autoAccrualStatus,
         autoAddStatus: values.enabled ? (values.autoAddStatus ?? null) : null,
         autoAddBoardId: values.enabled ? (values.autoAddBoardId ?? null) : null,
         autoAddStageId: values.enabled ? (values.autoAddStageId ?? null) : null,
@@ -299,11 +317,31 @@ export const OrderManagementSettingsPage: FC = () => {
       message.error('Не удалось сохранить автодобавление');
     }
   };
+  const saveAutoAccrual = async (values: AutoAccrualValues) => {
+    if (!settings.data) return;
+    try {
+      await updateOrderManagementSettings({
+        timeZone: settings.data.timeZone,
+        autoAddStatus: settings.data.autoAddStatus,
+        autoAddBoardId: settings.data.autoAddBoardId,
+        autoAddStageId: settings.data.autoAddStageId,
+        dueDateRules: settings.data.dueDateRules,
+        autoAccrualStatus: values.enabled
+          ? (values.autoAccrualStatus ?? null)
+          : null,
+      });
+      await settings.mutate();
+      message.success('Автоматическое начисление сохранено');
+    } catch {
+      message.error('Не удалось сохранить автоматическое начисление');
+    }
+  };
   const saveDueDateRules = async ({ dueDateRules }: DueDateRuleValues) => {
     if (!settings.data) return;
     try {
       await updateOrderManagementSettings({
         timeZone: settings.data.timeZone,
+        autoAccrualStatus: settings.data.autoAccrualStatus,
         autoAddStatus: settings.data.autoAddStatus,
         autoAddBoardId: settings.data.autoAddBoardId,
         autoAddStageId: settings.data.autoAddStageId,
@@ -430,6 +468,58 @@ export const OrderManagementSettingsPage: FC = () => {
               )}
             </Form.List>
           </Form>
+        )}
+      </Card>
+      <Card className={styles.card} title="Автоматическое начисление">
+        {settings.error ? (
+          <Alert showIcon type="error" title="Не удалось загрузить настройки" />
+        ) : settings.isLoading ? (
+          <Typography.Text>Загрузка…</Typography.Text>
+        ) : (
+          <>
+            <Typography.Paragraph type="secondary">
+              Начисление создаётся на текущую стоимость всех документов заказа,
+              если ранее оно не создавалось. Для начисления нужны привязанный
+              клиент и стоимость больше 0 ₽. Старые заказы автоматически не
+              обрабатываются.
+            </Typography.Paragraph>
+            <Form
+              className={styles.autoAccrualForm}
+              form={autoAccrualForm}
+              key={settings.data?.autoAccrualStatus ?? 'disabled'}
+              initialValues={{
+                enabled: Boolean(settings.data?.autoAccrualStatus),
+                autoAccrualStatus:
+                  settings.data?.autoAccrualStatus ?? 'in_production',
+              }}
+              onFinish={saveAutoAccrual}
+            >
+              <Form.Item
+                label="Автоматически создавать начисление"
+                name="enabled"
+                valuePropName="checked"
+              >
+                <Switch />
+              </Form.Item>
+              <Form.Item
+                label="При переходе в статус"
+                name="autoAccrualStatus"
+                rules={[
+                  { required: autoAccrualEnabled, message: 'Выберите статус' },
+                ]}
+              >
+                <Select
+                  disabled={!autoAccrualEnabled}
+                  options={lifecycleOptions.filter(
+                    ({ value }) => value !== 'cancelled',
+                  )}
+                />
+              </Form.Item>
+              <Button htmlType="submit" type="primary">
+                Сохранить
+              </Button>
+            </Form>
+          </>
         )}
       </Card>
       <Card className={styles.card} title="Автодобавление на доску">

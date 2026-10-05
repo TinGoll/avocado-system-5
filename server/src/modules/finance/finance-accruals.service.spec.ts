@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 /* eslint-disable @typescript-eslint/no-require-imports */
 import {
   ConflictException,
@@ -156,6 +157,7 @@ describe('FinanceAccrualsService (SQLite)', () => {
     const management = new OrderManagementService(
       source,
       new OrderManagementEventService(),
+      service,
     );
 
     await management.updateGroup(group.id, {
@@ -168,6 +170,227 @@ describe('FinanceAccrualsService (SQLite)', () => {
         orderGroupId: group.id,
       }),
     ).toBe(0);
+  });
+
+  describe('automatic order accrual', () => {
+    const management = () =>
+      new OrderManagementService(
+        source,
+        new OrderManagementEventService(),
+        service,
+      );
+    const configure = async (status: string | null) => {
+      await source.query(
+        'UPDATE order_management_settings SET "autoAccrualStatus" = ?',
+        [status],
+      );
+    };
+    const launch = (id: number, expectedVersion = 0) =>
+      management().updateGroup(id, {
+        status: OrderGroupStatus.IN_PRODUCTION,
+        expectedVersion,
+      });
+    const accrualFor = (id: number) =>
+      source.getRepository(FinancialAccrual).findOneBy({ orderGroupId: id });
+
+    beforeEach(async () => configure('in_production'));
+    afterEach(async () => {
+      jest.restoreAllMocks();
+      await configure(null);
+    });
+
+    it('creates the document total once and uses the configured local date', async () => {
+      const group = await createGroup([10.1, 20.2]);
+      await source.query(
+        'UPDATE order_management_settings SET "timeZone" = ?',
+        ['Pacific/Kiritimati'],
+      );
+      try {
+        await launch(group.id);
+        await launch(group.id, 1);
+        const accrual = await accrualFor(group.id);
+        expect(accrual).toMatchObject({
+          customerId: customer.id,
+          title: group.orderNumber,
+        });
+        const entries = await source
+          .getRepository(FinancialAccrualEntry)
+          .findBy({ accrualId: accrual!.id });
+        expect(entries).toHaveLength(1);
+        expect(entries[0]).toMatchObject({
+          amountMinor: 3030,
+          effectiveDate: new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Pacific/Kiritimati',
+          }).format(new Date()),
+        });
+        await management().updateGroup(group.id, {
+          status: OrderGroupStatus.CANCELLED,
+          expectedVersion: 2,
+        });
+        await management().updateGroup(group.id, {
+          status: OrderGroupStatus.IN_PRODUCTION,
+          expectedVersion: 3,
+          reason: 'Reopen',
+        });
+        expect(
+          await source
+            .getRepository(FinancialAccrualEntry)
+            .countBy({ accrualId: accrual!.id }),
+        ).toBe(1);
+      } finally {
+        await source.query(
+          'UPDATE order_management_settings SET "timeZone" = ?',
+          ['Europe/Moscow'],
+        );
+      }
+    });
+
+    it('creates on completion only when configured for completion', async () => {
+      await configure('completed');
+      const group = await createGroup([50]);
+      await launch(group.id);
+      expect(await accrualFor(group.id)).toBeNull();
+      await management().updateGroup(group.id, {
+        status: OrderGroupStatus.COMPLETED,
+        expectedVersion: 1,
+        confirmIncompleteProduction: true,
+        reason: 'Done',
+      });
+      expect(await accrualFor(group.id)).not.toBeNull();
+    });
+
+    it('does not process existing orders merely by enabling the setting', async () => {
+      await configure(null);
+      const group = await createGroup([50]);
+      await launch(group.id);
+      await configure('in_production');
+      await launch(group.id, 1);
+      expect(await accrualFor(group.id)).toBeNull();
+    });
+
+    it('keeps a manually created order accrual and its adjustments', async () => {
+      const group = await createGroup([100]);
+      const accrual = await service.createFromOrder({
+        orderGroupId: group.id,
+        effectiveDate: '2026-09-22',
+        requestId: randomUUID(),
+      });
+      await service.adjust(accrual.id, {
+        amount: '5.00',
+        expectedVersion: 0,
+        effectiveDate: '2026-09-22',
+        reason: 'Extra',
+        requestId: randomUUID(),
+      });
+      await launch(group.id);
+      expect(await accrualFor(group.id)).toMatchObject({
+        id: accrual.id,
+        version: 1,
+      });
+      expect(
+        await source
+          .getRepository(FinancialAccrualEntry)
+          .countBy({ accrualId: accrual.id }),
+      ).toBe(2);
+    });
+
+    it.each([null, 0, -10])(
+      'rolls back status, version and journal for invalid order %s',
+      async (value) => {
+        const group =
+          value === null
+            ? await createGroup([10], null)
+            : await createGroup([value]);
+        await expect(launch(group.id)).rejects.toBeInstanceOf(
+          UnprocessableEntityException,
+        );
+        expect(
+          await source.getRepository(OrderGroup).findOneBy({ id: group.id }),
+        ).toMatchObject({
+          status: OrderGroupStatus.DRAFT,
+          managementVersion: 0,
+        });
+        expect(await accrualFor(group.id)).toBeNull();
+        expect(
+          await source.query(
+            'SELECT id FROM order_management_events WHERE "orderGroupId" = ?',
+            [group.id],
+          ),
+        ).toEqual([]);
+      },
+    );
+
+    it('uses a customer linked in the same update as the status', async () => {
+      const group = await createGroup([10], null);
+      await management().updateGroup(
+        group.id,
+        { status: OrderGroupStatus.IN_PRODUCTION, expectedVersion: 0 },
+        { customerId: customer.id },
+      );
+      expect(await accrualFor(group.id)).toMatchObject({
+        customerId: customer.id,
+      });
+    });
+
+    it('does not restore a cancelled accrual and rejects the transition', async () => {
+      const group = await createGroup([10]);
+      const accrual = await service.createFromOrder({
+        orderGroupId: group.id,
+        effectiveDate: '2026-09-22',
+        requestId: randomUUID(),
+      });
+      await service.cancel(accrual.id, {
+        expectedVersion: 0,
+        effectiveDate: '2026-09-22',
+        reason: 'Cancelled',
+        requestId: randomUUID(),
+      });
+      await expect(launch(group.id)).rejects.toThrow(
+        'Начисление заказа отменено',
+      );
+      expect(await accrualFor(group.id)).toMatchObject({
+        id: accrual.id,
+        status: 'cancelled',
+      });
+      expect(
+        await source.getRepository(OrderGroup).findOneBy({ id: group.id }),
+      ).toMatchObject({ status: OrderGroupStatus.DRAFT, managementVersion: 0 });
+    });
+
+    it('rolls back the inserted accrual and its entry if the transaction fails', async () => {
+      const group = await createGroup([10]);
+      const ensure = service.ensureOrderAccrual.bind(
+        service,
+      ) as FinanceAccrualsServiceType['ensureOrderAccrual'];
+      jest
+        .spyOn(service, 'ensureOrderAccrual')
+        .mockImplementation(async (...args) => {
+          await ensure(...args);
+          throw new Error('Storage failure');
+        });
+      await expect(launch(group.id)).rejects.toThrow('Storage failure');
+      expect(await accrualFor(group.id)).toBeNull();
+      expect(
+        await source.getRepository(OrderGroup).findOneBy({ id: group.id }),
+      ).toMatchObject({ status: OrderGroupStatus.DRAFT, managementVersion: 0 });
+    });
+
+    it('rejects stale concurrent transitions without duplicate entries', async () => {
+      const group = await createGroup([10]);
+      const results = await Promise.allSettled([
+        launch(group.id),
+        launch(group.id),
+      ]);
+      expect(
+        results.filter(({ status }) => status === 'fulfilled'),
+      ).toHaveLength(1);
+      const accrual = await accrualFor(group.id);
+      expect(
+        await source
+          .getRepository(FinancialAccrualEntry)
+          .countBy({ accrualId: accrual!.id }),
+      ).toBe(1);
+    });
   });
 
   it('creates a manual accrual and rejects conflicting request replay', async () => {

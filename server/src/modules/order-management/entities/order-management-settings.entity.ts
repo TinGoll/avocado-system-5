@@ -20,6 +20,9 @@ export class OrderManagementSettings {
   @Column({ type: 'text', nullable: true })
   autoAddStatus: OrderStatus | null;
 
+  @Column({ type: 'text', nullable: true })
+  autoAccrualStatus: OrderStatus | null;
+
   @Column({ type: 'uuid', nullable: true })
   autoAddBoardId: string | null;
 

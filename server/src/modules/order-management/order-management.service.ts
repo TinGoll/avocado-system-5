@@ -1,3 +1,4 @@
+import { FinanceAccrualsService } from '../finance/finance-accruals.service';
 import { runDatabaseTransaction } from '../database/database-transaction';
 import {
   BadRequestException,
@@ -30,7 +31,7 @@ import {
 
 type GroupDetails = Pick<
   OrderGroup,
-  'orderNumber' | 'customer' | 'comment' | 'startedAt'
+  'orderNumber' | 'customer' | 'customerId' | 'comment' | 'startedAt'
 >;
 
 @Injectable()
@@ -38,6 +39,7 @@ export class OrderManagementService {
   constructor(
     private readonly source: DataSource,
     private readonly journal: OrderManagementEventService,
+    private readonly accruals: FinanceAccrualsService,
   ) {}
 
   private transaction<T>(
@@ -321,6 +323,21 @@ export class OrderManagementService {
       }
       if (Object.values(changes).some((value) => value !== undefined))
         await manager.update(OrderGroup, id, changes);
+      if (dto.status !== undefined && dto.status !== group.status) {
+        const settings = await manager.findOneByOrFail(
+          OrderManagementSettings,
+          {
+            id: 1,
+          },
+        );
+        if (settings.autoAccrualStatus === dto.status) {
+          await this.accruals.ensureOrderAccrual(
+            manager,
+            id,
+            this.localDate(new Date(), settings.timeZone),
+          );
+        }
+      }
       return this.groupView(await this.group(manager, id));
     });
   }

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   BadRequestException,
   ConflictException,
@@ -78,53 +79,88 @@ export class FinanceAccrualsService {
 
     try {
       return await runDatabaseTransaction(this.source, async (manager) => {
-        const group = await manager.getRepository(OrderGroup).findOne({
-          where: { id: dto.orderGroupId },
-          relations: { orders: true },
-        });
-        if (!group) throw new NotFoundException('Order group not found');
-        if (!group.customerId) {
-          throw new UnprocessableEntityException(
-            'Order group must have a customer before accrual creation',
-          );
-        }
-        if (
-          await manager.getRepository(FinancialAccrual).existsBy({
-            orderGroupId: group.id,
-          })
-        ) {
-          throw new ConflictException('Order group already has an accrual');
-        }
-        const amountMinor = this.sumOrderDocuments(group.orders);
-        if (amountMinor <= 0) {
-          throw new UnprocessableEntityException(
-            'Order group total must be positive',
-          );
-        }
-        const accrual = await manager.getRepository(FinancialAccrual).save({
-          customerId: group.customerId,
-          sourceType: FinancialAccrualSourceType.ORDER,
-          orderGroupId: group.id,
-          title: group.orderNumber,
-          status: FinancialAccrualStatus.ACTIVE,
-          version: 0,
-        });
-        await manager.getRepository(FinancialAccrualEntry).insert({
-          accrualId: accrual.id,
-          kind: FinancialAccrualEntryKind.INITIAL,
-          amountMinor,
-          effectiveDate: dto.effectiveDate,
-          reason: null,
-          reversesEntryId: null,
-          requestId: dto.requestId,
-        });
-        return this.read(accrual, amountMinor);
+        return this.createFromOrderWithManager(manager, dto);
       });
     } catch (error) {
       return this.handleCreateRace(error, dto.requestId, () =>
         this.createFromOrder(dto),
       );
     }
+  }
+
+  async ensureOrderAccrual(
+    manager: EntityManager,
+    orderGroupId: number,
+    effectiveDate: string,
+  ): Promise<void> {
+    const existing = await manager.getRepository(FinancialAccrual).findOneBy({
+      orderGroupId,
+    });
+    if (existing) {
+      if (existing.status === FinancialAccrualStatus.CANCELLED) {
+        throw new UnprocessableEntityException(
+          'Начисление заказа отменено. Автоматическое восстановление невозможно.',
+        );
+      }
+      return;
+    }
+    await this.createFromOrderWithManager(manager, {
+      orderGroupId,
+      effectiveDate,
+      requestId: randomUUID(),
+    });
+  }
+
+  private async createFromOrderWithManager(
+    manager: EntityManager,
+    dto: CreateOrderAccrualDto,
+  ): Promise<FinancialAccrualView> {
+    const group = await manager.getRepository(OrderGroup).findOne({
+      where: { id: dto.orderGroupId },
+      ...(manager.connection.options.type === 'postgres'
+        ? { lock: { mode: 'pessimistic_write' as const } }
+        : {}),
+    });
+    if (!group) throw new NotFoundException('Order group not found');
+    if (!group.customerId) {
+      throw new UnprocessableEntityException(
+        'Для создания начисления привяжите клиента к заказу.',
+      );
+    }
+    if (
+      await manager.getRepository(FinancialAccrual).existsBy({
+        orderGroupId: group.id,
+      })
+    ) {
+      throw new ConflictException('Order group already has an accrual');
+    }
+    const documents = await manager.getRepository(Order).find({
+      where: { orderGroup: { id: group.id } },
+    });
+    const amountMinor = this.sumOrderDocuments(documents);
+    if (amountMinor <= 0) {
+      throw new UnprocessableEntityException(
+        'Для создания начисления стоимость заказа должна быть больше 0 ₽.',
+      );
+    }
+    const accrual = await manager.getRepository(FinancialAccrual).save({
+      customerId: group.customerId,
+      sourceType: FinancialAccrualSourceType.ORDER,
+      orderGroupId: group.id,
+      title: group.orderNumber,
+      status: FinancialAccrualStatus.ACTIVE,
+      version: 0,
+    });
+    await manager.getRepository(FinancialAccrualEntry).insert({
+      accrualId: accrual.id,
+      kind: FinancialAccrualEntryKind.INITIAL,
+      amountMinor,
+      effectiveDate: dto.effectiveDate,
+      reason: null,
+      reversesEntryId: null,
+      requestId: dto.requestId,
+    });
+    return this.read(accrual, amountMinor);
   }
 
   async createManual(

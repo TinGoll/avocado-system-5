@@ -83,6 +83,32 @@ describe('Production board configuration HTTP (SQLite)', () => {
     return { board, url: `/api/production-boards/${board.id}` };
   }
 
+  it('persists and validates automatic accrual settings without changing other settings', async () => {
+    const initial = await request(http)
+      .get('/api/order-management/settings')
+      .expect(200);
+    const initialSettings = initial.body as {
+      autoAccrualStatus: string | null;
+      autoAddStatus: string | null;
+    };
+    expect(initialSettings.autoAccrualStatus).toBeNull();
+    for (const autoAccrualStatus of ['draft', 'cancelled', 'unknown', true]) {
+      await request(http)
+        .patch('/api/order-management/settings')
+        .send({ timeZone: 'Europe/Moscow', autoAccrualStatus })
+        .expect(400);
+    }
+    for (const autoAccrualStatus of ['in_production', 'completed', null]) {
+      const saved = await request(http)
+        .patch('/api/order-management/settings')
+        .send({ timeZone: 'Europe/Moscow', autoAccrualStatus })
+        .expect(200);
+      const savedSettings = saved.body as typeof initialSettings;
+      expect(savedSettings.autoAccrualStatus).toBe(autoAccrualStatus);
+      expect(savedSettings.autoAddStatus).toBe(initialSettings.autoAddStatus);
+    }
+  });
+
   it('creates a complete board and lists it without schema drift', async () => {
     const { board, url } = await create();
     expect(board).toMatchObject({

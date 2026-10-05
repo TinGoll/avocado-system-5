@@ -39,6 +39,7 @@ import { CustomerFinanceHistoryService } from './customer-finance-history.servic
     FinanceController,
     FinancePaymentsController,
   ],
+  exports: [FinanceAccrualsService],
   providers: [
     FinanceAccrualsService,
     FinancePaymentsService,

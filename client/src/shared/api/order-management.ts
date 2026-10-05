@@ -23,6 +23,7 @@ export type OrderManagementSettings = {
   id: 1;
   timeZone: string;
   autoAddStatus: OrderLifecycleStatus | null;
+  autoAccrualStatus: 'in_production' | 'completed' | null;
   autoAddBoardId: string | null;
   autoAddStageId: string | null;
   dueDateRules: DueDateRule[];

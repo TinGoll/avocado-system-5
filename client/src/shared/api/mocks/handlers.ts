@@ -24,6 +24,7 @@ const customStatuses: MockEntity[] = [];
 let managementTimeZone = 'Europe/Moscow';
 let managementAutoAdd: Record<string, string | null> = {
   autoAddStatus: null,
+  autoAccrualStatus: null,
   autoAddBoardId: null,
   autoAddStageId: null,
 };
@@ -565,6 +566,10 @@ const managementHandlers = [
     const body = (await request.json()) as Record<string, unknown>;
     if (typeof body.timeZone === 'string') managementTimeZone = body.timeZone;
     managementAutoAdd = {
+      autoAccrualStatus:
+        typeof body.autoAccrualStatus === 'string'
+          ? body.autoAccrualStatus
+          : null,
       autoAddStatus:
         typeof body.autoAddStatus === 'string' ? body.autoAddStatus : null,
       autoAddBoardId:

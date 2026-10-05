@@ -11,6 +11,7 @@ import type { AxiosError } from 'axios';
 import { type FC, useState } from 'react';
 import { useSWRConfig } from 'swr';
 
+import { orderFinanceKey } from '@entities/finance';
 import { ORDER_STATUS, type OrderStatus } from '@entities/order';
 import { orderManagementKeys, updateManagement } from '@shared/api';
 
@@ -44,6 +45,7 @@ export const OrderLifecycleActions: FC<Props> = ({
 
   const revalidate = () =>
     Promise.all([
+      mutate(orderFinanceKey(groupId)),
       mutate(orderManagementKeys.group(groupId)),
       mutate(orderManagementKeys.groupView(groupId)),
       mutate(orderManagementKeys.production(groupId)),
@@ -71,7 +73,17 @@ export const OrderLifecycleActions: FC<Props> = ({
         await revalidate();
         message.warning('Заказ уже изменён. Показана актуальная версия.');
       } else {
-        message.error('Не удалось изменить состояние заказа');
+        const errorMessage = (
+          caught as AxiosError<{
+            error?: { message?: string };
+            message?: string;
+          }>
+        ).response?.data;
+        message.error(
+          errorMessage?.error?.message ??
+            errorMessage?.message ??
+            'Не удалось изменить состояние заказа',
+        );
       }
     } finally {
       setIsSaving(false);

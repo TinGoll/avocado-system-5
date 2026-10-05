@@ -101,6 +101,7 @@ describe('Order management migration and transactional journal (SQLite)', () => 
         autoAddBoardId: null,
         autoAddStageId: null,
         autoAddStatus: null,
+        autoAccrualStatus: null,
         dueDateRules: '[]',
       },
     ]);
