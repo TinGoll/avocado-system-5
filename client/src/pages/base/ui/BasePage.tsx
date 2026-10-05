@@ -25,6 +25,10 @@ const styles = css`
     bottom: 0;
     z-index: 10;
     border-top: 1px solid var(--app-devider-color);
+    padding: 4px 16px;
+    font-size: 12px;
+    text-align: right;
+    background-color: var(--app-surface-1-background-color);
   }
 
   & .app-main {
@@ -62,7 +66,9 @@ const BasePage: FC = () => {
           <Outlet />
         </div>
       </main>
-      <footer className="app-footer">footer</footer>
+      <footer className="app-footer">
+        Версия {import.meta.env.VITE_APP_VERSION}
+      </footer>
     </div>
   );
 };

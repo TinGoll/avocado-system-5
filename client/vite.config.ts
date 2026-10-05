@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import path from 'path';
 
 import react from '@vitejs/plugin-react';
@@ -6,6 +7,9 @@ import { defineConfig } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
 const isAnalyzeMode = process.argv.includes('analyze');
+const { version: appVersion } = JSON.parse(
+  readFileSync(new URL('../desktop/package.json', import.meta.url), 'utf8'),
+) as { version: string };
 const modeArgumentIndex = process.argv.indexOf('--mode');
 const buildMode =
   modeArgumentIndex === -1 ? undefined : process.argv[modeArgumentIndex + 1];
@@ -13,6 +17,9 @@ const buildMode =
 // https://vite.dev/config/
 export default defineConfig({
   base: buildMode === 'electron' ? './' : '/',
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion),
+  },
   plugins: [
     react(),
     tsconfigPaths(),
